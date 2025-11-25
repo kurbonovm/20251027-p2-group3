@@ -1,2 +1,1 @@
-# mkhrs
-Hotel Reservation System
+# mkhrs - Hotel Reservation System
