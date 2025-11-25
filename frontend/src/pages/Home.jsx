@@ -1,6 +1,8 @@
 import { Box, Container, Typography, Button, Grid, Card, CardContent } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Hotel, EventAvailable, Payment, Security } from '@mui/icons-material';
+import { selectIsAuthenticated } from '../features/auth/authSlice';
 
 /**
  * Home page component
@@ -8,6 +10,7 @@ import { Hotel, EventAvailable, Payment, Security } from '@mui/icons-material';
  */
 const Home = () => {
   const navigate = useNavigate();
+  const isAuthenticated = useSelector(selectIsAuthenticated);
 
   const features = [
     {
@@ -56,18 +59,20 @@ const Home = () => {
               size="large"
               color="secondary"
               onClick={() => navigate('/rooms')}
-              sx={{ mr: 2 }}
+              sx={{ mr: isAuthenticated ? 0 : 2 }}
             >
               Browse Rooms
             </Button>
-            <Button
-              variant="outlined"
-              size="large"
-              sx={{ color: 'white', borderColor: 'white' }}
-              onClick={() => navigate('/register')}
-            >
-              Get Started
-            </Button>
+            {!isAuthenticated && (
+              <Button
+                variant="outlined"
+                size="large"
+                sx={{ color: 'white', borderColor: 'white' }}
+                onClick={() => navigate('/register')}
+              >
+                Get Started
+              </Button>
+            )}
           </Box>
         </Container>
       </Box>
