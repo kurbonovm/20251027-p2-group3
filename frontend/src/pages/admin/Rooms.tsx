@@ -74,8 +74,8 @@ const AdminRooms: React.FC = () => {
                   alt={room.name}
                 />
                 <CardContent>
-                  <Typography variant="h6">{room.name}</Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography variant="h6" noWrap>{room.name}</Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }}>
                     {room.type}
                   </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>

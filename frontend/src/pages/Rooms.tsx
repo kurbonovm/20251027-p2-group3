@@ -19,24 +19,31 @@ import { useNavigate } from 'react-router-dom';
 import { useGetRoomsQuery } from '../features/rooms/roomsApi';
 import { Room, RoomType } from '../types';
 
-interface RoomFilters {
-  roomType: string;
-  minPrice: string;
-  maxPrice: string;
-}
-
 /**
  * Rooms page component to browse available rooms
  */
 const Rooms: React.FC = () => {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<RoomFilters>({
-    roomType: '',
+  const [filters, setFilters] = useState<{
+    type?: string;
+    minPrice?: string;
+    maxPrice?: string;
+  }>({
+    type: '',
     minPrice: '',
     maxPrice: '',
   });
 
-  const { data: rooms, isLoading, error } = useGetRoomsQuery(filters);
+  // Build query params, converting strings to numbers and filtering out empty values
+  const queryParams = {
+    ...(filters.type && { type: filters.type as RoomType }),
+    ...(filters.minPrice && { minPrice: parseFloat(filters.minPrice) }),
+    ...(filters.maxPrice && { maxPrice: parseFloat(filters.maxPrice) }),
+  };
+
+  const { data: rooms, isLoading, error } = useGetRoomsQuery(
+    Object.keys(queryParams).length > 0 ? queryParams : undefined
+  );
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({
@@ -45,7 +52,12 @@ const Rooms: React.FC = () => {
     });
   };
 
-  const roomTypes: string[] = ['Standard', 'Deluxe', 'Suite', 'Presidential'];
+  const roomTypes: { value: string; label: string }[] = [
+    { value: 'STANDARD', label: 'Standard' },
+    { value: 'DELUXE', label: 'Deluxe' },
+    { value: 'SUITE', label: 'Suite' },
+    { value: 'PRESIDENTIAL', label: 'Presidential' },
+  ];
 
   if (isLoading) {
     return (
@@ -76,14 +88,34 @@ const Rooms: React.FC = () => {
               fullWidth
               select
               label="Room Type"
-              name="roomType"
-              value={filters.roomType}
+              name="type"
+              value={filters.type || ''}
               onChange={handleFilterChange}
+              InputLabelProps={{
+                shrink: true,
+              }}
+              SelectProps={{
+                displayEmpty: true,
+                renderValue: (selected) => {
+                  if (!selected || selected === '') {
+                    return 'All Types';
+                  }
+                  const selectedType = roomTypes.find(t => t.value === selected);
+                  return selectedType ? selectedType.label : selected;
+                },
+                MenuProps: {
+                  PaperProps: {
+                    style: {
+                      maxHeight: 300,
+                    },
+                  },
+                },
+              }}
             >
               <MenuItem value="">All Types</MenuItem>
               {roomTypes.map((type) => (
-                <MenuItem key={type} value={type}>
-                  {type}
+                <MenuItem key={type.value} value={type.value}>
+                  {type.label}
                 </MenuItem>
               ))}
             </TextField>
@@ -116,26 +148,48 @@ const Rooms: React.FC = () => {
       ) : (
         <Grid container spacing={3}>
           {rooms?.filter(room => room.available).map((room: Room) => (
-            <Grid item xs={12} sm={6} md={4} key={room.id}>
-              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Grid
+              item
+              xs={12}
+              sm={6}
+              md={4}
+              key={room.id}
+              sx={{
+                display: 'flex !important',
+                flexBasis: 'auto !important',
+                flexGrow: 0,
+                flexShrink: 0,
+                maxWidth: {
+                  xs: '100%',
+                  sm: 'calc(50% - 12px)',
+                  md: 'calc(33.333% - 16px)'
+                }
+              }}
+            >
+              <Card sx={{
+                height: '100%',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
                 <CardMedia
                   component="img"
                   height="200"
                   image={room.imageUrl || 'https://via.placeholder.com/300x200?text=Room+Image'}
                   alt={room.name}
                 />
-                <CardContent sx={{ flexGrow: 1 }}>
+                <CardContent sx={{ flexGrow: 1, overflow: 'hidden' }}>
                   <Typography gutterBottom variant="h5" component="h2">
                     {room.name}
                   </Typography>
-                  <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    <Chip label={room.type} color="primary" size="small" />
-                    <Chip label={`${room.capacity} Guests`} size="small" />
+                  <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     <Chip
-                      label={`${room.availableRooms} Available`}
-                      color="success"
+                      label={room.type.charAt(0) + room.type.slice(1).toLowerCase()}
+                      color="primary"
                       size="small"
                     />
+                    <Chip label={`${room.capacity} Guests`} size="small" />
+                    <Chip label="Available" color="success" size="small" />
                   </Box>
                   <Typography variant="body2" color="text.secondary" paragraph>
                     {room.description}
