@@ -57,18 +57,25 @@ const AdminReservations: React.FC = () => {
 
   if (reservationsLoading || statsLoading) return <Loading message="Loading reservations..." />;
 
-  const filteredReservations = reservations?.filter((reservation: Reservation) => {
-    const matchesSearch = searchTerm === '' ||
-      reservation.user?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reservation.user?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reservation.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reservation.room?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      reservation.id?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredReservations = reservations
+    ?.filter((reservation: Reservation) => {
+      const matchesSearch = searchTerm === '' ||
+        reservation.user?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reservation.user?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reservation.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reservation.room?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reservation.id?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'ALL' || reservation.status === statusFilter;
+      const matchesStatus = statusFilter === 'ALL' || reservation.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Sort by createdAt in descending order (most recent first)
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA;
+    });
 
   const handleStatusChange = async () => {
     if (selectedReservation && newStatus) {

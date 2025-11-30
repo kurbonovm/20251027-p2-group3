@@ -26,12 +26,17 @@ import { Room } from '../types';
 import { PaymentIntent } from '@stripe/stripe-js';
 
 // Load Stripe
-const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
-console.log('Stripe Public Key:', stripePublicKey ? 'Loaded' : 'NOT FOUND');
-if (!stripePublicKey) {
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY as string;
+console.log('Stripe Public Key:', stripePublicKey);
+console.log('Environment variables:', import.meta.env);
+
+if (!stripePublicKey || stripePublicKey === 'undefined') {
   console.error('VITE_STRIPE_PUBLIC_KEY is not defined in environment variables');
 }
-const stripePromise = loadStripe(stripePublicKey);
+
+const stripePromise = stripePublicKey && stripePublicKey !== 'undefined'
+  ? loadStripe(stripePublicKey)
+  : null;
 
 interface BookingLocationState {
   room: Room;
