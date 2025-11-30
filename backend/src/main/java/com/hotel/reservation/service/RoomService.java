@@ -136,17 +136,21 @@ public class RoomService {
      * @return list of filtered rooms
      */
     public List<Room> filterRooms(Room.RoomType type, BigDecimal minPrice, BigDecimal maxPrice) {
-        if (type != null && minPrice != null && maxPrice != null) {
-            return roomRepository.findByTypeAndAvailable(type, true).stream()
-                    .filter(room -> room.getPricePerNight().compareTo(minPrice) >= 0
-                            && room.getPricePerNight().compareTo(maxPrice) <= 0)
-                    .collect(Collectors.toList());
-        } else if (type != null) {
-            return roomRepository.findByTypeAndAvailable(type, true);
-        } else if (minPrice != null && maxPrice != null) {
-            return roomRepository.findByPricePerNightBetween(minPrice, maxPrice);
+        // Start with all available rooms or rooms of specific type
+        List<Room> rooms;
+        if (type != null) {
+            rooms = roomRepository.findByTypeAndAvailable(type, true);
         } else {
-            return roomRepository.findByAvailable(true);
+            rooms = roomRepository.findByAvailable(true);
         }
+
+        // Apply price filters
+        return rooms.stream()
+                .filter(room -> {
+                    boolean passesMinPrice = minPrice == null || room.getPricePerNight().compareTo(minPrice) >= 0;
+                    boolean passesMaxPrice = maxPrice == null || room.getPricePerNight().compareTo(maxPrice) <= 0;
+                    return passesMinPrice && passesMaxPrice;
+                })
+                .collect(Collectors.toList());
     }
 }
