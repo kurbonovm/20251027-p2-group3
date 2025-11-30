@@ -83,4 +83,30 @@ public interface ReservationRepository extends MongoRepository<Reservation, Stri
            "  { 'checkInDate': { $lte: ?0 }, 'checkOutDate': { $gte: ?1 } }" +
            "]}")
     List<Reservation> findByDateRange(LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Count reservations by status.
+     *
+     * @param status the reservation status
+     * @return count of reservations with the specified status
+     */
+    long countByStatus(Reservation.ReservationStatus status);
+
+    /**
+     * Find reservations by check-in date range.
+     *
+     * @param startDate start date
+     * @param endDate end date
+     * @return list of reservations with check-in dates within the range
+     */
+    List<Reservation> findByCheckInDateBetween(LocalDate startDate, LocalDate endDate);
+
+    /**
+     * Find reservations created between dates.
+     *
+     * @param startDateTime start date time
+     * @param endDateTime end date time
+     * @return list of reservations created within the date range
+     */
+    List<Reservation> findByCreatedAtBetween(java.time.LocalDateTime startDateTime, java.time.LocalDateTime endDateTime);
 }

@@ -107,6 +107,7 @@ public class AuthController {
         userDto.setRoles(user.getRoles());
         userDto.setAvatar(user.getAvatar());
         userDto.setProvider(user.getProvider());
+        userDto.setEnabled(user.isEnabled());
         return userDto;
     }
 }
