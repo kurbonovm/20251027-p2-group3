@@ -146,11 +146,16 @@ const Reservations: React.FC = () => {
       }
     });
 
-    // Sort by check-in date (most recent first for active, most recent first for past)
-    const sortByCheckIn = (a: Reservation, b: Reservation) => parseDate(b.checkInDate).getTime() - parseDate(a.checkInDate).getTime();
-    active.sort(sortByCheckIn);
-    past.sort(sortByCheckIn);
-    cancelled.sort(sortByCheckIn);
+    // Sort by creation date (most recently created first)
+    const sortByCreatedAt = (a: Reservation, b: Reservation) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA; // Descending order (newest first)
+    };
+
+    active.sort(sortByCreatedAt);
+    past.sort(sortByCreatedAt);
+    cancelled.sort(sortByCreatedAt);
 
     return { active, past, cancelled };
   };
