@@ -43,6 +43,7 @@ const RoomDetails: React.FC = () => {
   const [checkInDate, setCheckInDate] = useState<Date | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
   const [guests, setGuests] = useState<number>(1);
+  const [selectedImage, setSelectedImage] = useState<string>('');
 
   const handleBookNow = () => {
     if (!isAuthenticated) {
@@ -94,26 +95,58 @@ const RoomDetails: React.FC = () => {
             <CardMedia
               component="img"
               height="400"
-              image={room.imageUrl || 'https://via.placeholder.com/600x400?text=Room+Image'}
+              image={selectedImage || room.imageUrl || 'https://via.placeholder.com/600x400?text=Room+Image'}
               alt={room.name}
-              sx={{ borderRadius: 2, mb: 2 }}
+              sx={{ borderRadius: 2, mb: 2, objectFit: 'cover' }}
             />
 
-            {room.additionalImages && room.additionalImages.length > 0 && (
-              <Grid container spacing={1}>
-                {room.additionalImages.map((img, index) => (
-                  <Grid item xs={4} key={index}>
-                    <CardMedia
-                      component="img"
-                      height="120"
-                      image={img}
-                      alt={`${room.name} ${index + 1}`}
-                      sx={{ borderRadius: 1 }}
-                    />
-                  </Grid>
-                ))}
+            <Grid container spacing={1}>
+              {/* Main image thumbnail */}
+              <Grid item xs={4}>
+                <CardMedia
+                  component="img"
+                  height="120"
+                  image={room.imageUrl || 'https://via.placeholder.com/200x120?text=Room'}
+                  alt={room.name}
+                  sx={{
+                    borderRadius: 1,
+                    cursor: 'pointer',
+                    border: (!selectedImage || selectedImage === room.imageUrl) ? '3px solid #1976d2' : '3px solid transparent',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      opacity: 0.8,
+                      transform: 'scale(1.05)'
+                    },
+                    objectFit: 'cover'
+                  }}
+                  onClick={() => setSelectedImage(room.imageUrl || '')}
+                />
               </Grid>
-            )}
+
+              {/* Additional images thumbnails */}
+              {room.additionalImages && room.additionalImages.map((img, index) => (
+                <Grid item xs={4} key={index}>
+                  <CardMedia
+                    component="img"
+                    height="120"
+                    image={img}
+                    alt={`${room.name} ${index + 1}`}
+                    sx={{
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      border: selectedImage === img ? '3px solid #1976d2' : '3px solid transparent',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        opacity: 0.8,
+                        transform: 'scale(1.05)'
+                      },
+                      objectFit: 'cover'
+                    }}
+                    onClick={() => setSelectedImage(img)}
+                  />
+                </Grid>
+              ))}
+            </Grid>
           </Grid>
 
           <Grid item xs={12} md={5}>

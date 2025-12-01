@@ -25,12 +25,14 @@ const AdminRooms: React.FC = () => {
 
   if (roomsLoading || statsLoading || reservationsLoading) return <Loading message="Loading rooms..." />;
 
-  // Get set of occupied room IDs (rooms with CONFIRMED or CHECKED_IN reservations)
-  const occupiedRoomIds = new Set(
-    reservations
-      ?.filter(r => r.status === 'CONFIRMED' || r.status === 'CHECKED_IN')
-      .map(r => r.room.id) || []
-  );
+  // Count how many reservations exist for each room type
+  const roomOccupancyCount = new Map<string, number>();
+  reservations
+    ?.filter(r => r.status === 'CONFIRMED' || r.status === 'CHECKED_IN')
+    .forEach(r => {
+      const count = roomOccupancyCount.get(r.room.id) || 0;
+      roomOccupancyCount.set(r.room.id, count + 1);
+    });
 
   return (
     <AdminLayout>
@@ -63,7 +65,9 @@ const AdminRooms: React.FC = () => {
 
       <Grid container spacing={3}>
         {rooms?.map((room: Room) => {
-          const isOccupied = occupiedRoomIds.has(room.id);
+          const occupiedCount = roomOccupancyCount.get(room.id) || 0;
+          const availableCount = (room.totalRooms || 1) - occupiedCount;
+          const isFullyOccupied = availableCount <= 0;
           return (
             <Grid item xs={12} sm={6} md={4} key={room.id}>
               <Card>
@@ -78,18 +82,21 @@ const AdminRooms: React.FC = () => {
                   <Typography variant="body2" color="text.secondary" gutterBottom sx={{ whiteSpace: 'normal', wordWrap: 'break-word' }}>
                     {room.type}
                   </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
                     <Typography variant="h6" color="primary">
                       ${room.pricePerNight}/night
                     </Typography>
                     <Chip
-                      label={isOccupied ? 'Occupied' : 'Available'}
-                      color={isOccupied ? 'error' : 'success'}
+                      label={isFullyOccupied ? 'Fully Occupied' : `${availableCount} Available`}
+                      color={isFullyOccupied ? 'error' : 'success'}
                       size="small"
                     />
                   </Box>
                   <Typography variant="body2" sx={{ mt: 1 }}>
                     Capacity: {room.capacity} guests | Floor: {room.floorNumber}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Total Rooms: {room.totalRooms || 1} | Occupied: {occupiedCount}
                   </Typography>
                 </CardContent>
               </Card>

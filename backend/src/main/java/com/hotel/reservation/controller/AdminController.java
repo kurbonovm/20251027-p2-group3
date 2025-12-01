@@ -35,21 +35,21 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> getDashboardOverview() {
         log.info("Getting dashboard overview");
 
-        long totalRooms = roomRepository.count();
+        // Calculate total rooms by summing up totalRooms field from all room types
+        List<Room> allRooms = roomRepository.findAll();
+        long totalRooms = allRooms.stream()
+                .mapToLong(Room::getTotalRooms)
+                .sum();
 
         // Calculate active reservations
         long activeReservations = reservationRepository.countByStatus(Reservation.ReservationStatus.CONFIRMED) +
                                  reservationRepository.countByStatus(Reservation.ReservationStatus.CHECKED_IN);
 
-        // Calculate available rooms (total rooms - rooms with active reservations)
-        // Get unique room IDs from active reservations
+        // Calculate occupied rooms by counting active reservations
         List<Reservation> activeReservationsList = reservationRepository.findByStatus(Reservation.ReservationStatus.CONFIRMED);
         activeReservationsList.addAll(reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN));
 
-        long occupiedRooms = activeReservationsList.stream()
-                .map(r -> r.getRoom().getId())
-                .distinct()
-                .count();
+        long occupiedRooms = activeReservationsList.size();
 
         long availableRooms = totalRooms - occupiedRooms;
         double occupancyRate = totalRooms > 0 ? ((double)occupiedRooms / totalRooms) * 100 : 0;
@@ -139,24 +139,26 @@ public class AdminController {
         log.info("Getting room statistics");
 
         List<Room> allRooms = roomRepository.findAll();
-        long totalRooms = allRooms.size();
 
-        // Calculate occupied rooms based on active reservations
+        // Calculate total rooms by summing up totalRooms field from all room types
+        long totalRooms = allRooms.stream()
+                .mapToLong(Room::getTotalRooms)
+                .sum();
+
+        // Calculate occupied rooms based on active reservations count
         List<Reservation> activeReservationsList = reservationRepository.findByStatus(Reservation.ReservationStatus.CONFIRMED);
         activeReservationsList.addAll(reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN));
 
-        long occupiedRooms = activeReservationsList.stream()
-                .map(r -> r.getRoom().getId())
-                .distinct()
-                .count();
+        long occupiedRooms = activeReservationsList.size();
 
         long availableRooms = totalRooms - occupiedRooms;
         double occupancyRate = totalRooms > 0 ? ((double) occupiedRooms / totalRooms) * 100 : 0;
 
+        // Count room types by summing totalRooms for each type
         Map<String, Long> roomsByType = allRooms.stream()
                 .collect(Collectors.groupingBy(
                         room -> room.getType().name(),
-                        Collectors.counting()
+                        Collectors.summingLong(Room::getTotalRooms)
                 ));
 
         Map<String, Object> statistics = new HashMap<>();

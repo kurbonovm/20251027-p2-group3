@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useGetRoomsQuery } from '../features/rooms/roomsApi';
+import { useGetAllReservationsAdminQuery } from '../features/admin/adminApi';
 import { Room, RoomType } from '../types';
 
 /**
@@ -44,6 +45,17 @@ const Rooms: React.FC = () => {
   const { data: rooms, isLoading, error } = useGetRoomsQuery(
     Object.keys(queryParams).length > 0 ? queryParams : undefined
   );
+
+  const { data: reservations } = useGetAllReservationsAdminQuery();
+
+  // Count how many reservations exist for each room type
+  const roomOccupancyCount = new Map<string, number>();
+  reservations
+    ?.filter(r => r.status === 'CONFIRMED' || r.status === 'CHECKED_IN')
+    .forEach(r => {
+      const count = roomOccupancyCount.get(r.room.id) || 0;
+      roomOccupancyCount.set(r.room.id, count + 1);
+    });
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({
@@ -147,49 +159,57 @@ const Rooms: React.FC = () => {
         <Alert severity="info">No available rooms found matching your criteria.</Alert>
       ) : (
         <Grid container spacing={3}>
-          {rooms?.filter(room => room.available).map((room: Room) => (
-            <Grid
-              item
-              xs={12}
-              sm={6}
-              md={4}
-              key={room.id}
-              sx={{
-                display: 'flex !important',
-                flexBasis: 'auto !important',
-                flexGrow: 0,
-                flexShrink: 0,
-                maxWidth: {
-                  xs: '100%',
-                  sm: 'calc(50% - 12px)',
-                  md: 'calc(33.333% - 16px)'
-                }
-              }}
-            >
-              <Card sx={{
-                height: '100%',
-                width: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={room.imageUrl || 'https://via.placeholder.com/300x200?text=Room+Image'}
-                  alt={room.name}
-                />
-                <CardContent sx={{ flexGrow: 1, overflow: 'hidden' }}>
-                  <Typography gutterBottom variant="h5" component="h2">
-                    {room.name}
-                  </Typography>
-                  <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip
-                      label={room.type.charAt(0) + room.type.slice(1).toLowerCase()}
-                      color="primary"
-                      size="small"
-                    />
-                    <Chip label={`${room.capacity} Guests`} size="small" />
-                    <Chip label="Available" color="success" size="small" />
+          {rooms?.filter(room => room.available).map((room: Room) => {
+            const occupiedCount = roomOccupancyCount.get(room.id) || 0;
+            const availableCount = (room.totalRooms || 1) - occupiedCount;
+            const isFullyOccupied = availableCount <= 0;
+            return (
+              <Grid
+                item
+                xs={12}
+                sm={6}
+                md={4}
+                key={room.id}
+                sx={{
+                  display: 'flex !important',
+                  flexBasis: 'auto !important',
+                  flexGrow: 0,
+                  flexShrink: 0,
+                  maxWidth: {
+                    xs: '100%',
+                    sm: 'calc(50% - 12px)',
+                    md: 'calc(33.333% - 16px)'
+                  }
+                }}
+              >
+                <Card sx={{
+                  height: '100%',
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={room.imageUrl || 'https://via.placeholder.com/300x200?text=Room+Image'}
+                    alt={room.name}
+                  />
+                  <CardContent sx={{ flexGrow: 1, overflow: 'hidden' }}>
+                    <Typography gutterBottom variant="h5" component="h2">
+                      {room.name}
+                    </Typography>
+                    <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip
+                        label={room.type.charAt(0) + room.type.slice(1).toLowerCase()}
+                        color="primary"
+                        size="small"
+                      />
+                      <Chip label={`${room.capacity} Guests`} size="small" />
+                      <Chip
+                        label={isFullyOccupied ? 'Fully Occupied' : `${availableCount} Available`}
+                        color={isFullyOccupied ? 'error' : 'success'}
+                        size="small"
+                      />
                   </Box>
                   <Typography variant="body2" color="text.secondary" paragraph>
                     {room.description}
@@ -213,7 +233,8 @@ const Rooms: React.FC = () => {
                 </CardActions>
               </Card>
             </Grid>
-          ))}
+          );
+        })}
         </Grid>
       )}
     </Container>
