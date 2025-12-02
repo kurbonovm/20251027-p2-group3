@@ -57,4 +57,9 @@ public class UserDto {
      * OAuth2 provider (if applicable)
      */
     private String provider;
+
+    /**
+     * User's account status (enabled/disabled)
+     */
+    private boolean enabled;
 }

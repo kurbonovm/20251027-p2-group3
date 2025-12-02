@@ -78,6 +78,11 @@ public class Room {
     private boolean available = true;
 
     /**
+     * Total number of rooms of this type available in the hotel
+     */
+    private int totalRooms = 1;
+
+    /**
      * Floor number where the room is located
      */
     private int floorNumber;

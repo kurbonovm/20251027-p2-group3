@@ -64,6 +64,11 @@ public class Payment {
     private String stripePaymentIntentId;
 
     /**
+     * Stripe client secret for payment confirmation
+     */
+    private String stripeClientSecret;
+
+    /**
      * Stripe charge ID
      */
     private String stripeChargeId;

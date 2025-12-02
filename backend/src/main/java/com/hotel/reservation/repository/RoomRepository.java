@@ -58,4 +58,12 @@ public interface RoomRepository extends MongoRepository<Room, String> {
      * @return list of rooms with at least the specified capacity
      */
     List<Room> findByCapacityGreaterThanEqual(int capacity);
+
+    /**
+     * Count rooms by availability.
+     *
+     * @param available the availability status
+     * @return count of rooms with the specified availability
+     */
+    long countByAvailable(boolean available);
 }

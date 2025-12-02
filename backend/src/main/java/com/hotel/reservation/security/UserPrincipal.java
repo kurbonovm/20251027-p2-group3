@@ -25,6 +25,7 @@ public class UserPrincipal implements UserDetails {
     private String email;
     private String password;
     private Collection<? extends GrantedAuthority> authorities;
+    private boolean enabled;
 
     /**
      * Create UserPrincipal from User entity.
@@ -41,7 +42,8 @@ public class UserPrincipal implements UserDetails {
                 user.getId(),
                 user.getEmail(),
                 user.getPassword(),
-                authorities
+                authorities,
+                user.isEnabled()
         );
     }
 
@@ -77,6 +79,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }
