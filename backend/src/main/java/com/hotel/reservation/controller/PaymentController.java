@@ -54,11 +54,11 @@ public class PaymentController {
 
         Payment payment = paymentService.createPaymentIntent(reservation);
 
-        // Note: In production, retrieve client secret from Stripe PaymentIntent
-        // For now, returning payment ID as placeholder
+        // Return payment details including client secret for Stripe Elements
         return ResponseEntity.ok(Map.of(
                 "paymentId", payment.getId(),
-                "paymentIntentId", payment.getStripePaymentIntentId()
+                "paymentIntentId", payment.getStripePaymentIntentId(),
+                "clientSecret", payment.getStripeClientSecret()
         ));
     }
 
@@ -85,6 +85,18 @@ public class PaymentController {
     public ResponseEntity<List<Payment>> getPaymentHistory(
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
         List<Payment> payments = paymentService.getUserPaymentHistory(userPrincipal.getId());
+        return ResponseEntity.ok(payments);
+    }
+
+    /**
+     * Get all payments (Admin/Manager only).
+     *
+     * @return list of all payments
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<Payment>> getAllPayments() {
+        List<Payment> payments = paymentService.getAllPayments();
         return ResponseEntity.ok(payments);
     }
 

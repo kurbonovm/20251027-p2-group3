@@ -77,6 +77,7 @@ public class PaymentService {
         payment.setAmount(reservation.getTotalAmount());
         payment.setCurrency("USD");
         payment.setStripePaymentIntentId(paymentIntent.getId());
+        payment.setStripeClientSecret(paymentIntent.getClientSecret());
         payment.setStatus(Payment.PaymentStatus.PENDING);
 
         return paymentRepository.save(payment);
@@ -151,6 +152,15 @@ public class PaymentService {
      */
     public List<Payment> getUserPaymentHistory(String userId) {
         return paymentRepository.findByUserId(userId);
+    }
+
+    /**
+     * Get all payments (Admin only).
+     *
+     * @return list of all payments
+     */
+    public List<Payment> getAllPayments() {
+        return paymentRepository.findAll();
     }
 
     /**
