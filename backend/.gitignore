@@ -27,3 +27,9 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Extra Files
+API_DESIGN_DOCUMENT.md
+IMPLEMENTATION_SUMMARY.md
+meDoc.txt
+
