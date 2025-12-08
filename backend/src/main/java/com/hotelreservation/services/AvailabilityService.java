@@ -1,9 +1,9 @@
 package com.hotelreservation.services;
 
 import com.hotelreservation.dtos.room.RoomAvailabilityRequest;
-import com.hotelreservation.models.Room2;
+import com.hotelreservation.models.Room;
 import com.hotelreservation.models.RoomAvailabilitySnapshot;
-import com.hotelreservation.repositories.Room2Repository;
+import com.hotelreservation.repositories.RoomRepository;
 import com.hotelreservation.repositories.RoomAvailabilitySnapshotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,12 +18,12 @@ import java.util.stream.Collectors;
 @Service
 public class AvailabilityService {
     
-    private final Room2Repository roomRepository;
+    private final RoomRepository roomRepository;
     private final RoomAvailabilitySnapshotRepository snapshotRepository;
     private final ReservationService reservationService;
     
     @Autowired
-    public AvailabilityService(Room2Repository roomRepository,
+    public AvailabilityService(RoomRepository roomRepository,
                                RoomAvailabilitySnapshotRepository snapshotRepository,
                                ReservationService reservationService) {
         this.roomRepository = roomRepository;
@@ -36,14 +36,14 @@ public class AvailabilityService {
      * @param request availability request
      * @return List of available rooms
      */
-    public List<Room2> checkAvailability(RoomAvailabilityRequest request) {
-        List<Room2> rooms;
+    public List<Room> checkAvailability(RoomAvailabilityRequest request) {
+        List<Room> rooms;
         
         if (request.getRoomType() != null) {
             rooms = roomRepository.findByHotelIdAndRoomTypeAndStatus(
-                    request.getHotelId(), request.getRoomType(), Room2.RoomStatus.ACTIVE);
+                    request.getHotelId(), request.getRoomType(), Room.RoomStatus.ACTIVE);
         } else {
-            rooms = roomRepository.findByHotelIdAndStatus(request.getHotelId(), Room2.RoomStatus.ACTIVE);
+            rooms = roomRepository.findByHotelIdAndStatus(request.getHotelId(), Room.RoomStatus.ACTIVE);
         }
         
         // Filter by capacity if specified
@@ -54,7 +54,7 @@ public class AvailabilityService {
         }
         
         // TODO: Check actual availability against reservations
-        // This would involve checking Reservation2Repository for overlapping reservations
+        // This would involve checking ReservationRepository for overlapping reservations
         
         return rooms;
     }

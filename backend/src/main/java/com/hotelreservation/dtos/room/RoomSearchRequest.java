@@ -1,6 +1,6 @@
 package com.hotelreservation.dtos.room;
 
-import com.hotelreservation.models.Room2;
+import com.hotelreservation.models.Room;
 
 /**
  * DTO for room search with filters.
@@ -12,7 +12,7 @@ public class RoomSearchRequest {
     private Double maxPrice;
     private String[] amenities;
     private String bedType;
-    private Room2.RoomStatus status;
+    private Room.RoomStatus status;
     
     public RoomSearchRequest() {
     }
@@ -58,11 +58,11 @@ public class RoomSearchRequest {
         this.bedType = bedType;
     }
     
-    public Room2.RoomStatus getStatus() {
+    public Room.RoomStatus getStatus() {
         return status;
     }
     
-    public void setStatus(Room2.RoomStatus status) {
+    public void setStatus(Room.RoomStatus status) {
         this.status = status;
     }
 }

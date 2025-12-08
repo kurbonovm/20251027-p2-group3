@@ -2,8 +2,8 @@ package com.hotelreservation.services;
 
 import com.hotelreservation.dtos.user.UserProfileRequest;
 import com.hotelreservation.exceptions.ResourceNotFoundException;
-import com.hotelreservation.models.User2;
-import com.hotelreservation.repositories.User2Repository;
+import com.hotelreservation.models.User;
+import com.hotelreservation.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +16,10 @@ import java.util.List;
 @Service
 public class UserService {
     
-    private final User2Repository userRepository;
+    private final UserRepository userRepository;
     
     @Autowired
-    public UserService(User2Repository userRepository) {
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
     
@@ -28,7 +28,7 @@ public class UserService {
      * @param userId user ID
      * @return User
      */
-    public User2 getUserById(String userId) {
+    public User getUserById(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
     }
@@ -38,7 +38,7 @@ public class UserService {
      * @param email user email
      * @return User
      */
-    public User2 getUserByEmail(String email) {
+    public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
@@ -49,8 +49,8 @@ public class UserService {
      * @param request profile update request
      * @return Updated user
      */
-    public User2 updateUserProfile(String userId, UserProfileRequest request) {
-        User2 user = getUserById(userId);
+    public User updateUserProfile(String userId, UserProfileRequest request) {
+        User user = getUserById(userId);
         
         if (request.getName() != null) {
             user.setName(request.getName());
@@ -70,7 +70,7 @@ public class UserService {
      * Get all users (Admin only).
      * @return List of users
      */
-    public List<User2> getAllUsers() {
+    public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 }

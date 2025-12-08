@@ -2,8 +2,8 @@ package com.hotelreservation.services;
 
 import com.hotelreservation.exceptions.PaymentException;
 import com.hotelreservation.exceptions.ResourceNotFoundException;
-import com.hotelreservation.models.Reservation2;
-import com.hotelreservation.repositories.Reservation2Repository;
+import com.hotelreservation.models.Reservation;
+import com.hotelreservation.repositories.ReservationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,13 +19,13 @@ import com.stripe.param.PaymentIntentCreateParams;
 @Service
 public class PaymentService {
     
-    private final Reservation2Repository reservationRepository;
+    private final ReservationRepository reservationRepository;
     
     @Value("${stripe.secret-key:sk_test_default}")
     private String stripeSecretKey;
     
     @Autowired
-    public PaymentService(Reservation2Repository reservationRepository) {
+    public PaymentService(ReservationRepository reservationRepository) {
         this.reservationRepository = reservationRepository;
         Stripe.apiKey = stripeSecretKey;
     }
@@ -38,20 +38,20 @@ public class PaymentService {
      * @return Payment intent ID
      */
     public String createPaymentIntent(String reservationId, Double amount, String currency) {
-        Reservation2 reservation = reservationRepository.findById(reservationId)
+        Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation", "id", reservationId));
         
         try {
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount((long) (amount * 100)) // Convert to cents
                     .setCurrency(currency)
-                    .setMetadata(java.util.Map.of("reservationId", reservationId))
+                    .putMetadata("reservationId", reservationId)
                     .build();
             
             PaymentIntent paymentIntent = PaymentIntent.create(params);
             
             // Update reservation with payment info
-            Reservation2.Payment payment = new Reservation2.Payment();
+            Reservation.Payment payment = new Reservation.Payment();
             payment.setPaymentId(paymentIntent.getId());
             payment.setStatus("pending");
             payment.setAmountPaid(0.0);
@@ -81,10 +81,10 @@ public class PaymentService {
             // Update reservation payment status
             String reservationId = paymentIntent.getMetadata().get("reservationId");
             if (reservationId != null) {
-                Reservation2 reservation = reservationRepository.findById(reservationId)
+                Reservation reservation = reservationRepository.findById(reservationId)
                         .orElseThrow(() -> new ResourceNotFoundException("Reservation", "id", reservationId));
                 
-                Reservation2.Payment payment = reservation.getPayment();
+                Reservation.Payment payment = reservation.getPayment();
                 if (payment != null) {
                     payment.setStatus(paymentIntent.getStatus());
                     payment.setAmountPaid((double) paymentIntent.getAmount() / 100);

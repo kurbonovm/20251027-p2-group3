@@ -5,9 +5,9 @@ import com.hotelreservation.dtos.reservation.ReservationRequest;
 import com.hotelreservation.exceptions.AvailabilityException;
 import com.hotelreservation.exceptions.CapacityException;
 import com.hotelreservation.exceptions.ResourceNotFoundException;
-import com.hotelreservation.models.Reservation2;
-import com.hotelreservation.models.Room2;
-import com.hotelreservation.repositories.Reservation2Repository;
+import com.hotelreservation.models.Reservation;
+import com.hotelreservation.models.Room;
+import com.hotelreservation.repositories.ReservationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +21,12 @@ import java.util.List;
 @Service
 public class ReservationService {
     
-    private final Reservation2Repository reservationRepository;
+    private final ReservationRepository reservationRepository;
     private final RoomService roomService;
     private final AvailabilityService availabilityService;
     
     @Autowired
-    public ReservationService(Reservation2Repository reservationRepository,
+    public ReservationService(ReservationRepository reservationRepository,
                              RoomService roomService,
                              AvailabilityService availabilityService) {
         this.reservationRepository = reservationRepository;
@@ -40,7 +40,7 @@ public class ReservationService {
      * @return Created reservation
      */
     @Transactional
-    public Reservation2 createReservation(ReservationRequest request) {
+    public Reservation createReservation(ReservationRequest request) {
         // Validate dates
         if (request.getCheckInDate().isAfter(request.getCheckOutDate()) ||
             request.getCheckInDate().isEqual(request.getCheckOutDate())) {
@@ -52,27 +52,27 @@ public class ReservationService {
         }
         
         // Get room and validate capacity
-        Room2 room = roomService.getRoomById(request.getHotelId(), request.getRoomId());
+        Room room = roomService.getRoomById(request.getHotelId(), request.getRoomId());
         if (request.getNumberOfGuests() > room.getMaxCapacity()) {
             throw new CapacityException(request.getRoomId(), request.getNumberOfGuests(), room.getMaxCapacity());
         }
         
         // Check availability
-        List<Reservation2> overlapping = reservationRepository.findOverlappingReservations(
+        List<Reservation> overlapping = reservationRepository.findOverlappingReservations(
                 request.getRoomId(), request.getCheckInDate(), request.getCheckOutDate());
         if (!overlapping.isEmpty()) {
             throw new AvailabilityException("Room is not available for the selected dates");
         }
         
         // Create reservation
-        Reservation2 reservation = new Reservation2();
+        Reservation reservation = new Reservation();
         reservation.setUserId(request.getUserId());
         reservation.setHotelId(request.getHotelId());
         reservation.setRoomId(request.getRoomId());
         reservation.setCheckInDate(request.getCheckInDate());
         reservation.setCheckOutDate(request.getCheckOutDate());
         reservation.setNumberOfGuests(request.getNumberOfGuests());
-        reservation.setStatus(Reservation2.ReservationStatus.CONFIRMED);
+        reservation.setStatus(Reservation.ReservationStatus.CONFIRMED);
         reservation.setBookingDate(LocalDateTime.now());
         
         // Calculate total price (simplified - should use nightly rate * nights)
@@ -87,7 +87,7 @@ public class ReservationService {
      * @param reservationId reservation ID
      * @return Reservation
      */
-    public Reservation2 getReservationById(String reservationId) {
+    public Reservation getReservationById(String reservationId) {
         return reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation", "id", reservationId));
     }
@@ -97,7 +97,7 @@ public class ReservationService {
      * @param userId user ID
      * @return List of reservations
      */
-    public List<Reservation2> getReservationsByUserId(String userId) {
+    public List<Reservation> getReservationsByUserId(String userId) {
         return reservationRepository.findByUserId(userId);
     }
     
@@ -108,8 +108,8 @@ public class ReservationService {
      * @return Updated reservation
      */
     @Transactional
-    public Reservation2 modifyReservation(String reservationId, ReservationModifyRequest request) {
-        Reservation2 reservation = getReservationById(reservationId);
+    public Reservation modifyReservation(String reservationId, ReservationModifyRequest request) {
+        Reservation reservation = getReservationById(reservationId);
         
         // Validate new dates if provided
         if (request.getCheckInDate() != null && request.getCheckOutDate() != null) {
@@ -118,7 +118,7 @@ public class ReservationService {
             }
             
             // Check availability for new dates
-            List<Reservation2> overlapping = reservationRepository.findOverlappingReservations(
+            List<Reservation> overlapping = reservationRepository.findOverlappingReservations(
                     reservation.getRoomId(), request.getCheckInDate(), request.getCheckOutDate());
             overlapping.removeIf(r -> r.getId().equals(reservationId)); // Exclude current reservation
             if (!overlapping.isEmpty()) {
@@ -131,7 +131,7 @@ public class ReservationService {
         
         // Validate capacity if guests changed
         if (request.getNumberOfGuests() != null) {
-            Room2 room = roomService.getRoomById(reservation.getHotelId(), reservation.getRoomId());
+            Room room = roomService.getRoomById(reservation.getHotelId(), reservation.getRoomId());
             if (request.getNumberOfGuests() > room.getMaxCapacity()) {
                 throw new CapacityException(reservation.getRoomId(), request.getNumberOfGuests(), room.getMaxCapacity());
             }
@@ -141,7 +141,7 @@ public class ReservationService {
         // Update room if changed
         if (request.getRoomId() != null) {
             // Validate new room availability
-            List<Reservation2> overlapping = reservationRepository.findOverlappingReservations(
+            List<Reservation> overlapping = reservationRepository.findOverlappingReservations(
                     request.getRoomId(), 
                     request.getCheckInDate() != null ? request.getCheckInDate() : reservation.getCheckInDate(),
                     request.getCheckOutDate() != null ? request.getCheckOutDate() : reservation.getCheckOutDate());
@@ -159,8 +159,8 @@ public class ReservationService {
      * @param reservationId reservation ID
      */
     public void cancelReservation(String reservationId) {
-        Reservation2 reservation = getReservationById(reservationId);
-        reservation.setStatus(Reservation2.ReservationStatus.CANCELED);
+        Reservation reservation = getReservationById(reservationId);
+        reservation.setStatus(Reservation.ReservationStatus.CANCELED);
         reservationRepository.save(reservation);
     }
     
@@ -168,7 +168,7 @@ public class ReservationService {
      * Get all reservations (for admin/manager).
      * @return List of all reservations
      */
-    public List<Reservation2> getAllReservations() {
+    public List<Reservation> getAllReservations() {
         return reservationRepository.findAll();
     }
 }

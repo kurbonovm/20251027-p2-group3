@@ -3,7 +3,7 @@ package com.hotelreservation.controllers;
 import com.hotelreservation.dtos.reservation.ReservationModifyRequest;
 import com.hotelreservation.dtos.reservation.ReservationRequest;
 import com.hotelreservation.dtos.reservation.ReservationResponse;
-import com.hotelreservation.models.Reservation2;
+import com.hotelreservation.models.Reservation;
 import com.hotelreservation.services.ReservationService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ public class ReservationController {
     public ResponseEntity<List<ReservationResponse>> getReservations(Authentication authentication) {
         // TODO: Extract user ID from authentication and check roles
         // For now, return all reservations for admin/manager, user's for guests
-        List<Reservation2> reservations = reservationService.getAllReservations();
+        List<Reservation> reservations = reservationService.getAllReservations();
         List<ReservationResponse> responses = reservations.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
@@ -54,7 +54,7 @@ public class ReservationController {
      */
     @GetMapping("/{reservationId}")
     public ResponseEntity<ReservationResponse> getReservationById(@PathVariable String reservationId) {
-        Reservation2 reservation = reservationService.getReservationById(reservationId);
+        Reservation reservation = reservationService.getReservationById(reservationId);
         return ResponseEntity.ok(convertToResponse(reservation));
     }
     
@@ -67,7 +67,7 @@ public class ReservationController {
     @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER')")
     public ResponseEntity<ReservationResponse> createReservation(
             @Valid @RequestBody ReservationRequest request) {
-        Reservation2 reservation = reservationService.createReservation(request);
+        Reservation reservation = reservationService.createReservation(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(convertToResponse(reservation));
     }
     
@@ -82,7 +82,7 @@ public class ReservationController {
     public ResponseEntity<ReservationResponse> modifyReservation(
             @PathVariable String reservationId,
             @Valid @RequestBody ReservationModifyRequest request) {
-        Reservation2 reservation = reservationService.modifyReservation(reservationId, request);
+        Reservation reservation = reservationService.modifyReservation(reservationId, request);
         return ResponseEntity.ok(convertToResponse(reservation));
     }
     
@@ -98,7 +98,7 @@ public class ReservationController {
         return ResponseEntity.noContent().build();
     }
     
-    private ReservationResponse convertToResponse(Reservation2 reservation) {
+    private ReservationResponse convertToResponse(Reservation reservation) {
         ReservationResponse response = new ReservationResponse();
         response.setId(reservation.getId());
         response.setUserId(reservation.getUserId());
