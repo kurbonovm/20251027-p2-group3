@@ -15,6 +15,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Security configuration for OAuth2 and JWT authentication.
@@ -23,6 +27,17 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
+        /**
+         * JwtDecoder bean for JWT authentication.
+         * @return JwtDecoder
+         */
+        @Bean
+        public JwtDecoder jwtDecoder() {
+            // Use your actual secret key here
+            String secretKey = "your-secret-key-change-in-production";
+            SecretKeySpec keySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            return NimbusJwtDecoder.withSecretKey(keySpec).build();
+        }
     
     /**
      * Security filter chain configuration.
@@ -39,7 +54,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/v1/hotels/**/rooms/available").permitAll()
+                .requestMatchers("/api/v1/hotels/rooms/available").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
