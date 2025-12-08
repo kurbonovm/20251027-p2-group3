@@ -32,5 +32,6 @@ logs/
 API_DESIGN_DOCUMENT.md
 IMPLEMENTATION_SUMMARY.md
 meDoc.txt
+models_backup.md
 
 ../.DS_Store

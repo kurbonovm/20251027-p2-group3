@@ -1,8 +1,8 @@
 package com.hotelreservation.services;
 
 import com.hotelreservation.exceptions.UnauthorizedException;
-import com.hotelreservation.models.User2;
-import com.hotelreservation.repositories.User2Repository;
+import com.hotelreservation.models.User;
+import com.hotelreservation.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,11 +18,11 @@ import java.util.Optional;
 @Service
 public class AuthService {
     
-    private final User2Repository userRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     
     @Autowired
-    public AuthService(User2Repository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -34,13 +34,13 @@ public class AuthService {
      * @return Authenticated user
      * @throws UnauthorizedException if authentication fails
      */
-    public User2 authenticate(String email, String password) {
-        Optional<User2> userOpt = userRepository.findByEmail(email);
+    public User authenticate(String email, String password) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
             throw new UnauthorizedException("Invalid email or password");
         }
         
-        User2 user = userOpt.get();
+        User user = userOpt.get();
         if (user.getPasswordHash() == null || 
             !passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new UnauthorizedException("Invalid email or password");
@@ -55,7 +55,7 @@ public class AuthService {
      * @param userId user ID from security context
      * @return User
      */
-    public User2 getCurrentUser(String userId) {
+    public User getCurrentUser(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
     }

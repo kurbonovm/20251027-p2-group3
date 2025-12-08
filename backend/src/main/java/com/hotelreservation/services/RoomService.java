@@ -2,8 +2,8 @@ package com.hotelreservation.services;
 
 import com.hotelreservation.dtos.room.RoomRequest;
 import com.hotelreservation.exceptions.ResourceNotFoundException;
-import com.hotelreservation.models.Room2;
-import com.hotelreservation.repositories.Room2Repository;
+import com.hotelreservation.models.Room;
+import com.hotelreservation.repositories.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,11 +16,11 @@ import java.util.List;
 @Service
 public class RoomService {
     
-    private final Room2Repository roomRepository;
+    private final RoomRepository roomRepository;
     private final HotelService hotelService;
     
     @Autowired
-    public RoomService(Room2Repository roomRepository, HotelService hotelService) {
+    public RoomService(RoomRepository roomRepository, HotelService hotelService) {
         this.roomRepository = roomRepository;
         this.hotelService = hotelService;
     }
@@ -30,7 +30,7 @@ public class RoomService {
      * @param hotelId hotel ID
      * @return List of rooms
      */
-    public List<Room2> getRoomsByHotelId(String hotelId) {
+    public List<Room> getRoomsByHotelId(String hotelId) {
         hotelService.getHotelById(hotelId); // Validate hotel exists
         return roomRepository.findByHotelId(hotelId);
     }
@@ -42,8 +42,8 @@ public class RoomService {
      * @return Room
      * @throws ResourceNotFoundException if room not found
      */
-    public Room2 getRoomById(String hotelId, String roomId) {
-        Room2 room = roomRepository.findById(roomId)
+    public Room getRoomById(String hotelId, String roomId) {
+        Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Room", "id", roomId));
         if (!room.getHotelId().equals(hotelId)) {
             throw new ResourceNotFoundException("Room", "id", roomId);
@@ -57,10 +57,10 @@ public class RoomService {
      * @param roomRequest room request DTO
      * @return Created room
      */
-    public Room2 createRoom(String hotelId, RoomRequest roomRequest) {
+    public Room createRoom(String hotelId, RoomRequest roomRequest) {
         hotelService.getHotelById(hotelId); // Validate hotel exists
         
-        Room2 room = new Room2();
+        Room room = new Room();
         room.setHotelId(hotelId);
         room.setRoomNumber(roomRequest.getRoomNumber());
         room.setRoomType(roomRequest.getRoomType());
@@ -84,8 +84,8 @@ public class RoomService {
      * @param roomRequest updated room data
      * @return Updated room
      */
-    public Room2 updateRoom(String hotelId, String roomId, RoomRequest roomRequest) {
-        Room2 existingRoom = getRoomById(hotelId, roomId);
+    public Room updateRoom(String hotelId, String roomId, RoomRequest roomRequest) {
+        Room existingRoom = getRoomById(hotelId, roomId);
         
         existingRoom.setRoomNumber(roomRequest.getRoomNumber());
         existingRoom.setRoomType(roomRequest.getRoomType());
@@ -107,7 +107,7 @@ public class RoomService {
      * @param roomId room ID
      */
     public void deleteRoom(String hotelId, String roomId) {
-        Room2 room = getRoomById(hotelId, roomId);
+        Room room = getRoomById(hotelId, roomId);
         roomRepository.delete(room);
     }
     
@@ -116,9 +116,9 @@ public class RoomService {
      * @param hotelId hotel ID
      * @return List of available rooms
      */
-    public List<Room2> getAvailableRooms(String hotelId) {
+    public List<Room> getAvailableRooms(String hotelId) {
         hotelService.getHotelById(hotelId); // Validate hotel exists
-        return roomRepository.findByHotelIdAndStatus(hotelId, Room2.RoomStatus.ACTIVE);
+        return roomRepository.findByHotelIdAndStatus(hotelId, Room.RoomStatus.ACTIVE);
     }
 }
 

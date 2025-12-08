@@ -2,7 +2,7 @@ package com.hotelreservation.controllers;
 
 import com.hotelreservation.dtos.user.UserProfileRequest;
 import com.hotelreservation.dtos.user.UserProfileResponse;
-import com.hotelreservation.models.User2;
+import com.hotelreservation.models.User;
 import com.hotelreservation.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,7 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> getCurrentUserProfile(Authentication authentication) {
         // TODO: Extract user ID from authentication
         String userId = authentication.getName(); // This would need to be configured properly
-        User2 user = userService.getUserById(userId);
+        User user = userService.getUserById(userId);
         return ResponseEntity.ok(convertToResponse(user));
     }
     
@@ -52,11 +52,11 @@ public class UserController {
             Authentication authentication,
             @Valid @RequestBody UserProfileRequest request) {
         String userId = authentication.getName();
-        User2 user = userService.updateUserProfile(userId, request);
+        User user = userService.updateUserProfile(userId, request);
         return ResponseEntity.ok(convertToResponse(user));
     }
     
-    private UserProfileResponse convertToResponse(User2 user) {
+    private UserProfileResponse convertToResponse(User user) {
         UserProfileResponse response = new UserProfileResponse();
         response.setId(user.getId());
         response.setEmail(user.getEmail());

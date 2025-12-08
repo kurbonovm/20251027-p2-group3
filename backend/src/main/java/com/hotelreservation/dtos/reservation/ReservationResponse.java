@@ -1,6 +1,6 @@
 package com.hotelreservation.dtos.reservation;
 
-import com.hotelreservation.models.Reservation2;
+import com.hotelreservation.models.Reservation;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -17,7 +17,7 @@ public class ReservationResponse {
     private LocalDate checkOutDate;
     private Integer numberOfGuests;
     private Double totalPrice;
-    private Reservation2.ReservationStatus status;
+    private Reservation.ReservationStatus status;
     private PaymentInfo payment;
     private LocalDateTime bookingDate;
     
@@ -89,11 +89,11 @@ public class ReservationResponse {
         this.totalPrice = totalPrice;
     }
     
-    public Reservation2.ReservationStatus getStatus() {
+    public Reservation.ReservationStatus getStatus() {
         return status;
     }
     
-    public void setStatus(Reservation2.ReservationStatus status) {
+    public void setStatus(Reservation.ReservationStatus status) {
         this.status = status;
     }
     

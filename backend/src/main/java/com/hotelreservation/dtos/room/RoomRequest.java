@@ -1,6 +1,6 @@
 package com.hotelreservation.dtos.room;
 
-import com.hotelreservation.models.Room2;
+import com.hotelreservation.models.Room;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,7 +31,7 @@ public class RoomRequest {
     private Double nightlyRate;
     
     @NotNull(message = "Status is required")
-    private Room2.RoomStatus status;
+    private Room.RoomStatus status;
     
     @NotNull(message = "Max capacity is required")
     @Min(value = 1, message = "Max capacity must be at least 1")
@@ -87,11 +87,11 @@ public class RoomRequest {
         this.nightlyRate = nightlyRate;
     }
     
-    public Room2.RoomStatus getStatus() {
+    public Room.RoomStatus getStatus() {
         return status;
     }
     
-    public void setStatus(Room2.RoomStatus status) {
+    public void setStatus(Room.RoomStatus status) {
         this.status = status;
     }
     

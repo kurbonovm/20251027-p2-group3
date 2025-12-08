@@ -1,6 +1,6 @@
 package com.hotelreservation.dtos.admin;
 
-import com.hotelreservation.models.Reservation2;
+import com.hotelreservation.models.Reservation;
 import java.time.LocalDate;
 
 /**
@@ -11,7 +11,7 @@ public class ReservationSearchRequest {
     private String userId;
     private String hotelId;
     private String roomId;
-    private Reservation2.ReservationStatus status;
+    private Reservation.ReservationStatus status;
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
     private LocalDate startDate; // For date range
@@ -45,11 +45,11 @@ public class ReservationSearchRequest {
         this.roomId = roomId;
     }
     
-    public Reservation2.ReservationStatus getStatus() {
+    public Reservation.ReservationStatus getStatus() {
         return status;
     }
     
-    public void setStatus(Reservation2.ReservationStatus status) {
+    public void setStatus(Reservation.ReservationStatus status) {
         this.status = status;
     }
     

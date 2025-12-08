@@ -2,7 +2,7 @@ package com.hotelreservation.controllers;
 
 import com.hotelreservation.dtos.room.RoomResponse;
 import com.hotelreservation.models.Hotel;
-import com.hotelreservation.models.Room2;
+import com.hotelreservation.models.Room;
 import com.hotelreservation.services.HotelService;
 import com.hotelreservation.services.RoomService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,7 +93,7 @@ public class HotelController {
      */
     @GetMapping("/{hotelId}/rooms")
     public ResponseEntity<List<RoomResponse>> getRooms(@PathVariable String hotelId) {
-        List<Room2> rooms = roomService.getRoomsByHotelId(hotelId);
+        List<Room> rooms = roomService.getRoomsByHotelId(hotelId);
         List<RoomResponse> responses = rooms.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
@@ -107,14 +107,14 @@ public class HotelController {
      */
     @GetMapping("/{hotelId}/rooms/available")
     public ResponseEntity<List<RoomResponse>> getAvailableRooms(@PathVariable String hotelId) {
-        List<Room2> rooms = roomService.getAvailableRooms(hotelId);
+        List<Room> rooms = roomService.getAvailableRooms(hotelId);
         List<RoomResponse> responses = rooms.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(responses);
     }
     
-    private RoomResponse convertToResponse(Room2 room) {
+    private RoomResponse convertToResponse(Room room) {
         RoomResponse response = new RoomResponse();
         response.setId(room.getId());
         response.setHotelId(room.getHotelId());

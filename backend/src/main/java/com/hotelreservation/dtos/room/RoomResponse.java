@@ -1,6 +1,6 @@
 package com.hotelreservation.dtos.room;
 
-import com.hotelreservation.models.Room2;
+import com.hotelreservation.models.Room;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,7 +15,7 @@ public class RoomResponse {
     private String roomType;
     private Double basePrice;
     private Double nightlyRate;
-    private Room2.RoomStatus status;
+    private Room.RoomStatus status;
     private Integer maxCapacity;
     private List<String> amenities;
     private String bedType;
@@ -75,11 +75,11 @@ public class RoomResponse {
         this.nightlyRate = nightlyRate;
     }
     
-    public Room2.RoomStatus getStatus() {
+    public Room.RoomStatus getStatus() {
         return status;
     }
     
-    public void setStatus(Room2.RoomStatus status) {
+    public void setStatus(Room.RoomStatus status) {
         this.status = status;
     }
     

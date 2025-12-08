@@ -3,7 +3,7 @@ package com.hotelreservation.controllers;
 import com.hotelreservation.dtos.room.RoomAvailabilityRequest;
 import com.hotelreservation.dtos.room.RoomRequest;
 import com.hotelreservation.dtos.room.RoomResponse;
-import com.hotelreservation.models.Room2;
+import com.hotelreservation.models.Room;
 import com.hotelreservation.services.AvailabilityService;
 import com.hotelreservation.services.RoomService;
 import jakarta.validation.Valid;
@@ -42,7 +42,7 @@ public class RoomController {
     @GetMapping("/{roomId}")
     public ResponseEntity<RoomResponse> getRoomById(
             @PathVariable String hotelId, @PathVariable String roomId) {
-        Room2 room = roomService.getRoomById(hotelId, roomId);
+        Room room = roomService.getRoomById(hotelId, roomId);
         return ResponseEntity.ok(convertToResponse(room));
     }
     
@@ -56,7 +56,7 @@ public class RoomController {
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<RoomResponse> createRoom(
             @PathVariable String hotelId, @Valid @RequestBody RoomRequest request) {
-        Room2 room = roomService.createRoom(hotelId, request);
+        Room room = roomService.createRoom(hotelId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(convertToResponse(room));
     }
     
@@ -73,7 +73,7 @@ public class RoomController {
             @PathVariable String hotelId,
             @PathVariable String roomId,
             @Valid @RequestBody RoomRequest request) {
-        Room2 room = roomService.updateRoom(hotelId, roomId, request);
+        Room room = roomService.updateRoom(hotelId, roomId, request);
         return ResponseEntity.ok(convertToResponse(room));
     }
     
@@ -101,14 +101,14 @@ public class RoomController {
     public ResponseEntity<List<RoomResponse>> checkAvailability(
             @PathVariable String hotelId, @Valid @RequestBody RoomAvailabilityRequest request) {
         request.setHotelId(hotelId);
-        List<Room2> rooms = availabilityService.checkAvailability(request);
+        List<Room> rooms = availabilityService.checkAvailability(request);
         List<RoomResponse> responses = rooms.stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(responses);
     }
     
-    private RoomResponse convertToResponse(Room2 room) {
+    private RoomResponse convertToResponse(Room room) {
         RoomResponse response = new RoomResponse();
         response.setId(room.getId());
         response.setHotelId(room.getHotelId());
