@@ -25,7 +25,7 @@ public class AvailabilityService {
     @Autowired
     public AvailabilityService(RoomRepository roomRepository,
                                RoomAvailabilitySnapshotRepository snapshotRepository,
-                               ReservationService reservationService) {
+                               @org.springframework.context.annotation.Lazy ReservationService reservationService) {
         this.roomRepository = roomRepository;
         this.snapshotRepository = snapshotRepository;
         this.reservationService = reservationService;
