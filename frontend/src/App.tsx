@@ -1,19 +1,3 @@
-<<<<<<< HEAD
-
-/**
- * Main App Component
- * Entry point for the Hotel Reservation System frontend
- */
-function App() {
-  return (
-		<>
-		<h1>Hotel Reservation System</h1>
-		</>
-  )
-}
-
-export default App
-=======
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -135,4 +119,3 @@ const App: React.FC = () => {
 };
 
 export default App;
->>>>>>> p2group3
