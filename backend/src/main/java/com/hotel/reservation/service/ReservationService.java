@@ -29,6 +29,20 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final RoomRepository roomRepository;
     private final RoomService roomService;
+    private final com.hotel.reservation.repository.PaymentRepository paymentRepository;
+    private final com.hotel.reservation.service.PaymentService paymentService;
+
+    public ReservationService(ReservationRepository reservationRepository,
+                              RoomRepository roomRepository,
+                              RoomService roomService,
+                              @org.springframework.context.annotation.Lazy com.hotel.reservation.repository.PaymentRepository paymentRepository,
+                              @org.springframework.context.annotation.Lazy com.hotel.reservation.service.PaymentService paymentService) {
+        this.reservationRepository = reservationRepository;
+        this.roomRepository = roomRepository;
+        this.roomService = roomService;
+        this.paymentRepository = paymentRepository;
+        this.paymentService = paymentService;
+    }
 
     /**
      * Get all reservations.
@@ -185,6 +199,18 @@ public class ReservationService {
         reservation.setStatus(Reservation.ReservationStatus.CANCELLED);
         reservation.setCancellationReason(reason);
         reservation.setCancelledAt(java.time.LocalDateTime.now());
+
+        // Refund payment on Stripe if exists
+        paymentRepository.findByReservationId(id).ifPresent(payment -> {
+            if (payment.getStatus() == com.hotel.reservation.model.Payment.PaymentStatus.SUCCEEDED) {
+                try {
+                    paymentService.processRefund(payment.getId(), payment.getAmount(), reason);
+                } catch (com.stripe.exception.StripeException e) {
+                    // Log error, but do not block cancellation
+                    System.err.println("Stripe refund failed: " + e.getMessage());
+                }
+            }
+        });
 
         return reservationRepository.save(reservation);
     }
