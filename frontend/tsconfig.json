@@ -14,13 +14,6 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-<<<<<<< HEAD
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
-=======
     /* Allow JS */
     "allowJs": true,
     "checkJs": false,
@@ -35,8 +28,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true
->>>>>>> p2group3
   },
   "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "exclude": ["node_modules", "dist", "build"]
 }
