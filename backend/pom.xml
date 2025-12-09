@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<<<<<<< HEAD
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -12,10 +13,17 @@
     <name>Hotel Reservation System - Backend</name>
     <description>Spring Boot API for Hotel Reservation Platform</description>
 
+=======
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+>>>>>>> p2group3
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.0</version>
+<<<<<<< HEAD
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -28,50 +36,106 @@
 
     <dependencies>
         <!-- Spring Boot Starters -->
+=======
+        <relativePath/>
+    </parent>
+
+    <groupId>com.hotel</groupId>
+    <artifactId>reservation-system</artifactId>
+    <version>1.0.0</version>
+    <name>Hotel Reservation System</name>
+    <description>Hotel Reservation Platform with Spring Boot and MongoDB</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2023.0.0</spring-cloud.version>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Starter Web -->
+>>>>>>> p2group3
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+<<<<<<< HEAD
+=======
+        <!-- Spring Boot Starter Data MongoDB -->
+>>>>>>> p2group3
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
 
+<<<<<<< HEAD
+=======
+        <!-- Spring Boot Starter Security -->
+>>>>>>> p2group3
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+<<<<<<< HEAD
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
+=======
+        <!-- Spring Boot Starter OAuth2 Client -->
+>>>>>>> p2group3
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
 
+<<<<<<< HEAD
+=======
+        <!-- Spring Boot Starter OAuth2 Resource Server -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Validation -->
+>>>>>>> p2group3
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+<<<<<<< HEAD
         <!-- JWT for OAuth2 -->
+=======
+        <!-- Spring Boot Starter Mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- JWT -->
+>>>>>>> p2group3
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>0.12.3</version>
         </dependency>
+<<<<<<< HEAD
 
+=======
+>>>>>>> p2group3
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <version>0.12.3</version>
             <scope>runtime</scope>
         </dependency>
+<<<<<<< HEAD
 
+=======
+>>>>>>> p2group3
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
@@ -79,6 +143,7 @@
             <scope>runtime</scope>
         </dependency>
 
+<<<<<<< HEAD
         <!-- Stripe API -->
         <dependency>
             <groupId>com.stripe</groupId>
@@ -90,6 +155,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
+=======
+        <!-- Stripe -->
+        <dependency>
+            <groupId>com.stripe</groupId>
+            <artifactId>stripe-java</artifactId>
+            <version>24.16.0</version>
+>>>>>>> p2group3
         </dependency>
 
         <!-- Lombok -->
@@ -99,24 +171,55 @@
             <optional>true</optional>
         </dependency>
 
+<<<<<<< HEAD
         <!-- Testing -->
+=======
+        <!-- Spring Boot DevTools -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Boot Starter Test -->
+>>>>>>> p2group3
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
 
+<<<<<<< HEAD
+=======
+        <!-- Spring Security Test -->
+>>>>>>> p2group3
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
 
+<<<<<<< HEAD
         <dependency>
             <groupId>de.flapdoodle.embed</groupId>
             <artifactId>de.flapdoodle.embed.mongo</artifactId>
             <version>4.10.0</version>
             <scope>test</scope>
+=======
+        <!-- ModelMapper -->
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+
+        <!-- Dotenv for loading .env files -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+>>>>>>> p2group3
         </dependency>
     </dependencies>
 
@@ -125,6 +228,10 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+<<<<<<< HEAD
+=======
+                <version>3.2.0</version>
+>>>>>>> p2group3
                 <configuration>
                     <excludes>
                         <exclude>
@@ -136,5 +243,8 @@
             </plugin>
         </plugins>
     </build>
+<<<<<<< HEAD
 
+=======
+>>>>>>> p2group3
 </project>
