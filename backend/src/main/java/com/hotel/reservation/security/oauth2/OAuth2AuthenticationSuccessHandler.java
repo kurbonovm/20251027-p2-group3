@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import com.hotel.reservation.security.JwtTokenProvider;
 import com.hotel.reservation.model.User;
 import com.hotel.reservation.repository.UserRepository;
@@ -22,6 +23,9 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
     @Autowired
     private UserRepository userRepository;
 
+    @Value("${app.frontend.url:http://localhost}")
+    private String frontendUrl;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
@@ -29,6 +33,6 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         String providerId = oAuth2User.getAttribute("sub");
         User user = userRepository.findByProviderAndProviderId(provider, providerId).orElse(null);
         String token = user != null ? jwtTokenProvider.generateTokenFromUserId(user.getId()) : "";
-        response.sendRedirect("http://localhost:5173/oauth2/callback?token=" + token);
+        response.sendRedirect(frontendUrl + "/oauth2/callback?token=" + token);
     }
 }

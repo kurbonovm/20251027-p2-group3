@@ -6,6 +6,7 @@ import com.hotel.reservation.security.oauth2.CustomOAuth2UserService;
 import com.hotel.reservation.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import com.hotel.reservation.security.oauth2.OAuth2AuthenticationFailureHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -65,6 +66,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/rooms/**").permitAll()
                 .requestMatchers("/api/payments/webhook").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER")
                 .anyRequest().authenticated()
             )

@@ -95,7 +95,7 @@ const Rooms: React.FC = () => {
 
       <Box sx={{ mb: 4 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               select
@@ -132,7 +132,7 @@ const Rooms: React.FC = () => {
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               type="number"
@@ -142,7 +142,7 @@ const Rooms: React.FC = () => {
               onChange={handleFilterChange}
             />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               type="number"
@@ -165,10 +165,7 @@ const Rooms: React.FC = () => {
             const isFullyOccupied = availableCount <= 0;
             return (
               <Grid
-                item
-                xs={12}
-                sm={6}
-                md={4}
+                size={{ xs: 12, sm: 6, md: 4 }}
                 key={room.id}
                 sx={{
                   display: 'flex !important',

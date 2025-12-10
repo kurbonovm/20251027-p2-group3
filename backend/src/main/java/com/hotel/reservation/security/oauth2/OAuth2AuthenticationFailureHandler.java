@@ -6,14 +6,19 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 
 @Component
 public class OAuth2AuthenticationFailureHandler implements AuthenticationFailureHandler {
+
+    @Value("${app.frontend.url:http://localhost}")
+    private String frontendUrl;
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         // Redirect to frontend with error
-        response.sendRedirect("http://localhost:5173/login?error=oauth2_failed");
+        response.sendRedirect(frontendUrl + "/login?error=oauth2_failed");
     }
 }

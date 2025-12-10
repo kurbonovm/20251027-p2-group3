@@ -91,7 +91,7 @@ const RoomDetails: React.FC = () => {
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
         <Grid container spacing={4}>
-          <Grid item xs={12} md={7}>
+          <Grid size={{ xs: 12, md: 7 }}>
             <CardMedia
               component="img"
               height="400"
@@ -102,7 +102,7 @@ const RoomDetails: React.FC = () => {
 
             <Grid container spacing={1}>
               {/* Main image thumbnail */}
-              <Grid item xs={4}>
+              <Grid size={{ xs: 4 }}>
                 <CardMedia
                   component="img"
                   height="120"
@@ -125,7 +125,7 @@ const RoomDetails: React.FC = () => {
 
               {/* Additional images thumbnails */}
               {room.additionalImages && room.additionalImages.map((img, index) => (
-                <Grid item xs={4} key={index}>
+                <Grid size={{ xs: 4 }} key={index}>
                   <CardMedia
                     component="img"
                     height="120"
@@ -149,7 +149,7 @@ const RoomDetails: React.FC = () => {
             </Grid>
           </Grid>
 
-          <Grid item xs={12} md={5}>
+          <Grid size={{ xs: 12, md: 5 }}>
             <Card sx={{ p: 3 }}>
               <Typography variant="h4" gutterBottom>
                 {room.name}
@@ -214,7 +214,7 @@ const RoomDetails: React.FC = () => {
                 </Typography>
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <DatePicker
                         label="Check-in Date"
                         value={checkInDate}
@@ -228,7 +228,7 @@ const RoomDetails: React.FC = () => {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <DatePicker
                         label="Check-out Date"
                         value={checkOutDate}
@@ -243,7 +243,7 @@ const RoomDetails: React.FC = () => {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         type="number"

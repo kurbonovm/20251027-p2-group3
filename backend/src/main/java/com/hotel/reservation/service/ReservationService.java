@@ -5,7 +5,6 @@ import com.hotel.reservation.model.Room;
 import com.hotel.reservation.model.User;
 import com.hotel.reservation.repository.ReservationRepository;
 import com.hotel.reservation.repository.RoomRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

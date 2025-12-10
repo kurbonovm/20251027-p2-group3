@@ -43,17 +43,17 @@ const AdminRooms: React.FC = () => {
       {stats && (
         <Paper sx={{ p: 3, mb: 3 }}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="h6">Total Rooms</Typography>
               <Typography variant="h4">{stats.totalRooms}</Typography>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="h6">Available</Typography>
               <Typography variant="h4" color="success.main">
                 {stats.availableRooms}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="h6">Occupied</Typography>
               <Typography variant="h4" color="warning.main">
                 {stats.occupiedRooms}
@@ -69,7 +69,7 @@ const AdminRooms: React.FC = () => {
           const availableCount = (room.totalRooms || 1) - occupiedCount;
           const isFullyOccupied = availableCount <= 0;
           return (
-            <Grid item xs={12} sm={6} md={4} key={room.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={room.id}>
               <Card>
                 <CardMedia
                   component="img"

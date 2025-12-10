@@ -95,6 +95,31 @@ public class PaymentService {
         Payment payment = paymentRepository.findByStripePaymentIntentId(paymentIntentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
+        try {
+            // Retrieve payment intent from Stripe to get charge details
+            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+
+            // Extract charge ID if available
+            if (paymentIntent.getLatestCharge() != null) {
+                payment.setStripeChargeId(paymentIntent.getLatestCharge());
+            }
+
+            // Extract payment method details if available
+            if (paymentIntent.getPaymentMethod() != null) {
+                com.stripe.model.PaymentMethod paymentMethod =
+                    com.stripe.model.PaymentMethod.retrieve(paymentIntent.getPaymentMethod());
+
+                if (paymentMethod.getCard() != null) {
+                    payment.setCardBrand(paymentMethod.getCard().getBrand());
+                    payment.setCardLast4(paymentMethod.getCard().getLast4());
+                    payment.setPaymentMethod("card");
+                }
+            }
+        } catch (StripeException e) {
+            // Log error but don't fail the confirmation
+            System.err.println("Failed to retrieve payment details from Stripe: " + e.getMessage());
+        }
+
         payment.setStatus(Payment.PaymentStatus.SUCCEEDED);
         Payment savedPayment = paymentRepository.save(payment);
 

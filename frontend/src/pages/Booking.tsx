@@ -27,8 +27,6 @@ import { PaymentIntent } from '@stripe/stripe-js';
 
 // Load Stripe
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY as string;
-console.log('Stripe Public Key:', stripePublicKey);
-console.log('Environment variables:', import.meta.env);
 
 if (!stripePublicKey || stripePublicKey === 'undefined') {
   console.error('VITE_STRIPE_PUBLIC_KEY is not defined in environment variables');
@@ -104,20 +102,13 @@ const Booking: React.FC = () => {
         numberOfGuests: guests,
       };
 
-      console.log('Creating reservation...', reservationData);
       const reservation = await createReservation(reservationData).unwrap();
-      console.log('Reservation created:', reservation);
       setReservationId(reservation.id);
 
       // Step 2: Create payment intent
-      console.log('Creating payment intent for reservation:', reservation.id);
       const paymentIntent = await createPaymentIntent({
         reservationId: reservation.id,
       }).unwrap();
-
-      console.log('Payment intent created:', paymentIntent);
-      console.log('Client secret:', paymentIntent.clientSecret);
-      console.log('Payment Intent ID:', paymentIntent.paymentIntentId);
 
       setClientSecret(paymentIntent.clientSecret);
       setPaymentIntentId(paymentIntent.paymentIntentId);
@@ -192,7 +183,7 @@ const Booking: React.FC = () => {
         )}
 
         <Grid container spacing={4}>
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             {activeStep === 0 ? (
               <Card>
                 <CardContent>
@@ -223,7 +214,7 @@ const Booking: React.FC = () => {
                   Booking Information
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CalendarMonth color="primary" />
                       <Box>
@@ -239,7 +230,7 @@ const Booking: React.FC = () => {
                       </Box>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CalendarMonth color="primary" />
                       <Box>
@@ -255,7 +246,7 @@ const Booking: React.FC = () => {
                       </Box>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <People color="primary" />
                       <Box>
@@ -266,7 +257,7 @@ const Booking: React.FC = () => {
                       </Box>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CalendarMonth color="primary" />
                       <Box>
@@ -307,7 +298,7 @@ const Booking: React.FC = () => {
             )}
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>

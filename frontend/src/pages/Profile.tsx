@@ -118,7 +118,7 @@ const Profile: React.FC = () => {
 
           <Box component="form" onSubmit={handleSubmit}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="First Name"
@@ -128,7 +128,7 @@ const Profile: React.FC = () => {
                   disabled={!isEditing}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="Last Name"
@@ -138,7 +138,7 @@ const Profile: React.FC = () => {
                   disabled={!isEditing}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Email"
@@ -147,7 +147,7 @@ const Profile: React.FC = () => {
                   helperText="Email cannot be changed"
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Phone Number"

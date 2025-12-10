@@ -131,7 +131,7 @@ const AdminReservations: React.FC = () => {
 
       <Box sx={{ mb: 3 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <TextField
               fullWidth
               placeholder="Search by guest name, email, room, or reservation ID..."
@@ -146,7 +146,7 @@ const AdminReservations: React.FC = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <FormControl fullWidth>
               <InputLabel>Filter by Status</InputLabel>
               <Select

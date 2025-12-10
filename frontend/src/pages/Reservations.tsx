@@ -194,7 +194,7 @@ const Reservations: React.FC = () => {
     return (
       <Grid container spacing={3} sx={{ mt: 1 }}>
         {reservationList.map((reservation) => (
-            <Grid item xs={12} key={reservation.id}>
+            <Grid size={{ xs: 12 }} key={reservation.id}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
@@ -210,7 +210,7 @@ const Reservations: React.FC = () => {
                   </Box>
 
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="body1" color="text.secondary">
                         <strong>Room:</strong> {reservation.room?.name}
                       </Typography>
@@ -226,7 +226,7 @@ const Reservations: React.FC = () => {
                         {parseDate(reservation.checkOutDate).toLocaleDateString()}
                       </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <Typography variant="body1" color="text.secondary">
                         <strong>Guests:</strong> {reservation.numberOfGuests}
                       </Typography>
