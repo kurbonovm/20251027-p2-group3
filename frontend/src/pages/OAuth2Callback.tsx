@@ -30,22 +30,27 @@ const OAuth2Callback: React.FC = () => {
 
     if (token) {
       // OAuth2 authentication succeeded
-      try {
-        // Parse token and user info (assuming JWT or similar format)
-        const userInfo = {
-          token,
-          // Add additional user info if available in URL params
-        };
-
-        dispatch(setCredentials(userInfo));
-        navigate('/', { replace: true });
-      } catch (err) {
-        console.error('Failed to process OAuth2 token:', err);
-        navigate('/login', {
-          state: { error: 'Failed to process authentication. Please try again.' },
-          replace: true,
-        });
-      }
+      (async () => {
+        try {
+          // Fetch user info from backend using token
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          if (!response.ok) throw new Error('Failed to fetch user info');
+          const user = await response.json();
+          dispatch(setCredentials({ user, token }));
+          navigate('/', { replace: true });
+        } catch (err) {
+          console.error('Failed to process OAuth2 token:', err);
+          navigate('/login', {
+            state: { error: 'Failed to process authentication. Please try again.' },
+            replace: true,
+          });
+        }
+      })();
     } else {
       // No token or error - redirect to login
       navigate('/login', {
