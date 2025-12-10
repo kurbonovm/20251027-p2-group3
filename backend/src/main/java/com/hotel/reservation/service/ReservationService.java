@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
  * @version 1.0
  */
 @Service
-@RequiredArgsConstructor
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
