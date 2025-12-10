@@ -256,4 +256,4 @@ open http://localhost:8080/swagger-ui.html
 
 ---
 
-**Last Updated:** November 2024
+**Last Updated:** December 2025

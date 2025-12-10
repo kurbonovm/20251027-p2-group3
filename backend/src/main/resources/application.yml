@@ -5,8 +5,10 @@ spring:
   # MongoDB Configuration
   data:
     mongodb:
-      uri: mongodb://localhost:27017/hotel_reservation
+      uri: ${MONGODB_URI:mongodb://localhost:27017/hotel_reservation}
       database: hotel_reservation
+      # DocumentDB SSL Configuration
+      auto-index-creation: true
 
   # Security OAuth2 Configuration
   security:

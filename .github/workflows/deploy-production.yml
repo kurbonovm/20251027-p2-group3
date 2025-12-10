@@ -145,7 +145,7 @@ jobs:
         run: |
           echo "📥 Downloading current task definition..."
           aws ecs describe-task-definition \
-            --task-definition $ECS_SERVICE \
+            --task-definition hotel-reservation-system-api-task \
             --query taskDefinition > task-definition.json
 
           # Remove fields that can't be used in registration
