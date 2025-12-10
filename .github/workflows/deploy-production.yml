@@ -160,6 +160,8 @@ jobs:
           )' > task-def-clean.json
 
           echo "✅ Task definition downloaded"
+          echo "📋 Task definition preview:"
+          cat task-def-clean.json | jq '.containerDefinitions[0] | {name, image, secrets: .secrets | length}'
 
       - name: Fill in the new image ID in the task definition
         id: task-def
