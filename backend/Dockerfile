@@ -17,6 +17,13 @@ WORKDIR /app
 # Add non-root user for security
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
+# Download and install AWS DocumentDB certificate bundle
+RUN apt-get update && apt-get install -y wget ca-certificates && \
+    wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -O /app/global-bundle.pem && \
+    keytool -importcert -trustcacerts -file /app/global-bundle.pem \
+      -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit -noprompt -alias rds-global-bundle && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Copy JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
