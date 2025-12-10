@@ -61,7 +61,8 @@ const Register: React.FC = () => {
   };
 
   const handleOAuth2Login = (provider: string) => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/oauth2/${provider}`;
+    // Use Spring Security's default endpoint for OAuth2 login
+    window.location.href = `${import.meta.env.VITE_API_URL.replace(/\/api$/, '')}/oauth2/authorization/${provider}`;
   };
 
   return (
