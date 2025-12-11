@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-## 🏨 Hotel Reservation System
-=======
 # Hotel Reservation System
 
 A modern, full-stack hotel reservation platform built with Spring Boot, MongoDB, React, Redux, and Stripe for secure payment processing.
@@ -291,4 +288,3 @@ Hotel Reservation Team
 ## Support
 
 For issues and questions, please refer to the project documentation or contact the development team.
->>>>>>> p2group3
