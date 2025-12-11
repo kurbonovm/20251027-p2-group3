@@ -33,7 +33,6 @@ build/
 .vscode/
 
 ### Environment Variables ###
-backend/.env
 .env
 application-local.yml
 application-local.properties
