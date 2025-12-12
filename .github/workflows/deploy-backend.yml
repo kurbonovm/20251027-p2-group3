@@ -94,7 +94,8 @@ jobs:
               "essential": true,
               "portMappings": [{"containerPort": 8080, "protocol": "tcp"}],
               "environment": [
-                {"name": "SPRING_PROFILES_ACTIVE", "value": "prod"}
+                {"name": "SPRING_PROFILES_ACTIVE", "value": "prod"},
+                {"name": "FRONTEND_URL", "value": "http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com"}
               ],
               "secrets": [
                 {"name": "MONGODB_URI", "valueFrom": "arn:aws:secretsmanager:'$AWS_REGION':'${{ secrets.AWS_ACCOUNT_ID }}':secret:hotel-reservation/prod/documentdb-connection:uri::"},
@@ -164,7 +165,8 @@ jobs:
               "essential": true,
               "portMappings": [{"containerPort": 8080, "protocol": "tcp"}],
               "environment": [
-                {"name": "SPRING_PROFILES_ACTIVE", "value": "prod"}
+                {"name": "SPRING_PROFILES_ACTIVE", "value": "prod"},
+                {"name": "FRONTEND_URL", "value": "http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com"}
               ],
               "secrets": [
                 {"name": "MONGODB_URI", "valueFrom": "arn:aws:secretsmanager:'$AWS_REGION':'${{ secrets.AWS_ACCOUNT_ID }}':secret:hotel-reservation/prod/documentdb-connection:uri::"},
@@ -204,3 +206,17 @@ jobs:
         run: |
           aws ecs wait services-stable --cluster $ECS_CLUSTER --services $ECS_SERVICE --region $AWS_REGION
           echo "Backend deployed successfully!"
+
+      - name: Get backend public IP
+        id: get-ip
+        run: |
+          TASK_ARN=$(aws ecs list-tasks --cluster $ECS_CLUSTER --service-name $ECS_SERVICE --region $AWS_REGION --query 'taskArns[0]' --output text)
+
+          if [ "$TASK_ARN" != "None" ]; then
+            ENI_ID=$(aws ecs describe-tasks --cluster $ECS_CLUSTER --tasks $TASK_ARN --region $AWS_REGION --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text)
+            PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --region $AWS_REGION --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
+
+            echo "Backend API URL: http://$PUBLIC_IP:8080"
+            echo "Health Check: http://$PUBLIC_IP:8080/actuator/health"
+            echo "Add this to GitHub Secrets as BACKEND_API_URL: http://$PUBLIC_IP:8080/api"
+          fi
