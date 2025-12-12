@@ -1,25 +1,161 @@
 # 🚀 Hotel Reservation System - Complete Setup Guide
 
+## Table of Contents
+1. [Prerequisites](#prerequisites)
+2. [Quick Start (Docker)](#-quick-start-docker)
+3. [Credentials Checklist](#-credentials-checklist)
+4. [Step-by-Step Setup](#-step-by-step-setup)
+5. [Manual Setup (Development)](#-manual-setup-development)
+6. [Testing](#-testing)
+7. [Troubleshooting](#-troubleshooting)
+8. [Production Deployment](#-production-deployment)
+
+---
+
 ## Prerequisites
 
 - ✅ Java 17+ installed
-- ✅ Node.js 18+ installed
+- ✅ Node.js 20+ installed
 - ✅ MongoDB running (or use Docker)
 - ✅ Maven 3.6+ installed
 - ✅ Git installed
+- ✅ Docker & Docker Compose (optional, for containerized setup)
+
+---
+
+## 🚀 Quick Start (Docker)
+
+**Fastest way to get started:**
+
+```bash
+# 1. Clone repository
+git clone https://github.com/kurbonovm/20251027-p2-group3.git
+cd 20251027-p2-group3
+
+# 2. Copy environment file
+cp .env.example .env
+
+# 3. Edit .env with your credentials (see Credentials Checklist below)
+nano .env
+
+# 4. Start everything with Docker
+docker-compose up -d
+
+# 5. Access the application
+# Frontend: http://localhost:80
+# Backend: http://localhost:8080
+# API Docs: http://localhost:8080/swagger-ui.html
+```
+
+---
+
+## 🔑 Credentials Checklist
+
+Before running the application, gather these credentials:
+
+### 1. Google OAuth2
+
+**Where:** [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+
+- [ ] Create project "Hotel Reservation System"
+- [ ] Enable Google+ API
+- [ ] Configure OAuth consent screen
+- [ ] Create OAuth 2.0 Client ID (Web application)
+- [ ] Add redirect URIs:
+  - `http://localhost:8080/login/oauth2/code/google`
+  - `http://localhost:5173/oauth2/callback` (dev)
+  - `http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com/oauth2/callback` (AWS)
+
+**Copy to .env:**
+```env
+GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
+```
+
+### 2. Facebook OAuth2
+
+**Where:** [Facebook Developers](https://developers.facebook.com/apps/)
+
+- [ ] Create app (Consumer type)
+- [ ] Add Facebook Login product
+- [ ] Configure Valid OAuth Redirect URIs:
+  - `http://localhost:8080/login/oauth2/code/facebook`
+  - `http://localhost:5173/oauth2/callback` (dev)
+  - `http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com/oauth2/callback` (AWS)
+
+**Copy to .env:**
+```env
+FACEBOOK_CLIENT_ID=1234567890123456
+FACEBOOK_CLIENT_SECRET=xxxxx
+```
+
+### 3. Stripe
+
+**Where:** [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys)
+
+- [ ] Sign up / Login
+- [ ] Get API keys (Developers → API keys):
+  - Secret key: `sk_test_...`
+  - Publishable key: `pk_test_...`
+- [ ] Create Webhook (Developers → Webhooks):
+  - URL: `http://localhost:8080/api/payments/webhook`
+  - Events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled`, `charge.refunded`
+  - Copy webhook secret: `whsec_...`
+
+**Copy to .env:**
+```env
+STRIPE_API_KEY=sk_test_51xxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+VITE_STRIPE_PUBLIC_KEY=pk_test_51xxxxx
+```
+
+**Test Cards:**
+- Card: `4242 4242 4242 4242`
+- Expiry: Any future date
+- CVC: Any 3 digits
+
+### 4. Gmail (Email Notifications)
+
+**Where:** [Google App Passwords](https://myaccount.google.com/apppasswords)
+
+- [ ] Enable 2-Step Verification
+- [ ] Generate App Password (Select app: Mail, Device: Other)
+- [ ] Copy 16-character password
+
+**Copy to .env:**
+```env
+EMAIL_USERNAME=your-email@gmail.com
+EMAIL_PASSWORD=xxxx xxxx xxxx xxxx
+```
+
+### 5. JWT Secret
+
+**Generate:**
+```bash
+openssl rand -base64 64
+```
+
+**Copy to .env:**
+```env
+JWT_SECRET=generated-secret-key
+```
+
+### 6. MongoDB Password
+
+**Copy to .env:**
+```env
+MONGO_PASSWORD=your-secure-password
+```
 
 ---
 
 ## 📋 Step-by-Step Setup
 
-### Step 1: Clone and Setup Project
+### Step 1: Clone Repository
 
 ```bash
-cd /Users/muhiddin/Desktop/SKILLSTORM/20251027-java-EY/PROJECTS/p2/mkhrs
-
-# Copy environment file
-cp .env.example .env
-cp .env.example frontend/.env
+git clone https://github.com/kurbonovm/20251027-p2-group3.git
+cd 20251027-p2-group3
 ```
 
 ### Step 2: Configure OAuth2 Credentials
@@ -398,33 +534,98 @@ Example room:
 
 ## 🎯 Next Steps
 
+### Local Development:
 1. ✅ **Verify all services are running**
 2. ✅ **Test OAuth2 login flows**
 3. ✅ **Test Stripe payment with test cards**
 4. ✅ **Create test rooms and reservations**
-5. ✅ **Build frontend admin dashboard** (optional)
-6. ✅ **Deploy to AWS** (see aws-deployment.md)
+
+### Production Deployment:
+1. ✅ **Deploy to AWS** - See [aws.md](aws.md) for complete AWS setup guide
+2. ✅ **Configure GitHub Actions** - Automated CI/CD pipeline
+3. ✅ **Set up monitoring** - CloudWatch logs and alarms
+
+---
+
+## 🌐 Production Deployment
+
+### AWS URLs (Production)
+
+After deploying to AWS, your application will be accessible at:
+
+```
+Frontend:  http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com
+Backend:   http://[ECS-TASK-IP]:8080/api
+```
+
+**Note:** Backend IP is assigned dynamically. See workflow output after deployment.
+
+### GitHub Secrets Required
+
+For automated deployment via GitHub Actions:
+
+```
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_ACCOUNT_ID=837271986183
+BACKEND_API_URL=http://[BACKEND-IP]:8080/api
+STRIPE_PUBLIC_KEY=pk_test_51xxxxx
+```
+
+### AWS Secrets Manager Required
+
+Create these secrets in AWS Secrets Manager (us-east-1):
+
+```
+hotel-reservation/jwt-secret
+hotel-reservation/stripe-api-key
+hotel-reservation/stripe-webhook-secret
+hotel-reservation/email-username
+hotel-reservation/email-password
+hotel-reservation/google-client-id
+hotel-reservation/google-client-secret
+hotel-reservation/facebook-client-id
+hotel-reservation/facebook-client-secret
+hotel-reservation/prod/documentdb-connection
+```
+
+**Detailed AWS setup instructions:** See [Docs/aws.md](aws.md)
 
 ---
 
 ## 📚 Additional Resources
 
+### Documentation
+- **AWS Deployment Guide:** [Docs/aws.md](aws.md) - Complete AWS infrastructure setup
+- **Project Repository:** https://github.com/kurbonovm/20251027-p2-group3
+
+### External Resources
 - **Stripe Testing:** https://stripe.com/docs/testing
 - **Google OAuth2:** https://developers.google.com/identity/protocols/oauth2
 - **Facebook Login:** https://developers.facebook.com/docs/facebook-login
 - **Spring Security OAuth2:** https://spring.io/guides/tutorials/spring-boot-oauth2/
 - **MongoDB Documentation:** https://docs.mongodb.com/
+- **AWS DocumentDB:** https://docs.aws.amazon.com/documentdb/
+- **Amazon ECS:** https://docs.aws.amazon.com/ecs/
 
 ---
 
 ## 🆘 Need Help?
 
+### Local Development
 1. Check logs: `docker-compose logs -f`
-2. Verify environment variables are set
-3. Check Swagger UI for API documentation
-4. Review `IMPLEMENTATION_SUMMARY.md` for feature details
+2. Verify environment variables: `docker-compose config`
+3. Check Swagger UI: http://localhost:8080/swagger-ui.html
+4. MongoDB shell: `mongosh mongodb://admin:admin123@localhost:27017`
+
+### AWS/Production
+1. Check CloudWatch Logs: `/ecs/hotel-reservation-backend`
+2. Verify ECS tasks: AWS Console → ECS → Clusters
+3. Check DocumentDB: AWS Console → Amazon DocumentDB
+4. Review GitHub Actions: Repository → Actions tab
 
 ---
 
-**Last Updated:** November 2024
-**Version:** 1.0.0
+**Last Updated:** December 12, 2025
+**Version:** 2.0.0
+**Environment:** Local Development + AWS Production
