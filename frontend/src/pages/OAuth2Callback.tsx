@@ -42,7 +42,15 @@ const OAuth2Callback: React.FC = () => {
           if (!response.ok) throw new Error('Failed to fetch user info');
           const user = await response.json();
           dispatch(setCredentials({ user, token }));
-          navigate('/', { replace: true });
+
+          // Check if there's a saved return URL
+          const returnUrl = sessionStorage.getItem('oauth2_redirect_url');
+          if (returnUrl) {
+            sessionStorage.removeItem('oauth2_redirect_url');
+            navigate(returnUrl, { replace: true });
+          } else {
+            navigate('/', { replace: true });
+          }
         } catch (err) {
           console.error('Failed to process OAuth2 token:', err);
           navigate('/login', {

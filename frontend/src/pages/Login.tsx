@@ -19,6 +19,11 @@ import { LoginRequest } from '../types';
 
 interface LocationState {
   error?: string;
+  from?: {
+    pathname: string;
+    search?: string;
+    hash?: string;
+  };
 }
 
 /**
@@ -60,13 +65,26 @@ const Login: React.FC = () => {
     try {
       const result = await login(formData).unwrap();
       dispatch(setCredentials(result));
-      navigate('/');
+
+      // Redirect to the page user was trying to access, or home
+      const state = location.state as LocationState;
+      const from = state?.from;
+      const redirectTo = from ? `${from.pathname}${from.search || ''}${from.hash || ''}` : '/';
+      navigate(redirectTo, { replace: true });
     } catch (err: any) {
       setError(err.data?.message || 'Failed to login. Please check your credentials.');
     }
   };
 
   const handleOAuth2Login = (provider: string) => {
+    // Save the return URL to sessionStorage for OAuth2 redirect
+    const state = location.state as LocationState;
+    const from = state?.from;
+    if (from) {
+      const returnUrl = `${from.pathname}${from.search || ''}${from.hash || ''}`;
+      sessionStorage.setItem('oauth2_redirect_url', returnUrl);
+    }
+
     // Use Spring Security's default endpoint for OAuth2 login
     window.location.href = `${import.meta.env.VITE_API_URL.replace(/\/api$/, '')}/oauth2/authorization/${provider}`;
   };
