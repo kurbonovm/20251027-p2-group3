@@ -14,11 +14,16 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# Download and install AWS DocumentDB CA certificate
-RUN curl -o /tmp/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem && \
-    keytool -importcert -trustcacerts -file /tmp/global-bundle.pem \
-    -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit -noprompt -alias documentdb && \
-    rm /tmp/global-bundle.pem
+# Download and install AWS DocumentDB CA certificate bundle
+RUN apt-get update && apt-get install -y openssl && \
+    curl -o /tmp/global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem && \
+    csplit -sz /tmp/global-bundle.pem '/-BEGIN CERTIFICATE-/' '{*}' && \
+    for CERT in xx*; do \
+        keytool -import -trustcacerts -keystore $JAVA_HOME/lib/security/cacerts \
+        -storepass changeit -noprompt -alias documentdb-$CERT -file $CERT || true; \
+    done && \
+    rm -f /tmp/global-bundle.pem xx* && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Add non-root user for security
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
