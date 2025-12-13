@@ -1,849 +1,819 @@
-# AWS Infrastructure Setup Guide - Hotel Reservation System
+# AWS Infrastructure Documentation - Hotel Reservation System
 
-This guide provides step-by-step instructions for setting up the complete AWS infrastructure using the **AWS Management Console**.
+Complete AWS infrastructure deployment guide and current production status.
 
 ## Table of Contents
-1. [Prerequisites](#prerequisites)
-2. [VPC and Networking](#1-vpc-and-networking)
-3. [Security Groups](#2-security-groups)
-4. [AWS DocumentDB (MongoDB)](#3-aws-documentdb-mongodb)
-5. [AWS Secrets Manager](#4-aws-secrets-manager)
-6. [Amazon ECR (Container Registry)](#5-amazon-ecr-container-registry)
-7. [Amazon ECS (Container Service)](#6-amazon-ecs-container-service)
-8. [Amazon S3 (Frontend Hosting)](#7-amazon-s3-frontend-hosting)
-9. [IAM Roles and Policies](#8-iam-roles-and-policies)
-10. [Testing and Verification](#9-testing-and-verification)
-11. [Cost Estimates](#10-cost-estimates)
+1. [Current Production Infrastructure](#current-production-infrastructure)
+2. [Architecture Overview](#architecture-overview)
+3. [Deployed Services](#deployed-services)
+4. [GitHub Actions CI/CD](#github-actions-cicd)
+5. [Cost Breakdown](#cost-breakdown)
+6. [Monitoring and Maintenance](#monitoring-and-maintenance)
+7. [Manual Setup Guide](#manual-setup-guide)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Prerequisites
+## Current Production Infrastructure
 
-- AWS Account with administrative access
-- Region: **us-east-1** (N. Virginia)
-- Basic understanding of AWS services
+### Production URLs
+- **Frontend (HTTPS)**: https://d32joxegsl0xnf.cloudfront.net
+- **Backend API (HTTPS)**: https://d1otlwpcr6195.cloudfront.net/api
+- **Backend ALB**: http://hotel-reservation-alb-1402628275.us-east-1.elb.amazonaws.com/api
 
-**Estimated Total Time:** 2-3 hours
-**Estimated Monthly Cost:** $280-$300
+### Infrastructure Status
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| **Region** | Active | us-east-1 (N. Virginia) |
+| **VPC** | Active | hotel-reservation-prod-vpc |
+| **ECS Cluster** | Active | hotel-reservation-prod-cluster |
+| **ECS Service** | Active | hotel-reservation-backend-service (1 task running) |
+| **DocumentDB** | Active | hotel-reservation-prod-docdb-cluster |
+| **ALB** | Active | hotel-reservation-alb |
+| **CloudFront** | Active | 2 distributions (frontend + backend) |
+| **S3 Bucket** | Active | hotel-reservation-frontend-us-east-1 |
+| **ECR Repositories** | Active | Backend + Frontend |
 
 ---
 
-## 1. VPC and Networking
+## Architecture Overview
 
-### 1.1 Create VPC
-
-1. Navigate to **VPC Dashboard**
-   - Go to: https://console.aws.amazon.com/vpc
-   - Click **"Your VPCs"** → **"Create VPC"**
-
-2. **Configure VPC:**
-   ```
-   Name tag:                hotel-reservation-prod-vpc
-   IPv4 CIDR block:         10.0.0.0/16
-   IPv6 CIDR block:         No IPv6 CIDR block
-   Tenancy:                 Default
-   Tags:
-     - Key: Environment,    Value: prod
-     - Key: Project,        Value: hotel-reservation
-   ```
-
-3. Click **"Create VPC"**
-4. Note the **VPC ID** (e.g., `vpc-0a63b04ad942cc161`)
-
-### 1.2 Create Subnets
-
-Create **4 subnets** (2 public, 2 private in different Availability Zones):
-
-#### Public Subnet 1
-1. Click **"Subnets"** → **"Create subnet"**
-2. Configure:
-   ```
-   VPC ID:                  [Select the VPC you created]
-   Subnet name:             hotel-reservation-prod-public-subnet-1
-   Availability Zone:       us-east-1a
-   IPv4 CIDR block:         10.0.1.0/24
-   Tags:
-     - Key: Type,           Value: Public
-     - Key: Environment,    Value: prod
-   ```
-3. Click **"Create subnet"**
-
-#### Public Subnet 2
 ```
-Subnet name:             hotel-reservation-prod-public-subnet-2
-Availability Zone:       us-east-1b
-IPv4 CIDR block:         10.0.2.0/24
-Tags:
-  - Key: Type,           Value: Public
-```
-
-#### Private Subnet 1
-```
-Subnet name:             hotel-reservation-prod-private-subnet-1
-Availability Zone:       us-east-1a
-IPv4 CIDR block:         10.0.11.0/24
-Tags:
-  - Key: Type,           Value: Private
-```
-
-#### Private Subnet 2
-```
-Subnet name:             hotel-reservation-prod-private-subnet-2
-Availability Zone:       us-east-1b
-IPv4 CIDR block:         10.0.12.0/24
-Tags:
-  - Key: Type,           Value: Private
-```
-
-### 1.3 Create Internet Gateway
-
-1. Click **"Internet Gateways"** → **"Create internet gateway"**
-2. Configure:
-   ```
-   Name tag:                hotel-reservation-prod-igw
-   ```
-3. Click **"Create internet gateway"**
-4. **Attach to VPC:**
-   - Select the IGW you just created
-   - Click **"Actions"** → **"Attach to VPC"**
-   - Select your VPC
-   - Click **"Attach internet gateway"**
-
-### 1.4 Create NAT Gateways
-
-**Important:** Create 2 NAT Gateways (one per AZ) for high availability.
-
-#### NAT Gateway 1
-1. Click **"NAT Gateways"** → **"Create NAT gateway"**
-2. Configure:
-   ```
-   Name:                    hotel-reservation-prod-nat-1
-   Subnet:                  hotel-reservation-prod-public-subnet-1
-   Connectivity type:       Public
-   Elastic IP allocation:   [Click "Allocate Elastic IP"]
-   Tags:
-     - Key: Environment,    Value: prod
-   ```
-3. Click **"Create NAT gateway"**
-4. Wait for status to be **"Available"** (~2-3 minutes)
-
-#### NAT Gateway 2
-Repeat for second AZ:
-```
-Name:                    hotel-reservation-prod-nat-2
-Subnet:                  hotel-reservation-prod-public-subnet-2
-```
-
-### 1.5 Create Route Tables
-
-#### Public Route Table
-1. Click **"Route Tables"** → **"Create route table"**
-2. Configure:
-   ```
-   Name:                    hotel-reservation-prod-public-rt
-   VPC:                     [Select your VPC]
-   ```
-3. Click **"Create route table"**
-4. **Add Routes:**
-   - Select the route table
-   - Click **"Routes"** tab → **"Edit routes"** → **"Add route"**
-   - Destination: `0.0.0.0/0`, Target: [Internet Gateway]
-   - Click **"Save changes"**
-5. **Associate Subnets:**
-   - Click **"Subnet associations"** tab → **"Edit subnet associations"**
-   - Select both **public subnets**
-   - Click **"Save associations"**
-
-#### Private Route Table 1
-```
-Name:                    hotel-reservation-prod-private-rt-1
-Route:
-  - Destination:         0.0.0.0/0
-  - Target:              NAT Gateway 1
-Associated Subnets:      hotel-reservation-prod-private-subnet-1
-```
-
-#### Private Route Table 2
-```
-Name:                    hotel-reservation-prod-private-rt-2
-Route:
-  - Destination:         0.0.0.0/0
-  - Target:              NAT Gateway 2
-Associated Subnets:      hotel-reservation-prod-private-subnet-2
+┌─────────────────────────────────────────────────────────────────┐
+│                         Internet                                 │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+        ┌────────────────┴────────────────┐
+        │                                 │
+    ┌───▼──────────────┐      ┌──────────▼─────────┐
+    │  CloudFront      │      │  CloudFront        │
+    │  (Frontend)      │      │  (Backend API)     │
+    │  d32joxegsl...   │      │  d1otlwpcr6195...  │
+    └───┬──────────────┘      └──────────┬─────────┘
+        │                                 │
+    ┌───▼──────────────┐      ┌──────────▼─────────┐
+    │  S3 Bucket       │      │  Application LB    │
+    │  (Static Site)   │      │  hotel-res-alb     │
+    └──────────────────┘      └──────────┬─────────┘
+                                          │
+                              ┌───────────▼───────────┐
+                              │  VPC (10.0.0.0/16)    │
+                              │                       │
+                              │  ┌─────────────────┐  │
+                              │  │ ECS Fargate     │  │
+                              │  │ Service         │  │
+                              │  │ (1 vCPU, 2GB)   │  │
+                              │  └────────┬────────┘  │
+                              │           │           │
+                              │  ┌────────▼────────┐  │
+                              │  │  DocumentDB     │  │
+                              │  │  (db.t3.medium) │  │
+                              │  └─────────────────┘  │
+                              └───────────────────────┘
 ```
 
 ---
 
-## 2. Security Groups
+## Deployed Services
 
-### 2.1 ECS Security Group
+### 1. Networking
 
-1. Navigate to **EC2 Dashboard** → **Security Groups**
-2. Click **"Create security group"**
-3. Configure:
-   ```
-   Security group name:     hotel-reservation-prod-ecs-sg
-   Description:             Security group for ECS tasks
-   VPC:                     [Select your VPC]
+**VPC Configuration:**
+- VPC CIDR: 10.0.0.0/16
+- Subnets:
+  - Public Subnet 1: us-east-1a (10.0.1.0/24)
+  - Public Subnet 2: us-east-1b (10.0.2.0/24)
+  - Private Subnet 1: us-east-1a (10.0.11.0/24)
+  - Private Subnet 2: us-east-1b (10.0.12.0/24)
+- Internet Gateway: hotel-reservation-prod-igw
+- NAT Gateways: 2 (one per AZ for HA)
 
-   Inbound rules:
-     - Type: Custom TCP
-       Port range: 8080
-       Source: 0.0.0.0/0 (or limit to your IP for testing)
-       Description: Allow HTTP traffic to backend
+**Security Groups:**
+- `hotel-reservation-prod-ecs-sg`: ECS task security group
+  - Inbound: Port 8080 from ALB security group
+  - Outbound: All traffic
+- `hotel-reservation-prod-docdb-sg`: DocumentDB security group
+  - Inbound: Port 27017 from ECS security group
+  - Outbound: All traffic
+- `hotel-reservation-prod-alb-sg`: Application Load Balancer
+  - Inbound: Port 80 from 0.0.0.0/0
+  - Outbound: All traffic
 
-   Outbound rules:
-     - Type: All traffic
-       Destination: 0.0.0.0/0
+### 2. Database (DocumentDB)
 
-   Tags:
-     - Key: Name,           Value: hotel-reservation-prod-ecs-sg
-     - Key: Environment,    Value: prod
-   ```
-4. Click **"Create security group"**
+**Cluster Configuration:**
+- Cluster ID: `hotel-reservation-prod-docdb-cluster`
+- Endpoint: `hotel-reservation-prod-docdb-cluster.cluster-cy3ey826y545.us-east-1.docdb.amazonaws.com`
+- Engine: Amazon DocumentDB 5.0
+- Instance Class: db.t3.medium
+- Instances: 1 (can scale to 2-3 for HA)
+- Storage: Encrypted at rest
+- Backup Retention: 7 days
+- Port: 27017
 
-### 2.2 DocumentDB Security Group
+**Connection:**
+- Authentication: Username/password (stored in Secrets Manager)
+- TLS: Required (with certificate validation disabled for compatibility)
+- Connection String: Stored in `hotel-reservation/prod/documentdb-connection-uri`
 
-1. Click **"Create security group"**
-2. Configure:
-   ```
-   Security group name:     hotel-reservation-prod-docdb-sg
-   Description:             Security group for DocumentDB cluster
-   VPC:                     [Select your VPC]
+### 3. Container Registry (ECR)
 
-   Inbound rules:
-     - Type: Custom TCP
-       Port range: 27017
-       Source: [Select hotel-reservation-prod-ecs-sg]
-       Description: Allow MongoDB from ECS tasks
+**Repositories:**
+- Backend: `837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-backend`
+- Frontend: `837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-frontend`
+- Scan on push: Enabled
+- Encryption: AES-256
 
-   Outbound rules:
-     - Type: All traffic
-       Destination: 0.0.0.0/0
+### 4. Container Service (ECS Fargate)
 
-   Tags:
-     - Key: Name,           Value: hotel-reservation-prod-docdb-sg
-     - Key: Environment,    Value: prod
-   ```
-3. Click **"Create security group"**
+**Cluster:**
+- Name: `hotel-reservation-prod-cluster`
+- Type: AWS Fargate (serverless)
+- Container Insights: Enabled
+
+**Task Definition: hotel-reservation-backend**
+- Revision: 31 (current)
+- CPU: 1024 (1 vCPU)
+- Memory: 2048 MB (2 GB)
+- Network Mode: awsvpc
+- Launch Type: Fargate
+
+**Container Configuration:**
+- Image: Latest from ECR
+- Port: 8080 (TCP)
+- Health Check:
+  - Command: `wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1`
+  - Interval: 30s
+  - Timeout: 5s
+  - Retries: 3
+  - Start Period: 60s
+
+**Environment Variables:**
+- `SPRING_PROFILES_ACTIVE=prod`
+- `FRONTEND_URL=https://d32joxegsl0xnf.cloudfront.net`
+
+**Secrets (from AWS Secrets Manager):**
+- MONGODB_URI
+- JWT_SECRET
+- STRIPE_API_KEY
+- STRIPE_WEBHOOK_SECRET
+- EMAIL_USERNAME
+- EMAIL_PASSWORD
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
+- BACKEND_URL
+
+**Service:**
+- Name: `hotel-reservation-backend-service`
+- Desired Count: 1
+- Running Count: 1
+- Subnets: Private subnets 1 & 2
+- Public IP: Enabled
+- Load Balancer: Integrated with ALB
+
+**Logging:**
+- CloudWatch Log Group: `/ecs/hotel-reservation-backend`
+- Stream Prefix: ecs
+- Region: us-east-1
+
+### 5. Load Balancer
+
+**Application Load Balancer:**
+- Name: `hotel-reservation-alb`
+- DNS: `hotel-reservation-alb-1402628275.us-east-1.elb.amazonaws.com`
+- Scheme: Internet-facing
+- IP Address Type: IPv4
+- Subnets: Public subnets in us-east-1a and us-east-1b
+
+**Target Group:**
+- Name: `hotel-backend-tg`
+- Protocol: HTTP
+- Port: 8080
+- Target Type: IP
+- Health Check:
+  - Path: /actuator/health
+  - Success Codes: 200-299
+  - Interval: 30s
+  - Timeout: 5s
+  - Healthy Threshold: 2
+  - Unhealthy Threshold: 2
+
+**Listener:**
+- Port: 80 (HTTP)
+- Default Action: Forward to target group
+
+### 6. CloudFront Distributions
+
+**Frontend Distribution:**
+- ID: E3AEFUC8QLUDD9
+- Domain: `d32joxegsl0xnf.cloudfront.net`
+- Origin: S3 bucket (hotel-reservation-frontend-us-east-1)
+- Status: Deployed
+- SSL Certificate: Default CloudFront certificate
+- Comment: CloudFront distribution for hotel reservation frontend
+
+**Backend Distribution:**
+- ID: E1IN2SZ3C0Y2LC
+- Domain: `d1otlwpcr6195.cloudfront.net`
+- Origin: Application Load Balancer
+- Status: Deployed
+- SSL Certificate: Default CloudFront certificate
+- Comment: CloudFront distribution for hotel reservation backend API
+- Purpose: HTTPS termination for backend API
+
+### 7. S3 Static Website Hosting
+
+**Bucket:**
+- Name: `hotel-reservation-frontend-us-east-1`
+- Region: us-east-1
+- Website Endpoint: `http://hotel-reservation-frontend-us-east-1.s3-website-us-east-1.amazonaws.com`
+- Public Access: Enabled (via bucket policy)
+- Hosting: Static website (index.html)
+
+**Bucket Policy:**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::hotel-reservation-frontend-us-east-1/*"
+    }
+  ]
+}
+```
+
+### 8. Secrets Manager
+
+**Stored Secrets:**
+| Secret Name | Purpose | Last Updated |
+|-------------|---------|--------------|
+| `hotel-reservation/jwt-secret` | JWT token signing | Dec 12, 2025 |
+| `hotel-reservation/stripe-api-key` | Stripe payments | Dec 13, 2025 |
+| `hotel-reservation/stripe-webhook-secret` | Stripe webhooks | Dec 13, 2025 |
+| `hotel-reservation/email-username` | SMTP email | Dec 12, 2025 |
+| `hotel-reservation/email-password` | SMTP password | Dec 12, 2025 |
+| `hotel-reservation/google-client-id` | OAuth2 Google | Dec 13, 2025 |
+| `hotel-reservation/google-client-secret` | OAuth2 Google | Dec 13, 2025 |
+| `hotel-reservation/backend-url` | Backend URL | Dec 13, 2025 |
+| `hotel-reservation/frontend-url` | Frontend URL | Dec 13, 2025 |
+| `hotel-reservation/prod/documentdb-connection-uri` | MongoDB connection | Dec 12, 2025 |
+| `hotel-reservation/prod/db-master-password` | Database password | Dec 12, 2025 |
 
 ---
 
-## 3. AWS DocumentDB (MongoDB)
+## GitHub Actions CI/CD
 
-### 3.1 Create Subnet Group
+### GitHub Secrets
 
-1. Navigate to **Amazon DocumentDB**
-   - Go to: https://console.aws.amazon.com/docdb
-   - Click **"Subnet groups"** → **"Create"**
+| Secret Name | Purpose | Current Value |
+|-------------|---------|---------------|
+| `AWS_ACCESS_KEY_ID` | AWS authentication | (configured) |
+| `AWS_SECRET_ACCESS_KEY` | AWS authentication | (configured) |
+| `AWS_ACCOUNT_ID` | AWS account number | 837271986183 |
+| `BACKEND_API_URL` | Backend CloudFront URL | https://d1otlwpcr6195.cloudfront.net |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Frontend distribution | E3AEFUC8QLUDD9 |
+| `STRIPE_PUBLIC_KEY` | Stripe publishable key | (configured) |
 
-2. Configure:
-   ```
-   Name:                    hotel-reservation-prod-docdb-subnet-group
-   Description:             Subnet group for DocumentDB cluster
-   VPC:                     [Select your VPC]
-   Availability Zones:      us-east-1a, us-east-1b
-   Subnets:                 [Select both private subnets]
-   Tags:
-     - Key: Environment,    Value: prod
-     - Key: Project,        Value: hotel-reservation
-   ```
+### Automated Workflows
 
-3. Click **"Create"**
+**Backend Deployment ([deploy-backend.yml](../.github/workflows/deploy-backend.yml)):**
+- Trigger: Push to main (backend/** or workflow file)
+- Steps:
+  1. Build Docker image
+  2. Push to ECR
+  3. Register new ECS task definition (1 vCPU, 2GB memory)
+  4. Update ECS service with force deployment
+  5. Wait for service stability
+- Deployment Time: ~5-8 minutes
 
-### 3.2 Create DocumentDB Cluster
+**Frontend Deployment ([deploy-frontend.yml](../.github/workflows/deploy-frontend.yml)):**
+- Trigger: Push to main (frontend/** or workflow file)
+- Steps:
+  1. Build React app with environment variables
+  2. Upload to S3 bucket
+  3. Invalidate CloudFront cache
+- Deployment Time: ~2-3 minutes
 
-1. Click **"Clusters"** → **"Create"**
-2. **Configuration:**
-   ```
-   Cluster identifier:      hotel-reservation-prod-docdb-cluster
-   Engine version:          5.0.0
-   Instance class:          db.t3.medium
-   Number of instances:     1 (increase to 2-3 for production HA)
+### Manual Deployment
 
-   Master username:         hoteldbadmin
-   Master password:         [Generate strong password, save it!]
-
-   Virtual Private Cloud (VPC):
-     VPC:                   [Select your VPC]
-     Subnet group:          hotel-reservation-prod-docdb-subnet-group
-     VPC security groups:   hotel-reservation-prod-docdb-sg
-
-   Cluster options:
-     Port:                  27017
-     Backup retention:      7 days
-     Preferred backup window: 03:00-04:00 UTC
-
-   Encryption:
-     ✅ Enable encryption at rest
-
-   Maintenance:
-     Preferred window:      sun:04:00-sun:05:00 UTC
-     ✅ Enable auto minor version upgrade
-
-   Tags:
-     - Key: Environment,    Value: prod
-     - Key: Project,        Value: hotel-reservation
-     - Key: ManagedBy,      Value: Manual
-   ```
-
-3. Click **"Create cluster"**
-4. Wait for status: **"Available"** (~10-15 minutes)
-5. **Note the Cluster Endpoint** (e.g., `hotel-reservation-prod-docdb-cluster.cluster-xyz.us-east-1.docdb.amazonaws.com`)
-
-### 3.3 Download DocumentDB Certificate
-
+**Trigger workflow manually:**
 ```bash
-wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
-```
+# Backend
+gh workflow run deploy-backend.yml
 
-This is already included in your Docker image, so this is for reference only.
-
----
-
-## 4. AWS Secrets Manager
-
-Create secrets for application configuration.
-
-### 4.1 Create JWT Secret
-
-1. Navigate to **AWS Secrets Manager**
-   - Go to: https://console.aws.amazon.com/secretsmanager
-   - Click **"Store a new secret"**
-
-2. Configure:
-   ```
-   Secret type:             Other type of secret
-   Key/value pairs:
-     - Plaintext tab
-     - Paste: [256-bit random string, e.g., from: openssl rand -base64 64]
-
-   Encryption key:          aws/secretsmanager (default)
-   ```
-
-3. Click **"Next"**
-4. Configure:
-   ```
-   Secret name:             hotel-reservation/jwt-secret
-   Description:             JWT secret for token signing
-   Tags:
-     - Key: Environment,    Value: prod
-     - Key: Project,        Value: hotel-reservation
-   ```
-
-5. Click **"Next"** → **"Next"** → **"Store"**
-
-### 4.2 Create Additional Secrets
-
-Repeat the above process for each of these secrets:
-
-| Secret Name | Description | Example Value |
-|------------|-------------|---------------|
-| `hotel-reservation/stripe-api-key` | Stripe secret key | `sk_live_...` or `sk_test_...` |
-| `hotel-reservation/stripe-webhook-secret` | Stripe webhook secret | `whsec_...` |
-| `hotel-reservation/email-username` | SMTP username | `your-email@gmail.com` |
-| `hotel-reservation/email-password` | SMTP app password | Gmail app password |
-| `hotel-reservation/google-client-id` | Google OAuth2 client ID | `xxx.apps.googleusercontent.com` |
-| `hotel-reservation/google-client-secret` | Google OAuth2 secret | `GOCSPX-...` |
-| `hotel-reservation/facebook-client-id` | Facebook app ID | `1234567890` |
-| `hotel-reservation/facebook-client-secret` | Facebook app secret | `abc123...` |
-
-### 4.3 Create MongoDB Connection String Secret
-
-1. Create secret: `hotel-reservation/prod/documentdb-connection`
-2. **Key/value pairs** (use JSON format):
-   ```json
-   {
-     "username": "hoteldbadmin",
-     "password": "[YOUR_DOCDB_PASSWORD]",
-     "engine": "docdb",
-     "host": "hotel-reservation-prod-docdb-cluster.cluster-xyz.us-east-1.docdb.amazonaws.com",
-     "port": 27017,
-     "dbClusterIdentifier": "hotel-reservation-prod-docdb-cluster",
-     "uri": "mongodb://hoteldbadmin:[PASSWORD]@hotel-reservation-prod-docdb-cluster.cluster-xyz.us-east-1.docdb.amazonaws.com:27017/hotel_reservation?tls=true&tlsAllowInvalidCertificates=true&tlsAllowInvalidHostnames=true&retryWrites=false"
-   }
-   ```
-
-**Important:** Replace `[PASSWORD]` and cluster endpoint with your actual values!
-
----
-
-## 5. Amazon ECR (Container Registry)
-
-### 5.1 Create Backend Repository
-
-1. Navigate to **Amazon ECR**
-   - Go to: https://console.aws.amazon.com/ecr
-   - Click **"Get Started"** or **"Create repository"**
-
-2. Configure:
-   ```
-   Visibility settings:     Private
-   Repository name:         hotel-reservation-backend
-   Tag immutability:        Disabled
-   Scan on push:           ✅ Enabled
-   Encryption:              AES-256
-
-   Tags:
-     - Key: Environment,    Value: prod
-     - Key: Project,        Value: hotel-reservation
-   ```
-
-3. Click **"Create repository"**
-4. **Note the URI** (e.g., `837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-backend`)
-
-### 5.2 Create Frontend Repository
-
-Repeat for frontend:
-```
-Repository name:         hotel-reservation-frontend
-[Same settings as backend]
-```
-
-### 5.3 Push Images to ECR
-
-**Note:** This is typically done by GitHub Actions, but for manual deployment:
-
-```bash
-# Login to ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 837271986183.dkr.ecr.us-east-1.amazonaws.com
-
-# Build and push backend
-cd backend
-docker build -t hotel-reservation-backend .
-docker tag hotel-reservation-backend:latest 837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-backend:latest
-docker push 837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-backend:latest
-
-# Build and push frontend
-cd ../frontend
-docker build -t hotel-reservation-frontend .
-docker tag hotel-reservation-frontend:latest 837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-frontend:latest
-docker push 837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-frontend:latest
+# Frontend
+gh workflow run deploy-frontend.yml
 ```
 
 ---
 
-## 6. Amazon ECS (Container Service)
+## Cost Breakdown
 
-### 6.1 Create ECS Cluster
-
-1. Navigate to **Amazon ECS**
-   - Go to: https://console.aws.amazon.com/ecs
-   - Click **"Clusters"** → **"Create cluster"**
-
-2. Configure:
-   ```
-   Cluster name:            hotel-reservation-prod-cluster
-   Infrastructure:          AWS Fargate (serverless)
-
-   Monitoring:
-     ✅ Use Container Insights
-
-   Tags:
-     - Key: Environment,    Value: prod
-     - Key: Project,        Value: hotel-reservation
-   ```
-
-3. Click **"Create"**
-
-### 6.2 Create Task Execution Role
-
-1. Navigate to **IAM** → **Roles**
-   - Go to: https://console.aws.amazon.com/iam/home#/roles
-   - Click **"Create role"**
-
-2. Configure:
-   ```
-   Trusted entity type:     AWS service
-   Use case:                Elastic Container Service → Elastic Container Service Task
-   ```
-
-3. Click **"Next"**
-4. **Attach policies:**
-   - ✅ `AmazonECSTaskExecutionRolePolicy`
-   - Click **"Create policy"** (new tab) for Secrets Manager access:
-     ```json
-     {
-       "Version": "2012-10-17",
-       "Statement": [
-         {
-           "Effect": "Allow",
-           "Action": [
-             "secretsmanager:GetSecretValue",
-             "secretsmanager:DescribeSecret"
-           ],
-           "Resource": "arn:aws:secretsmanager:us-east-1:*:secret:hotel-reservation/*"
-         }
-       ]
-     }
-     ```
-   - Name: `SecretsManagerReadPolicy`
-   - Attach this policy to the role
-
-5. Configure role:
-   ```
-   Role name:               hotel-reservation-ecs-task-execution-role
-   Description:             Allows ECS tasks to pull images and access secrets
-   ```
-
-6. Click **"Create role"**
-
-### 6.3 Create Task Definition
-
-1. Click **"Task Definitions"** → **"Create new task definition"** → **"Create new task definition"**
-2. Configure:
-   ```
-   Task definition family:  hotel-reservation-backend
-
-   Infrastructure requirements:
-     Launch type:           AWS Fargate
-     Operating system:      Linux/X86_64
-     Task size:
-       CPU:                 0.5 vCPU
-       Memory:              1 GB
-     Task role:             (none - not needed)
-     Task execution role:   hotel-reservation-ecs-task-execution-role
-
-   Container - 1:
-     Name:                  hotel-reservation-backend
-     Image URI:             837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-backend:latest
-
-     Port mappings:
-       Container port:      8080
-       Protocol:            TCP
-       Port name:           http
-       App protocol:        HTTP
-
-     Environment variables:
-       - SPRING_PROFILES_ACTIVE = prod
-       - FRONTEND_URL = http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com
-       - JWT_EXPIRATION = 86400000
-
-     Secrets (from AWS Secrets Manager):
-       - MONGODB_URI          → arn:aws:secretsmanager:us-east-1:837271986183:secret:hotel-reservation/prod/documentdb-connection:uri::
-       - JWT_SECRET           → arn:aws:secretsmanager:us-east-1:837271986183:secret:hotel-reservation/jwt-secret
-       - STRIPE_API_KEY       → arn:aws:secretsmanager:us-east-1:837271986183:secret:hotel-reservation/stripe-api-key
-       - STRIPE_WEBHOOK_SECRET → arn:aws:secretsmanager:us-east-1:837271986183:secret:hotel-reservation/stripe-webhook-secret
-       - EMAIL_USERNAME       → arn:aws:secretsmanager:us-east-1:837271986183:secret:hotel-reservation/email-username
-       - EMAIL_PASSWORD       → arn:aws:secretsmanager:us-east-1:837271986183:secret:hotel-reservation/email-password
-
-     HealthCheck:
-       Command:             CMD-SHELL,wget --quiet --tries=1 --spider http://localhost:8080/actuator/health || exit 1
-       Interval:            30
-       Timeout:             5
-       Start period:        60
-       Retries:             3
-
-     Logging:
-       Log driver:          awslogs
-       Options:
-         awslogs-group:           /ecs/hotel-reservation-backend
-         awslogs-region:          us-east-1
-         awslogs-stream-prefix:   ecs
-         awslogs-create-group:    true
-   ```
-
-3. Click **"Create"**
-
-### 6.4 Create ECS Service
-
-1. Go to **Clusters** → **hotel-reservation-prod-cluster**
-2. Click **"Services"** tab → **"Create"**
-3. **Deployment configuration:**
-   ```
-   Application type:        Service
-
-   Task definition:
-     Family:                hotel-reservation-backend
-     Revision:              LATEST
-
-   Service name:            hotel-reservation-backend-service
-
-   Desired tasks:           1 (increase to 2+ for HA)
-
-   Deployment options:
-     Min running tasks:     100%
-     Max running tasks:     200%
-   ```
-
-4. **Networking:**
-   ```
-   VPC:                     [Select your VPC]
-   Subnets:                 [Select both PRIVATE subnets]
-   Security group:
-     Use existing:          hotel-reservation-prod-ecs-sg
-   Public IP:              ✅ TURNED ON (required without ALB)
-   ```
-
-5. **Load balancing:** None (we're using public IP for now)
-
-6. **Service auto scaling:** (Optional)
-   ```
-   ✅ Use service auto scaling
-   Minimum tasks:           1
-   Maximum tasks:           4
-   Scaling metric:          ECSServiceAverageCPUUtilization
-   Target value:            70
-   ```
-
-7. Click **"Create"**
-8. Wait for service to be **"Active"** and tasks **"Running"** (~3-5 minutes)
-
-### 6.5 Get Backend Public IP
-
-1. Go to **Tasks** tab
-2. Click on the running task
-3. In **"Network"** section, find **"Public IP"**
-4. **Save this IP** - it's your backend API URL: `http://[PUBLIC-IP]:8080`
-
----
-
-## 7. Amazon S3 (Frontend Hosting)
-
-### 7.1 Create S3 Bucket
-
-1. Navigate to **Amazon S3**
-   - Go to: https://s3.console.aws.amazon.com/s3
-   - Click **"Create bucket"**
-
-2. Configure:
-   ```
-   Bucket name:             hotel-reservation-system-backend
-   AWS Region:              us-east-1
-
-   Object Ownership:        ACLs disabled
-
-   Block Public Access:
-     ❌ Block all public access (UNCHECK)
-     ✅ I acknowledge... (CHECK)
-
-   Bucket Versioning:       Disabled
-
-   Encryption:
-     Encryption type:       Server-side encryption with Amazon S3 managed keys (SSE-S3)
-
-   Tags:
-     - Key: Environment,    Value: prod
-     - Key: Project,        Value: hotel-reservation
-   ```
-
-3. Click **"Create bucket"**
-
-### 7.2 Enable Static Website Hosting
-
-1. Click on the bucket name
-2. Go to **"Properties"** tab
-3. Scroll to **"Static website hosting"** → Click **"Edit"**
-4. Configure:
-   ```
-   Static website hosting:  ✅ Enable
-   Hosting type:            Host a static website
-   Index document:          index.html
-   Error document:          index.html (for React Router)
-   ```
-5. Click **"Save changes"**
-6. **Note the Website endpoint:** `http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com`
-
-### 7.3 Set Bucket Policy
-
-1. Go to **"Permissions"** tab
-2. Click **"Bucket policy"** → **"Edit"**
-3. Paste this policy:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Sid": "PublicReadGetObject",
-         "Effect": "Allow",
-         "Principal": "*",
-         "Action": "s3:GetObject",
-         "Resource": "arn:aws:s3:::hotel-reservation-system-backend/*"
-       }
-     ]
-   }
-   ```
-4. Click **"Save changes"**
-
-### 7.4 Upload Frontend Files
-
-**Option 1: AWS Console**
-1. Go to **"Objects"** tab → **"Upload"**
-2. Click **"Add files"** or drag & drop
-3. Upload all files from `frontend/dist/` directory
-4. Click **"Upload"**
-
-**Option 2: AWS CLI** (recommended)
-```bash
-cd frontend
-npm run build
-aws s3 sync dist/ s3://hotel-reservation-system-backend/ --delete
-```
-
----
-
-## 8. IAM Roles and Policies
-
-### 8.1 GitHub Actions User (Optional)
-
-If using GitHub Actions for CI/CD:
-
-1. Navigate to **IAM** → **Users** → **"Create user"**
-2. Configure:
-   ```
-   User name:               github-actions-user
-   ✅ Provide user access to AWS Management Console (optional)
-   ```
-
-3. **Attach policies directly:**
-   - `AmazonEC2ContainerRegistryPowerUser`
-   - `AmazonECS_FullAccess`
-   - `AmazonS3FullAccess`
-   - `SecretsManagerReadWrite`
-
-4. Create **Access Keys:**
-   - Go to **"Security credentials"** tab
-   - Click **"Create access key"**
-   - Use case: **"Application running outside AWS"**
-   - **Save Access Key ID and Secret Access Key** (you won't see them again!)
-
-5. Add to GitHub Secrets:
-   - `AWS_ACCESS_KEY_ID`
-   - `AWS_SECRET_ACCESS_KEY`
-   - `AWS_ACCOUNT_ID` = `837271986183`
-
----
-
-## 9. Testing and Verification
-
-### 9.1 Test Backend API
-
-```bash
-# Health check
-curl http://[ECS-TASK-PUBLIC-IP]:8080/actuator/health
-
-# Should return:
-# {"status":"UP"}
-
-# Test API endpoint
-curl http://[ECS-TASK-PUBLIC-IP]:8080/api/health
-```
-
-### 9.2 Test Frontend
-
-Open in browser:
-```
-http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com
-```
-
-### 9.3 Test Full Flow
-
-1. Open frontend URL
-2. Try to register/login
-3. Check browser console for any errors
-4. Verify API calls are successful
-
-### 9.4 Check CloudWatch Logs
-
-1. Navigate to **CloudWatch** → **Log groups**
-2. Find `/ecs/hotel-reservation-backend`
-3. Click on latest log stream
-4. Verify application started successfully
-
----
-
-## 10. Cost Estimates
+### Current Monthly Costs (Estimated)
 
 | Service | Configuration | Monthly Cost |
 |---------|--------------|--------------|
-| **NAT Gateway** | 2 gateways | $65 |
-| **DocumentDB** | 1x db.t3.medium | $200 |
-| **ECS Fargate** | 1 task (0.5 vCPU, 1GB RAM) | $15 |
-| **ECR** | < 500 MB images | $0.50 |
-| **S3** | < 1 GB storage, minimal requests | $1 |
-| **Secrets Manager** | 9 secrets | $3.60 |
-| **Data Transfer** | ~10 GB/month | $0.90 |
-| **CloudWatch Logs** | ~1 GB/month | $0.50 |
-| **Total** | | **~$286/month** |
+| **VPC - NAT Gateways** | 2 NAT gateways | $65.00 |
+| **DocumentDB** | 1x db.t3.medium instance | $200.00 |
+| **ECS Fargate** | 1 task (1 vCPU, 2GB RAM) | $30.00 |
+| **Application Load Balancer** | 1 ALB | $16.00 |
+| **ECR** | ~1 GB images | $1.00 |
+| **S3** | Static hosting (~500 MB) | $0.50 |
+| **CloudFront** | 2 distributions (~10GB data) | $2.00 |
+| **Secrets Manager** | 11 secrets | $4.40 |
+| **Data Transfer** | ~20 GB/month | $1.80 |
+| **CloudWatch Logs** | ~2 GB/month | $1.00 |
+| **Route 53** | (if custom domain added) | $0.50 |
+| **Total** | | **~$322/month** |
 
-### Cost Optimization Tips:
+### Cost Optimization Opportunities
 
-1. **Use 1 NAT Gateway** instead of 2 (saves $32/month)
-   - Risk: No NAT redundancy in multi-AZ setup
+1. **Use Single NAT Gateway** (Save $32/month)
+   - Risk: No NAT redundancy across AZs
+   - Acceptable for dev/staging environments
 
-2. **Use MongoDB Atlas** instead of DocumentDB
-   - Free tier: 512MB storage
-   - M10 paid tier: $9/month (saves ~$191/month!)
+2. **Reduce DocumentDB Instance Size** (Save $100/month)
+   - Switch to db.t4g.medium when available
+   - Use db.r5.large only if performance requires it
 
-3. **Use Fargate Spot** for dev/staging
-   - Saves 50-70% on compute costs
+3. **Use Fargate Spot** (Save 50-70% on compute)
    - Not recommended for production
+   - Good for dev/staging environments
 
-4. **Delete unused resources:**
-   - Elastic IPs not attached to instances
-   - Old ECS task revisions
-   - ECR images with no tags
+4. **MongoDB Atlas Alternative** (Save $190/month)
+   - Free tier: 512MB
+   - M10 tier: $9/month vs DocumentDB $200/month
+   - Trade-off: Data stored outside AWS VPC
+
+5. **Delete Unused Resources:**
+   - Old ECS task definitions (keep last 5 revisions)
+   - Unused ECR images
+   - Old CloudWatch log streams
+
+---
+
+## Monitoring and Maintenance
+
+### CloudWatch Dashboards
+
+**ECS Metrics:**
+- CPU Utilization: Target < 70%
+- Memory Utilization: Target < 80%
+- Running Task Count: Should be 1
+
+**DocumentDB Metrics:**
+- CPU: Target < 75%
+- Connections: Monitor active connections
+- Storage: Track growth rate
+
+**Application Load Balancer:**
+- Request Count
+- Target Response Time
+- Healthy/Unhealthy Target Count
+
+### Logs
+
+**Application Logs:**
+- CloudWatch Log Group: `/ecs/hotel-reservation-backend`
+- Retention: 7 days (configurable)
+- Access: AWS Console or AWS CLI
+
+```bash
+# Tail logs
+aws logs tail /ecs/hotel-reservation-backend --follow --region us-east-1
+
+# Get logs from specific time
+aws logs tail /ecs/hotel-reservation-backend --since 1h --region us-east-1
+```
+
+### Health Checks
+
+**Backend Health:**
+```bash
+# Via CloudFront (HTTPS)
+curl https://d1otlwpcr6195.cloudfront.net/actuator/health
+
+# Via ALB
+curl http://hotel-reservation-alb-1402628275.us-east-1.elb.amazonaws.com/actuator/health
+
+# Expected response:
+# {"status":"UP"}
+```
+
+**Frontend Health:**
+- URL: https://d32joxegsl0xnf.cloudfront.net
+- Check: Page loads, no console errors
+
+### Backup and Recovery
+
+**DocumentDB Automated Backups:**
+- Frequency: Daily
+- Retention: 7 days
+- Window: 03:00-04:00 UTC
+
+**Manual Snapshot:**
+```bash
+aws docdb create-db-cluster-snapshot \
+  --db-cluster-snapshot-identifier hotel-reservation-manual-backup-$(date +%Y%m%d) \
+  --db-cluster-identifier hotel-reservation-prod-docdb-cluster \
+  --region us-east-1
+```
+
+**ECS Task Definition Versioning:**
+- All revisions are retained
+- Current revision: 31
+- Can rollback to any previous revision
+
+---
+
+## Manual Setup Guide
+
+### Prerequisites
+
+- AWS Account with admin access
+- AWS CLI configured
+- Docker installed
+- GitHub account (for CI/CD)
+- Domain name (optional, for custom domain)
+
+### Initial Setup Steps
+
+1. **Create VPC and Networking:**
+   - Create VPC with CIDR 10.0.0.0/16
+   - Create 4 subnets (2 public, 2 private) across 2 AZs
+   - Create Internet Gateway and attach to VPC
+   - Create 2 NAT Gateways (one per AZ)
+   - Create route tables and associate subnets
+   - Create security groups for ECS, DocumentDB, and ALB
+
+2. **Create DocumentDB Cluster:**
+   - Follow AWS Console wizard
+   - Save master password in Secrets Manager
+   - Note cluster endpoint
+
+3. **Create Secrets in AWS Secrets Manager:**
+   ```bash
+   # JWT Secret
+   aws secretsmanager create-secret \
+     --name hotel-reservation/jwt-secret \
+     --secret-string "$(openssl rand -base64 64)" \
+     --region us-east-1
+
+   # Add other secrets similarly
+   ```
+
+4. **Create ECR Repositories:**
+   ```bash
+   aws ecr create-repository \
+     --repository-name hotel-reservation-backend \
+     --region us-east-1
+
+   aws ecr create-repository \
+     --repository-name hotel-reservation-frontend \
+     --region us-east-1
+   ```
+
+5. **Build and Push Initial Images:**
+   ```bash
+   # Login to ECR
+   aws ecr get-login-password --region us-east-1 | \
+     docker login --username AWS --password-stdin \
+     837271986183.dkr.ecr.us-east-1.amazonaws.com
+
+   # Build and push backend
+   cd backend
+   docker build --platform linux/amd64 -t hotel-reservation-backend .
+   docker tag hotel-reservation-backend:latest \
+     837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-backend:latest
+   docker push 837271986183.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-backend:latest
+   ```
+
+6. **Create ECS Cluster and Service:**
+   - Use GitHub Actions workflow OR
+   - Create manually via AWS Console
+   - Task definition uses 1 vCPU, 2GB memory
+
+7. **Create Application Load Balancer:**
+   - Create ALB in public subnets
+   - Create target group (HTTP, port 8080)
+   - Configure health check path: /actuator/health
+   - Create listener (port 80) forwarding to target group
+   - Note: Full commands available in GitHub Actions workflow
+
+8. **Create CloudFront Distributions:**
+   - Frontend: Origin = S3 bucket
+   - Backend: Origin = ALB
+   - Enable HTTPS with default certificate
+
+9. **Setup GitHub Secrets and Workflows:**
+   ```bash
+   gh secret set AWS_ACCESS_KEY_ID
+   gh secret set AWS_SECRET_ACCESS_KEY
+   gh secret set AWS_ACCOUNT_ID -b "837271986183"
+   gh secret set BACKEND_API_URL -b "https://d1otlwpcr6195.cloudfront.net"
+   ```
+
+### Detailed Manual Steps
+
+**Note:** This infrastructure was deployed using a combination of:
+- AWS Console for initial resource creation (VPC, DocumentDB, ALB, CloudFront)
+- GitHub Actions workflows for automated ECS deployments
+- AWS CLI commands for configuration updates
+
+The deployment is managed primarily through GitHub Actions. For new deployments, you can either:
+1. Use the GitHub Actions workflows after creating the base infrastructure
+2. Follow the AWS Console steps for manual resource creation
+3. Create automation scripts based on the commands in the workflows
 
 ---
 
 ## Troubleshooting
 
-### Backend Not Starting
-1. Check **CloudWatch Logs** → `/ecs/hotel-reservation-backend`
-2. Common issues:
-   - Secrets not accessible (check IAM role)
-   - DocumentDB connection failed (check security group)
-   - Invalid environment variables
+### ECS Task Not Starting
 
-### Frontend Shows Blank Page
-1. Check browser console for errors
-2. Verify S3 bucket policy allows public read
-3. Check if `index.html` exists in bucket root
+**Symptom:** Task goes from PENDING to STOPPED
 
-### Cannot Connect to DocumentDB
-1. Verify ECS tasks are in **private subnets**
-2. Check DocumentDB security group allows port 27017 from ECS SG
-3. Verify connection string includes TLS parameters
-4. Check if certificate is in Docker image
+**Check:**
+1. CloudWatch logs for error messages
+2. Task definition secrets ARNs are correct
+3. ECS task execution role has Secrets Manager permissions
+4. Security groups allow outbound traffic
+
+```bash
+# View task logs
+aws logs tail /ecs/hotel-reservation-backend --follow --region us-east-1
+
+# Check task stopped reason
+aws ecs describe-tasks \
+  --cluster hotel-reservation-prod-cluster \
+  --tasks $(aws ecs list-tasks --cluster hotel-reservation-prod-cluster --service-name hotel-reservation-backend-service --query 'taskArns[0]' --output text) \
+  --query 'tasks[0].stoppedReason' \
+  --region us-east-1
+```
+
+### DocumentDB Connection Failed
+
+**Symptom:** Backend logs show MongoDB connection timeout
+
+**Solutions:**
+1. Verify ECS tasks are in private subnets
+2. Check security group allows port 27017 from ECS SG
+3. Verify connection string format:
+   ```
+   mongodb://username:password@endpoint:27017/database?tls=true&tlsAllowInvalidCertificates=true&retryWrites=false&authSource=admin
+   ```
+
+### ALB Health Check Failing
+
+**Symptom:** Targets show as unhealthy
+
+**Check:**
+1. Backend is running and responding on port 8080
+2. Health check path `/actuator/health` returns 200
+3. Security group allows ALB to reach ECS tasks on port 8080
+
+```bash
+# Test health endpoint directly
+curl http://[ECS-TASK-PRIVATE-IP]:8080/actuator/health
+
+# Check target health
+aws elbv2 describe-target-health \
+  --target-group-arn arn:aws:elasticloadbalancing:us-east-1:837271986183:targetgroup/hotel-backend-tg/55451774ae9d747f \
+  --region us-east-1
+```
+
+### Frontend Not Loading
+
+**Symptom:** CloudFront shows blank page or 404
+
+**Solutions:**
+1. Check S3 bucket has files uploaded
+2. Verify bucket policy allows public read
+3. CloudFront invalidation completed
+4. Check browser console for CORS errors
+
+```bash
+# List S3 files
+aws s3 ls s3://hotel-reservation-frontend-us-east-1/
+
+# Create CloudFront invalidation
+aws cloudfront create-invalidation \
+  --distribution-id E3AEFUC8QLUDD9 \
+  --paths "/*" \
+  --region us-east-1
+```
 
 ### GitHub Actions Failing
-1. Verify all GitHub Secrets are set correctly
-2. Check IAM user has required permissions
-3. Review workflow logs for specific errors
+
+**Common Issues:**
+
+1. **ECR Push Failed:**
+   - Check AWS credentials in GitHub Secrets
+   - Verify IAM user has ECR permissions
+
+2. **ECS Update Failed:**
+   - Check ECS service exists
+   - Verify task definition is valid
+
+3. **S3 Upload Failed:**
+   - Check bucket name is correct
+   - Verify IAM permissions for S3
+
+```bash
+# View recent workflow runs
+gh run list --limit 5
+
+# View specific run logs
+gh run view [RUN_ID] --log
+```
+
+### Mixed Content Errors
+
+**Symptom:** HTTPS frontend cannot call HTTP backend
+
+**Solution:**
+- Backend must be served over HTTPS
+- Use CloudFront distribution: https://d1otlwpcr6195.cloudfront.net
+- Update CORS configuration in backend
+
+### OAuth2 Not Working
+
+**Check:**
+1. Google/Facebook credentials in Secrets Manager
+2. Authorized redirect URIs in Google Console:
+   - https://d32joxegsl0xnf.cloudfront.net/login/oauth2/code/google
+3. Backend URL configured correctly in secrets
 
 ---
 
-## Next Steps
+## Security Best Practices
 
-After infrastructure is set up:
+### Network Security
+- ECS tasks in private subnets
+- DocumentDB in private subnets
+- Security groups follow least privilege
+- NAT gateways for outbound internet access only
 
-1. **Configure GitHub Secrets** for automated deployments
-2. **Set up custom domain** (Route 53)
-3. **Add CloudFront** for HTTPS and CDN
-4. **Configure monitoring** with CloudWatch Alarms
-5. **Set up backups** for DocumentDB
-6. **Implement CI/CD** with GitHub Actions
+### Application Security
+- All secrets stored in AWS Secrets Manager
+- Secrets rotated regularly (JWT, API keys)
+- ECS task execution role limited to required permissions
+- TLS enabled for DocumentDB connections
+- HTTPS enforced via CloudFront
+
+### Access Control
+- IAM users follow principle of least privilege
+- GitHub Actions uses dedicated IAM user
+- MFA enabled for console access (recommended)
+- CloudWatch logs for audit trail
 
 ---
 
-## Additional Resources
+## Scaling Considerations
 
-- [AWS DocumentDB Documentation](https://docs.aws.amazon.com/documentdb/)
-- [Amazon ECS Documentation](https://docs.aws.amazon.com/ecs/)
-- [AWS Secrets Manager Documentation](https://docs.aws.amazon.com/secretsmanager/)
-- [S3 Static Website Hosting](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html)
+### Horizontal Scaling
+
+**ECS Service Auto Scaling:**
+```bash
+# Register scalable target
+aws application-autoscaling register-scalable-target \
+  --service-namespace ecs \
+  --resource-id service/hotel-reservation-prod-cluster/hotel-reservation-backend-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --min-capacity 1 \
+  --max-capacity 4 \
+  --region us-east-1
+
+# Create scaling policy
+aws application-autoscaling put-scaling-policy \
+  --service-namespace ecs \
+  --resource-id service/hotel-reservation-prod-cluster/hotel-reservation-backend-service \
+  --scalable-dimension ecs:service:DesiredCount \
+  --policy-name cpu-scaling-policy \
+  --policy-type TargetTrackingScaling \
+  --target-tracking-scaling-policy-configuration file://scaling-policy.json \
+  --region us-east-1
+```
+
+**DocumentDB Read Replicas:**
+- Add 1-2 read replicas for high availability
+- Distributes read traffic across instances
+- Automatic failover
+
+### Vertical Scaling
+
+**Increase ECS Task Resources:**
+- Current: 1 vCPU, 2GB memory
+- Options: Up to 4 vCPU, 30GB memory
+- Update task definition in GitHub Actions workflow
+
+**Increase DocumentDB Instance:**
+- Current: db.t3.medium
+- Options: db.r5.large, db.r5.xlarge, etc.
+- Requires cluster modification (minimal downtime)
 
 ---
 
-## Support
+## Disaster Recovery
 
-For issues or questions:
-- AWS Support: https://console.aws.amazon.com/support
-- DocumentDB Forums: https://forums.aws.amazon.com/forum.jspa?forumID=311
+### Backup Strategy
+- DocumentDB: Automated daily backups (7-day retention)
+- ECS: Task definitions versioned
+- S3: Enable versioning for frontend files
+- Secrets: Store backup copy in secure location
+
+### Recovery Procedures
+
+**DocumentDB Restore:**
+```bash
+# Restore from snapshot
+aws docdb restore-db-cluster-from-snapshot \
+  --db-cluster-identifier hotel-reservation-recovery \
+  --snapshot-identifier hotel-reservation-manual-backup-20251213 \
+  --region us-east-1
+```
+
+**ECS Rollback:**
+```bash
+# Update service to previous task definition
+aws ecs update-service \
+  --cluster hotel-reservation-prod-cluster \
+  --service hotel-reservation-backend-service \
+  --task-definition hotel-reservation-backend:30 \
+  --region us-east-1
+```
+
+---
+
+## Future Enhancements
+
+### Planned Improvements
+1. Custom domain with Route 53
+2. SSL certificate from ACM
+3. WAF (Web Application Firewall) for security
+4. Multi-region deployment for DR
+5. CloudWatch alarms and SNS notifications
+6. Enhanced monitoring with X-Ray
+7. ECS Exec for debugging
+8. Secrets rotation automation
+
+### Custom Domain Setup
+1. Register domain in Route 53
+2. Request SSL certificate in ACM
+3. Update CloudFront distributions
+4. Create Route 53 records
+
+---
+
+## Support and Contacts
+
+**AWS Support:**
+- Console: https://console.aws.amazon.com/support
+- Account ID: 837271986183
+
+**Documentation:**
 - Project Repository: https://github.com/kurbonovm/20251027-p2-group3
+- AWS ECS: https://docs.aws.amazon.com/ecs/
+- AWS DocumentDB: https://docs.aws.amazon.com/documentdb/
+
+**Maintenance:**
+- Last Updated: December 13, 2025
+- Document Version: 2.0
+- Infrastructure Version: Production v1.1
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** December 12, 2025
-**Maintained By:** DevOps Team
+## Appendix: Resource ARNs
+
+### ECS Resources
+- Cluster: `arn:aws:ecs:us-east-1:837271986183:cluster/hotel-reservation-prod-cluster`
+- Service: `arn:aws:ecs:us-east-1:837271986183:service/hotel-reservation-prod-cluster/hotel-reservation-backend-service`
+- Task Definition: `arn:aws:ecs:us-east-1:837271986183:task-definition/hotel-reservation-backend:31`
+
+### Load Balancer
+- ALB: `arn:aws:elasticloadbalancing:us-east-1:837271986183:loadbalancer/app/hotel-reservation-alb/xxx`
+- Target Group: `arn:aws:elasticloadbalancing:us-east-1:837271986183:targetgroup/hotel-backend-tg/55451774ae9d747f`
+
+### DocumentDB
+- Cluster: `arn:aws:rds:us-east-1:837271986183:cluster:hotel-reservation-prod-docdb-cluster`
+- Instance: `arn:aws:rds:us-east-1:837271986183:db:hotel-reservation-prod-docdb-instance`
+
+### CloudFront
+- Frontend: `arn:aws:cloudfront::837271986183:distribution/E3AEFUC8QLUDD9`
+- Backend: `arn:aws:cloudfront::837271986183:distribution/E1IN2SZ3C0Y2LC`
+
+### S3
+- Frontend Bucket: `arn:aws:s3:::hotel-reservation-frontend-us-east-1`
+
+### ECR
+- Backend Repo: `arn:aws:ecr:us-east-1:837271986183:repository/hotel-reservation-backend`
+- Frontend Repo: `arn:aws:ecr:us-east-1:837271986183:repository/hotel-reservation-frontend`
+
+---
+
+**END OF DOCUMENT**
