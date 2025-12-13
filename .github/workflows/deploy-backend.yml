@@ -169,7 +169,7 @@ jobs:
                 {"name": "FRONTEND_URL", "value": "http://hotel-reservation-system-backend.s3-website-us-east-1.amazonaws.com"}
               ],
               "secrets": [
-                {"name": "MONGODB_URI", "valueFrom": "arn:aws:secretsmanager:'$AWS_REGION':'${{ secrets.AWS_ACCOUNT_ID }}':secret:hotel-reservation/prod/documentdb-connection:uri::"},
+                {"name": "MONGODB_URI", "valueFrom": "arn:aws:secretsmanager:'$AWS_REGION':'${{ secrets.AWS_ACCOUNT_ID }}':secret:hotel-reservation/prod/documentdb-connection-uri"},
                 {"name": "JWT_SECRET", "valueFrom": "arn:aws:secretsmanager:'$AWS_REGION':'${{ secrets.AWS_ACCOUNT_ID }}':secret:hotel-reservation/jwt-secret"},
                 {"name": "STRIPE_API_KEY", "valueFrom": "arn:aws:secretsmanager:'$AWS_REGION':'${{ secrets.AWS_ACCOUNT_ID }}':secret:hotel-reservation/stripe-api-key"},
                 {"name": "STRIPE_WEBHOOK_SECRET", "valueFrom": "arn:aws:secretsmanager:'$AWS_REGION':'${{ secrets.AWS_ACCOUNT_ID }}':secret:hotel-reservation/stripe-webhook-secret"},
