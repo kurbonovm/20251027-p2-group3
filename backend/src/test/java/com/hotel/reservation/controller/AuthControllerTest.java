@@ -45,6 +45,15 @@ class AuthControllerTest {
     @MockBean
     private UserRepository userRepository;
 
+    @MockBean
+    private com.hotel.reservation.repository.PaymentRepository paymentRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.ReservationRepository reservationRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.RoomRepository roomRepository;
+
     private User testUser;
     private UserPrincipal userPrincipal;
     private AuthResponse authResponse;
@@ -121,6 +130,7 @@ class AuthControllerTest {
         registerRequest.setLastName("Doe");
         registerRequest.setEmail("john@example.com");
         registerRequest.setPassword("password123");
+        registerRequest.setPhoneNumber("1234567890");
 
         when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(new RuntimeException("Email already exists"));

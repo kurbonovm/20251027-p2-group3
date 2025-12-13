@@ -44,6 +44,15 @@ class ReservationControllerTest {
     @MockBean
     private UserRepository userRepository;
 
+    @MockBean
+    private com.hotel.reservation.repository.PaymentRepository paymentRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.ReservationRepository reservationRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.RoomRepository roomRepository;
+
     private User testUser;
     private Room testRoom;
     private Reservation testReservation;

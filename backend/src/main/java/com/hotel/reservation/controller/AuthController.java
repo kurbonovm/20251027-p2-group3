@@ -61,6 +61,10 @@ public class AuthController {
      */
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            throw new org.springframework.security.core.AuthenticationException("User not authenticated") {};
+        }
+
         User user = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -79,6 +83,10 @@ public class AuthController {
     public ResponseEntity<UserDto> updateProfile(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
             @RequestBody UserDto userDto) {
+
+        if (userPrincipal == null) {
+            throw new org.springframework.security.core.AuthenticationException("User not authenticated") {};
+        }
 
         User user = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));

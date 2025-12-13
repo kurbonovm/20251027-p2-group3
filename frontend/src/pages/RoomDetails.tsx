@@ -46,11 +46,6 @@ const RoomDetails: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string>('');
 
   const handleBookNow = () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
     // Format dates to ISO string for backend (timezone-neutral)
     const formatDate = (date: Date | null): string => {
       if (!date) return '';
@@ -59,13 +54,31 @@ const RoomDetails: React.FC = () => {
       return d.toISOString().split('T')[0];
     };
 
+    const bookingState = {
+      room,
+      checkInDate: formatDate(checkInDate),
+      checkOutDate: formatDate(checkOutDate),
+      guests,
+    };
+
+    if (!isAuthenticated) {
+      // Redirect to login with the booking page as the return destination
+      navigate('/login', {
+        state: {
+          from: {
+            pathname: '/booking',
+            search: '',
+            hash: '',
+          },
+        },
+      });
+      // Store booking data in sessionStorage to preserve it across login
+      sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
+      return;
+    }
+
     navigate('/booking', {
-      state: {
-        room,
-        checkInDate: formatDate(checkInDate),
-        checkOutDate: formatDate(checkOutDate),
-        guests,
-      },
+      state: bookingState,
     });
   };
 

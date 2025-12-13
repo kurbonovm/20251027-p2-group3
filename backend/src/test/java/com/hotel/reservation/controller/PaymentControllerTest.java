@@ -46,6 +46,18 @@ class PaymentControllerTest {
     @MockBean
     private ReservationService reservationService;
 
+    @MockBean
+    private com.hotel.reservation.repository.PaymentRepository paymentRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.ReservationRepository reservationRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.RoomRepository roomRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.UserRepository userRepository;
+
     private User testUser;
     private Room testRoom;
     private Reservation testReservation;
@@ -150,6 +162,7 @@ class PaymentControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "user@example.com", roles = "USER")
     void confirmPayment_Success() throws Exception {
         testPayment.setStatus(Payment.PaymentStatus.SUCCEEDED);
         when(paymentService.confirmPayment("pi_test123")).thenReturn(testPayment);

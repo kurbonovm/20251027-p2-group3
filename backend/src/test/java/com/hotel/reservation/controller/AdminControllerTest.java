@@ -46,6 +46,9 @@ class AdminControllerTest {
     @MockBean
     private ReservationRepository reservationRepository;
 
+    @MockBean
+    private com.hotel.reservation.repository.PaymentRepository paymentRepository;
+
     private User testUser;
     private Room testRoom;
     private Reservation testReservation;
@@ -83,9 +86,9 @@ class AdminControllerTest {
         when(reservationRepository.countByStatus(Reservation.ReservationStatus.CONFIRMED)).thenReturn(5L);
         when(reservationRepository.countByStatus(Reservation.ReservationStatus.CHECKED_IN)).thenReturn(3L);
         when(reservationRepository.findByStatus(Reservation.ReservationStatus.CONFIRMED))
-                .thenReturn(Arrays.asList(testReservation));
+                .thenReturn(new ArrayList<>(Arrays.asList(testReservation)));
         when(reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN))
-                .thenReturn(Arrays.asList(testReservation));
+                .thenReturn(new ArrayList<>(Arrays.asList(testReservation)));
         when(userRepository.count()).thenReturn(100L);
         when(reservationRepository.findByCreatedAtBetween(any(), any()))
                 .thenReturn(Arrays.asList(testReservation));
