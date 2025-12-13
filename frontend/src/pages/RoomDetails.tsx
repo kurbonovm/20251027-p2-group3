@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -16,12 +16,7 @@ import {
   TextField,
   Alert,
 } from '@mui/material';
-import {
-  CheckCircle,
-  People,
-  AspectRatio,
-  Stairs,
-} from '@mui/icons-material';
+import { CheckCircle, People, AspectRatio, Stairs } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -36,6 +31,7 @@ import Loading from '../components/Loading';
 const RoomDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   const { data: room, isLoading, error } = useGetRoomByIdQuery(id!);
@@ -62,15 +58,9 @@ const RoomDetails: React.FC = () => {
     };
 
     if (!isAuthenticated) {
-      // Redirect to login with the booking page as the return destination
+      // Redirect to login with the current page as the return destination
       navigate('/login', {
-        state: {
-          from: {
-            pathname: '/booking',
-            search: '',
-            hash: '',
-          },
-        },
+        state: { from: location },
       });
       // Store booking data in sessionStorage to preserve it across login
       sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
@@ -108,7 +98,11 @@ const RoomDetails: React.FC = () => {
             <CardMedia
               component="img"
               height="400"
-              image={selectedImage || room.imageUrl || 'https://via.placeholder.com/600x400?text=Room+Image'}
+              image={
+                selectedImage ||
+                room.imageUrl ||
+                'https://via.placeholder.com/600x400?text=Room+Image'
+              }
               alt={room.name}
               sx={{ borderRadius: 2, mb: 2, objectFit: 'cover' }}
             />
@@ -124,41 +118,46 @@ const RoomDetails: React.FC = () => {
                   sx={{
                     borderRadius: 1,
                     cursor: 'pointer',
-                    border: (!selectedImage || selectedImage === room.imageUrl) ? '3px solid #1976d2' : '3px solid transparent',
+                    border:
+                      !selectedImage || selectedImage === room.imageUrl
+                        ? '3px solid #1976d2'
+                        : '3px solid transparent',
                     transition: 'all 0.3s ease',
                     '&:hover': {
                       opacity: 0.8,
-                      transform: 'scale(1.05)'
+                      transform: 'scale(1.05)',
                     },
-                    objectFit: 'cover'
+                    objectFit: 'cover',
                   }}
                   onClick={() => setSelectedImage(room.imageUrl || '')}
                 />
               </Grid>
 
               {/* Additional images thumbnails */}
-              {room.additionalImages && room.additionalImages.map((img, index) => (
-                <Grid size={{ xs: 4 }} key={index}>
-                  <CardMedia
-                    component="img"
-                    height="120"
-                    image={img}
-                    alt={`${room.name} ${index + 1}`}
-                    sx={{
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      border: selectedImage === img ? '3px solid #1976d2' : '3px solid transparent',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        opacity: 0.8,
-                        transform: 'scale(1.05)'
-                      },
-                      objectFit: 'cover'
-                    }}
-                    onClick={() => setSelectedImage(img)}
-                  />
-                </Grid>
-              ))}
+              {room.additionalImages &&
+                room.additionalImages.map((img, index) => (
+                  <Grid size={{ xs: 4 }} key={index}>
+                    <CardMedia
+                      component="img"
+                      height="120"
+                      image={img}
+                      alt={`${room.name} ${index + 1}`}
+                      sx={{
+                        borderRadius: 1,
+                        cursor: 'pointer',
+                        border:
+                          selectedImage === img ? '3px solid #1976d2' : '3px solid transparent',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          opacity: 0.8,
+                          transform: 'scale(1.05)',
+                        },
+                        objectFit: 'cover',
+                      }}
+                      onClick={() => setSelectedImage(img)}
+                    />
+                  </Grid>
+                ))}
             </Grid>
           </Grid>
 
@@ -236,8 +235,8 @@ const RoomDetails: React.FC = () => {
                         format="MM/dd/yyyy"
                         slotProps={{
                           textField: {
-                            fullWidth: true
-                          }
+                            fullWidth: true,
+                          },
                         }}
                       />
                     </Grid>
@@ -246,13 +245,15 @@ const RoomDetails: React.FC = () => {
                         label="Check-out Date"
                         value={checkOutDate}
                         onChange={(newValue) => setCheckOutDate(newValue)}
-                        minDate={checkInDate ? new Date(checkInDate.getTime() + 86400000) : new Date()}
+                        minDate={
+                          checkInDate ? new Date(checkInDate.getTime() + 86400000) : new Date()
+                        }
                         disabled={!checkInDate}
                         format="MM/dd/yyyy"
                         slotProps={{
                           textField: {
-                            fullWidth: true
-                          }
+                            fullWidth: true,
+                          },
                         }}
                       />
                     </Grid>
