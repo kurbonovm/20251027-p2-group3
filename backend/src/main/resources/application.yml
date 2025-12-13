@@ -21,12 +21,14 @@ spring:
             scope:
               - profile
               - email
+            redirect-uri: ${BACKEND_URL:http://localhost:8080}/login/oauth2/code/google
           facebook:
             client-id: ${FACEBOOK_CLIENT_ID:your-facebook-client-id}
             client-secret: ${FACEBOOK_CLIENT_SECRET:your-facebook-client-secret}
             scope:
               - public_profile
               - email
+            redirect-uri: ${BACKEND_URL:http://localhost:8080}/login/oauth2/code/facebook
 
   # Email Configuration
   mail:
@@ -65,6 +67,10 @@ stripe:
 
 # Application Configuration
 app:
+  # Backend base URL for OAuth2 redirects (HTTPS CloudFront URL)
+  backend:
+    url: ${BACKEND_URL:http://localhost:8080}
+
   # Frontend URL for OAuth2 redirects
   frontend:
     url: ${FRONTEND_URL:http://localhost}

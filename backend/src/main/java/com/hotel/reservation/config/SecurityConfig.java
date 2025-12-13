@@ -49,6 +49,9 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
+    @Value("${app.backend.url:http://localhost:8080}")
+    private String backendUrl;
+
     /**
      * Configure HTTP security.
      *
@@ -71,6 +74,9 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
+                .redirectionEndpoint(redirection -> redirection
+                    .baseUri("/login/oauth2/code/*")
+                )
                 .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                 .successHandler(oAuth2AuthenticationSuccessHandler)
                 .failureHandler(oAuth2AuthenticationFailureHandler)
