@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -58,7 +58,25 @@ const parseDate = (dateStr: string): Date => {
 const Booking: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { room, checkInDate, checkOutDate, guests } = (location.state as BookingLocationState) || {};
+
+  // Try to get booking data from location state first, then from sessionStorage
+  const getBookingData = (): BookingLocationState | null => {
+    if (location.state) {
+      return location.state as BookingLocationState;
+    }
+
+    // Check sessionStorage for pending booking after login
+    const pendingBooking = sessionStorage.getItem('pendingBooking');
+    if (pendingBooking) {
+      sessionStorage.removeItem('pendingBooking'); // Clear it after retrieving
+      return JSON.parse(pendingBooking);
+    }
+
+    return null;
+  };
+
+  const bookingData = getBookingData();
+  const { room, checkInDate, checkOutDate, guests } = bookingData || {};
 
   const [createReservation, { isLoading: isCreatingReservation }] = useCreateReservationMutation();
   const [createPaymentIntent, { isLoading: isCreatingPayment }] = useCreatePaymentIntentMutation();

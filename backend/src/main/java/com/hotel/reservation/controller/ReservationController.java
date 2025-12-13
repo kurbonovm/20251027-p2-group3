@@ -71,10 +71,23 @@ public class ReservationController {
 
         Reservation reservation = reservationService.getReservationById(id);
 
-        if (!reservation.getUser().getId().equals(userPrincipal.getId()) &&
-                !userPrincipal.getAuthorities().stream()
-                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") ||
-                                a.getAuthority().equals("ROLE_MANAGER"))) {
+        // Check if user is admin/manager from security context
+        org.springframework.security.core.Authentication authentication =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") ||
+                        a.getAuthority().equals("ROLE_MANAGER"));
+
+        boolean isOwner = false;
+        if (userPrincipal != null && reservation.getUser() != null) {
+            String userId = userPrincipal.getId();
+            if (userId != null) {
+                isOwner = userId.equals(reservation.getUser().getId());
+            }
+        }
+
+        if (!isAdmin && !isOwner) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 

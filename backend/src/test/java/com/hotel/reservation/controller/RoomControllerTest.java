@@ -36,6 +36,18 @@ class RoomControllerTest {
     @MockBean
     private RoomService roomService;
 
+    @MockBean
+    private com.hotel.reservation.repository.PaymentRepository paymentRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.ReservationRepository reservationRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.RoomRepository roomRepository;
+
+    @MockBean
+    private com.hotel.reservation.repository.UserRepository userRepository;
+
     private Room testRoom;
 
     @BeforeEach
@@ -205,7 +217,7 @@ class RoomControllerTest {
         mockMvc.perform(post("/api/rooms")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testRoom)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test

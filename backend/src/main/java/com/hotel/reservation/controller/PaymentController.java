@@ -114,10 +114,23 @@ public class PaymentController {
 
         Payment payment = paymentService.getPaymentById(id);
 
-        if (!payment.getUser().getId().equals(userPrincipal.getId()) &&
-                !userPrincipal.getAuthorities().stream()
-                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") ||
-                                a.getAuthority().equals("ROLE_MANAGER"))) {
+        // Check if user is admin/manager from security context
+        org.springframework.security.core.Authentication authentication =
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") ||
+                        a.getAuthority().equals("ROLE_MANAGER"));
+
+        boolean isOwner = false;
+        if (userPrincipal != null && payment.getUser() != null) {
+            String userId = userPrincipal.getId();
+            if (userId != null) {
+                isOwner = userId.equals(payment.getUser().getId());
+            }
+        }
+
+        if (!isAdmin && !isOwner) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
