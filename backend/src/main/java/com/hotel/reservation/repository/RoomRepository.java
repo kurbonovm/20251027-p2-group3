@@ -4,7 +4,6 @@ import com.hotel.reservation.model.Room;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -49,7 +48,7 @@ public interface RoomRepository extends MongoRepository<Room, String> {
      * @param maxPrice maximum price per night
      * @return list of rooms within the price range
      */
-    List<Room> findByPricePerNightBetween(BigDecimal minPrice, BigDecimal maxPrice);
+    List<Room> findByPricePerNightBetween(int minPrice, int maxPrice);
 
     /**
      * Find rooms with minimum capacity.

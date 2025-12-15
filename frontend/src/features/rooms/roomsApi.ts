@@ -23,7 +23,11 @@ export const roomsApi = apiSlice.injectEndpoints({
     getAvailableRooms: builder.query<Room[], AvailableRoomsQuery>({
       query: ({ startDate, endDate, guests }) => ({
         url: '/rooms/available',
-        params: { startDate, endDate, guests },
+        params: { 
+          checkInDate: startDate, 
+          checkOutDate: endDate, 
+          guests 
+        },
       }),
       providesTags: ['Room'],
     }),

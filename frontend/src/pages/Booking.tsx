@@ -141,11 +141,12 @@ const Booking: React.FC = () => {
 
       setSuccess('Payment processed successfully! Redirecting...');
 
+      // Redirect to confirmation page with reservation ID
       setTimeout(() => {
-        navigate('/reservations', {
-          state: { message: 'Reservation created and payment completed successfully!' },
+        navigate('/booking/confirmation', {
+          state: { reservationId: reservationId },
         });
-      }, 2000);
+      }, 1000);
 
     } catch (err: any) {
       console.error('Failed to confirm payment:', err);

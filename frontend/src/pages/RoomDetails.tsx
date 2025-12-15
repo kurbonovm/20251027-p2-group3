@@ -1,18 +1,13 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
   Typography,
   Grid,
   Card,
-  CardMedia,
   Button,
   Chip,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   TextField,
   Alert,
 } from '@mui/material';
@@ -36,18 +31,77 @@ import Loading from '../components/Loading';
 const RoomDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   const { data: room, isLoading, error } = useGetRoomByIdQuery(id!);
 
+  // Get booking context from location state (if returning from login)
+  const locationState = location.state as { bookingContext?: { checkInDate?: string; checkOutDate?: string; guests?: number } } | null;
+  const bookingContext = locationState?.bookingContext;
+
   const [checkInDate, setCheckInDate] = useState<Date | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
-  const [guests, setGuests] = useState<number>(1);
+  const [guests, setGuests] = useState<number | ''>('');
   const [selectedImage, setSelectedImage] = useState<string>('');
+  const [guestsError, setGuestsError] = useState<string>('');
+
+  // Restore booking context when returning from login
+  useEffect(() => {
+    if (bookingContext) {
+      if (bookingContext.checkInDate) {
+        setCheckInDate(new Date(bookingContext.checkInDate));
+      }
+      if (bookingContext.checkOutDate) {
+        setCheckOutDate(new Date(bookingContext.checkOutDate));
+      }
+      if (bookingContext.guests) {
+        setGuests(bookingContext.guests);
+      }
+      // Clear the booking context from location state to avoid restoring on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [bookingContext, location.pathname, navigate]);
 
   const handleBookNow = () => {
     if (!isAuthenticated) {
-      navigate('/login');
+      // Format dates to preserve booking selections
+      const formatDate = (date: Date | null): string => {
+        if (!date) return '';
+        const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return d.toISOString().split('T')[0];
+      };
+      
+      // Navigate to login with booking context to redirect back after authentication
+      navigate('/login', {
+        state: {
+          returnTo: `/rooms/${id}`,
+          bookingContext: {
+            checkInDate: formatDate(checkInDate),
+            checkOutDate: formatDate(checkOutDate),
+            guests: typeof guests === 'number' ? guests : (guests === '' ? 1 : parseInt(guests.toString()) || 1),
+          },
+        },
+      });
+      return;
+    }
+
+    // Validate guests is provided
+    if (!guests || guests === '') {
+      setGuestsError('Please enter the number of guests');
+      return;
+    }
+    
+    // Validate guests is a positive number
+    const numGuests = typeof guests === 'number' ? guests : parseInt(guests.toString());
+    if (isNaN(numGuests) || numGuests < 1) {
+      setGuestsError('Number of guests must be at least 1');
+      return;
+    }
+    
+    // Validate guests don't exceed room capacity
+    if (numGuests > room.capacity) {
+      setGuestsError(`Maximum capacity is ${room.capacity} guests`);
       return;
     }
 
@@ -64,9 +118,42 @@ const RoomDetails: React.FC = () => {
         room,
         checkInDate: formatDate(checkInDate),
         checkOutDate: formatDate(checkOutDate),
-        guests,
+        guests: typeof guests === 'number' ? guests : (guests === '' ? 1 : parseInt(guests.toString()) || 1),
       },
     });
+  };
+
+  const handleGuestsChange = (value: string) => {
+    // Allow empty input to show placeholder
+    if (value === '') {
+      setGuests('');
+      setGuestsError('');
+      return;
+    }
+    
+    const numGuests = parseInt(value);
+    
+    // Check if it's a valid number
+    if (isNaN(numGuests)) {
+      setGuests('');
+      setGuestsError('');
+      return;
+    }
+    
+    // Validate that the number is positive (at least 1)
+    if (numGuests < 1) {
+      setGuestsError('Number of guests must be at least 1');
+      setGuests(numGuests); // Keep the invalid value so user can see the error
+      return;
+    }
+    
+    // Set the value and check for capacity constraint
+    setGuests(numGuests);
+    if (numGuests > room.capacity) {
+      setGuestsError(`Maximum capacity is ${room.capacity} guests`);
+    } else {
+      setGuestsError('');
+    }
   };
 
   if (isLoading) return <Loading message="Loading room details..." />;
@@ -87,181 +174,589 @@ const RoomDetails: React.FC = () => {
     );
   }
 
+  // Determine if we have additional images
+  const hasAdditionalImages = room.additionalImages && room.additionalImages.length > 0;
+  const allImages = [room.imageUrl, ...(room.additionalImages || [])].filter(Boolean);
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={7}>
-            <CardMedia
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            gap: 2,
+            width: '100%',
+          }}
+        >
+          {/* Heroic Main Image - Left Side */}
+          <Box
+            sx={{
+              width: { xs: '100%', md: hasAdditionalImages ? '60%' : '100%' },
+              height: { xs: 400, md: 600 },
+              borderRadius: 2,
+              overflow: 'hidden',
+              position: 'relative',
+              flexShrink: 0,
+            }}
+          >
+            <Box
               component="img"
-              height="400"
-              image={selectedImage || room.imageUrl || 'https://via.placeholder.com/600x400?text=Room+Image'}
+              src={selectedImage || room.imageUrl || 'https://via.placeholder.com/800x600?text=Room+Image'}
               alt={room.name}
-              sx={{ borderRadius: 2, mb: 2, objectFit: 'cover' }}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                cursor: 'pointer',
+                transition: 'opacity 0.3s ease',
+                '&:hover': {
+                  opacity: 0.95,
+                },
+              }}
+              onClick={() => {
+                // Cycle through images on click
+                const currentIndex = allImages.findIndex(img => img === (selectedImage || room.imageUrl));
+                const nextIndex = (currentIndex + 1) % allImages.length;
+                setSelectedImage(allImages[nextIndex]);
+              }}
             />
+          </Box>
 
-            <Grid container spacing={1}>
-              {/* Main image thumbnail */}
-              <Grid item xs={4}>
-                <CardMedia
-                  component="img"
-                  height="120"
-                  image={room.imageUrl || 'https://via.placeholder.com/200x120?text=Room'}
-                  alt={room.name}
-                  sx={{
-                    borderRadius: 1,
-                    cursor: 'pointer',
-                    border: (!selectedImage || selectedImage === room.imageUrl) ? '3px solid #1976d2' : '3px solid transparent',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      opacity: 0.8,
-                      transform: 'scale(1.05)'
-                    },
-                    objectFit: 'cover'
-                  }}
-                  onClick={() => setSelectedImage(room.imageUrl || '')}
-                />
-              </Grid>
-
-              {/* Additional images thumbnails */}
-              {room.additionalImages && room.additionalImages.map((img, index) => (
-                <Grid item xs={4} key={index}>
-                  <CardMedia
+          {/* Dynamic Asymmetrical Grid - Right Side (only if additional images exist) */}
+          {hasAdditionalImages && (
+            <Box
+              sx={{
+                width: { xs: '100%', md: '40%' },
+                height: { xs: 'auto', md: 600 },
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                flexShrink: 0,
+              }}
+            >
+                {room.additionalImages.length === 1 ? (
+                  // Single additional image - full height
+                  <Box
                     component="img"
-                    height="120"
-                    image={img}
-                    alt={`${room.name} ${index + 1}`}
+                    src={room.additionalImages[0]}
+                    alt={`${room.name} additional 1`}
+                    onClick={() => setSelectedImage(room.additionalImages![0])}
                     sx={{
-                      borderRadius: 1,
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 2,
+                      objectFit: 'cover',
                       cursor: 'pointer',
-                      border: selectedImage === img ? '3px solid #1976d2' : '3px solid transparent',
+                      border: selectedImage === room.additionalImages![0] ? '3px solid #1976d2' : '3px solid transparent',
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        opacity: 0.8,
-                        transform: 'scale(1.05)'
+                        opacity: 0.9,
+                        transform: 'scale(1.02)',
                       },
-                      objectFit: 'cover'
                     }}
-                    onClick={() => setSelectedImage(img)}
                   />
-                </Grid>
-              ))}
-            </Grid>
-          </Grid>
-
-          <Grid item xs={12} md={5}>
-            <Card sx={{ p: 3 }}>
-              <Typography variant="h4" gutterBottom>
-                {room.name}
-              </Typography>
-
-              <Box sx={{ mb: 2 }}>
-                <Chip label={room.type} color="primary" sx={{ mr: 1 }} />
-                {room.available ? (
-                  <Chip label="Available" color="success" />
+                ) : room.additionalImages.length === 2 ? (
+                  // Two additional images - stacked
+                  <>
+                    <Box
+                      component="img"
+                      src={room.additionalImages[0]}
+                      alt={`${room.name} additional 1`}
+                      onClick={() => setSelectedImage(room.additionalImages![0])}
+                      sx={{
+                        width: '100%',
+                        height: '50%',
+                        borderRadius: 2,
+                        objectFit: 'cover',
+                        cursor: 'pointer',
+                        border: selectedImage === room.additionalImages![0] ? '3px solid #1976d2' : '3px solid transparent',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          opacity: 0.9,
+                          transform: 'scale(1.02)',
+                        },
+                      }}
+                    />
+                    <Box
+                      component="img"
+                      src={room.additionalImages[1]}
+                      alt={`${room.name} additional 2`}
+                      onClick={() => setSelectedImage(room.additionalImages![1])}
+                      sx={{
+                        width: '100%',
+                        height: '50%',
+                        borderRadius: 2,
+                        objectFit: 'cover',
+                        cursor: 'pointer',
+                        border: selectedImage === room.additionalImages![1] ? '3px solid #1976d2' : '3px solid transparent',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          opacity: 0.9,
+                          transform: 'scale(1.02)',
+                        },
+                      }}
+                    />
+                  </>
                 ) : (
-                  <Chip label="Not Available" color="error" />
-                )}
-              </Box>
-
-              <Typography variant="h5" color="primary" gutterBottom>
-                ${room.pricePerNight} / night
-              </Typography>
-
-              <Typography variant="body1" color="text.secondary" paragraph>
-                {room.description}
-              </Typography>
-
-              <List dense>
-                <ListItem>
-                  <ListItemIcon>
-                    <People />
-                  </ListItemIcon>
-                  <ListItemText primary={`Capacity: ${room.capacity} guests`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <AspectRatio />
-                  </ListItemIcon>
-                  <ListItemText primary={`Size: ${room.size} sq ft`} />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <Stairs />
-                  </ListItemIcon>
-                  <ListItemText primary={`Floor: ${room.floorNumber}`} />
-                </ListItem>
-              </List>
-
-              <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                Amenities
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-                {room.amenities?.map((amenity, index) => (
-                  <Chip
-                    key={index}
-                    icon={<CheckCircle />}
-                    label={amenity}
-                    variant="outlined"
-                    size="small"
-                  />
-                ))}
-              </Box>
-
-              <Box component="form" sx={{ mt: 3 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Select Your Stay
-                </Typography>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} sm={6}>
-                      <DatePicker
-                        label="Check-in Date"
-                        value={checkInDate}
-                        onChange={(newValue) => setCheckInDate(newValue)}
-                        minDate={new Date()}
-                        format="MM/dd/yyyy"
-                        slotProps={{
-                          textField: {
-                            fullWidth: true
-                          }
+                  // Three or more images - asymmetrical grid
+                  <Grid container spacing={1} sx={{ height: '100%' }}>
+                    {/* First image - takes 2/3 of width, full height */}
+                    <Grid item xs={8}>
+                      <Box
+                        component="img"
+                        src={room.additionalImages[0]}
+                        alt={`${room.name} additional 1`}
+                        onClick={() => setSelectedImage(room.additionalImages![0])}
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          borderRadius: 2,
+                          objectFit: 'cover',
+                          cursor: 'pointer',
+                          border: selectedImage === room.additionalImages![0] ? '3px solid #1976d2' : '3px solid transparent',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            opacity: 0.9,
+                            transform: 'scale(1.02)',
+                          },
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    {/* Right column - stacked smaller images */}
+                    <Grid item xs={4}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, height: '100%' }}>
+                        {room.additionalImages.slice(1, 3).map((img, index) => (
+                          <Box
+                            key={index}
+                            component="img"
+                            src={img}
+                            alt={`${room.name} additional ${index + 2}`}
+                            onClick={() => setSelectedImage(img)}
+                            sx={{
+                              width: '100%',
+                              height: index === 0 && room.additionalImages!.length > 3 ? '60%' : '50%',
+                              borderRadius: 2,
+                              objectFit: 'cover',
+                              cursor: 'pointer',
+                              border: selectedImage === img ? '3px solid #1976d2' : '3px solid transparent',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                opacity: 0.9,
+                                transform: 'scale(1.02)',
+                              },
+                            }}
+                          />
+                        ))}
+                        {/* If more than 3 images, show a "more" indicator */}
+                        {room.additionalImages.length > 3 && (
+                          <Box
+                            onClick={() => {
+                              // Show next image in sequence
+                              const currentIndex = allImages.findIndex(img => img === selectedImage);
+                              const nextIndex = (currentIndex + 1) % allImages.length;
+                              setSelectedImage(allImages[nextIndex]);
+                            }}
+                            sx={{
+                              width: '100%',
+                              height: '40%',
+                              borderRadius: 2,
+                              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              border: '2px dashed rgba(255, 255, 255, 0.3)',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                borderColor: '#1976d2',
+                              },
+                            }}
+                          >
+                            <Typography variant="body2" sx={{ color: '#ffffff', fontWeight: 600 }}>
+                              +{room.additionalImages.length - 3} more
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Grid>
+                  </Grid>
+                )}
+              </Box>
+          )}
+        </Box>
+
+        {/* Room Details Section */}
+        <Grid container spacing={4} sx={{ mt: 4 }}>
+          <Grid item xs={12} md={5}>
+            <Card
+              sx={{
+                p: 2.5,
+                backgroundColor: '#1a1a1a',
+                color: '#ffffff',
+                borderRadius: 3,
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              {/* Room Name */}
+              <Typography
+                variant="h4"
+                sx={{
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  mb: 2,
+                }}
+              >
+                {room.name}
+              </Typography>
+
+              {/* Type and Availability Badges */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+                <Chip
+                  label={room.type}
+                  sx={{
+                    backgroundColor: '#1976d2',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    borderRadius: '20px',
+                    px: 1,
+                  }}
+                />
+                {room.available ? (
+                  <Chip
+                    label="AVAILABLE"
+                    sx={{
+                      backgroundColor: '#4caf50',
+                      color: '#ffffff',
+                      fontWeight: 600,
+                      borderRadius: '20px',
+                      px: 1,
+                    }}
+                  />
+                ) : (
+                  <Chip
+                    label="NOT AVAILABLE"
+                    sx={{
+                      backgroundColor: '#f44336',
+                      color: '#ffffff',
+                      fontWeight: 600,
+                      borderRadius: '20px',
+                      px: 1,
+                    }}
+                  />
+                )}
+              </Box>
+
+              {/* Price */}
+              <Box sx={{ mb: 2 }}>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: '2rem',
+                    fontWeight: 700,
+                    color: '#42a5f5',
+                    mr: 0.5,
+                  }}
+                >
+                  ${room.pricePerNight}
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: '1rem',
+                    color: '#ffffff',
+                  }}
+                >
+                  {' '}/ night
+                </Typography>
+              </Box>
+
+                    {/* Description */}
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        mb: 2,
+                        lineHeight: 1.5,
+                        fontSize: '0.9rem',
+                      }}
+                    >
+                      {room.description}
+                    </Typography>
+
+              {/* Capacity, Size, Floor */}
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <People sx={{ color: '#42a5f5', mr: 1.5, fontSize: 20 }} />
+                  <Typography sx={{ color: '#ffffff' }}>
+                    Capacity: {room.capacity} guests
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <AspectRatio sx={{ color: '#42a5f5', mr: 1.5, fontSize: 20 }} />
+                  <Typography sx={{ color: '#ffffff' }}>
+                    Size: {room.size} sq ft
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0 }}>
+                  <Stairs sx={{ color: '#42a5f5', mr: 1.5, fontSize: 20 }} />
+                  <Typography sx={{ color: '#ffffff' }}>
+                    Floor: {room.floorNumber}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Amenities Section */}
+              <Typography
+                variant="h6"
+                sx={{
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  mb: 1.5,
+                }}
+              >
+                Amenities
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+                  gap: 1,
+                  mb: 2.5,
+                }}
+              >
+                {room.amenities?.map((amenity, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      p: 1.5,
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  >
+                    <CheckCircle sx={{ color: '#1976d2', fontSize: 20 }} />
+                    <Typography
+                      sx={{
+                        color: '#ffffff',
+                        fontSize: '0.9rem',
+                      }}
+                    >
+                      {amenity}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Select Your Stay Section */}
+              <Box component="form" sx={{ mt: 2 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    mb: 1.5,
+                  }}
+                >
+                  Select Your Stay
+                </Typography>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                    {/* Check-in */}
+                    <Grid item xs={12} sm={4} sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#ffffff',
+                          mb: 0.75,
+                          fontWeight: 500,
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        Check-in
+                      </Typography>
                       <DatePicker
-                        label="Check-out Date"
+                        value={checkInDate}
+                        onChange={(newValue) => setCheckInDate(newValue)}
+                        minDate={new Date()}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            placeholder: 'Add date',
+                            sx: {
+                              '& .MuiOutlinedInput-root': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                color: '#ffffff',
+                                borderRadius: 2,
+                                '& fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                                },
+                                '&:hover fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                                },
+                                '&.Mui-focused fieldset': {
+                                  borderColor: '#1976d2',
+                                },
+                              },
+                              '& .MuiInputBase-input': {
+                                color: '#ffffff',
+                              },
+                              '& .MuiInputBase-input::placeholder': {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                opacity: 1,
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </Grid>
+                    {/* Check-out */}
+                    <Grid item xs={12} sm={4} sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#ffffff',
+                          mb: 0.75,
+                          fontWeight: 500,
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        Check-out
+                      </Typography>
+                      <DatePicker
                         value={checkOutDate}
                         onChange={(newValue) => setCheckOutDate(newValue)}
                         minDate={checkInDate ? new Date(checkInDate.getTime() + 86400000) : new Date()}
                         disabled={!checkInDate}
-                        format="MM/dd/yyyy"
                         slotProps={{
                           textField: {
-                            fullWidth: true
-                          }
+                            fullWidth: true,
+                            placeholder: 'Add date',
+                            sx: {
+                              '& .MuiOutlinedInput-root': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                color: '#ffffff',
+                                borderRadius: 2,
+                                '& fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                                },
+                                '&:hover fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                                },
+                                '&.Mui-focused fieldset': {
+                                  borderColor: '#1976d2',
+                                },
+                              },
+                              '& .MuiInputBase-input': {
+                                color: '#ffffff',
+                              },
+                              '& .MuiInputBase-input::placeholder': {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                opacity: 1,
+                              },
+                            },
+                          },
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    {/* Guests */}
+                    <Grid item xs={12} sm={4} sx={{ minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: '#ffffff',
+                          mb: 0.75,
+                          fontWeight: 500,
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        Guests
+                      </Typography>
                       <TextField
                         fullWidth
-                        type="number"
-                        label="Number of Guests"
-                        value={guests}
-                        onChange={(e) => setGuests(parseInt(e.target.value))}
-                        inputProps={{ min: 1, max: room.capacity }}
+                        type="text"
+                        inputMode="numeric"
+                        value={guests === '' ? '' : guests}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow numbers
+                          if (value === '' || /^\d+$/.test(value)) {
+                            handleGuestsChange(value);
+                          }
+                        }}
+                        placeholder="Enter a Number"
+                        error={!!guestsError}
+                        helperText={guestsError}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            color: '#ffffff',
+                            borderRadius: 2,
+                            height: '56px', // Match DatePicker height
+                            '& fieldset': {
+                              borderColor: guestsError ? '#f44336' : 'rgba(255, 255, 255, 0.2)',
+                            },
+                            '&:hover fieldset': {
+                              borderColor: guestsError ? '#f44336' : 'rgba(255, 255, 255, 0.3)',
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: guestsError ? '#f44336' : '#1976d2',
+                            },
+                            '&.Mui-error fieldset': {
+                              borderColor: '#f44336',
+                            },
+                          },
+                          '& .MuiInputBase-input': {
+                            color: '#ffffff',
+                            '&::placeholder': {
+                              color: 'rgba(255, 255, 255, 0.5) !important',
+                              opacity: '1 !important',
+                              fontSize: '0.875rem',
+                            },
+                          },
+                          '& .MuiInputBase-input::placeholder': {
+                            color: 'rgba(255, 255, 255, 0.5)',
+                            opacity: 1,
+                            fontSize: '0.875rem',
+                          },
+                          '& .MuiFormHelperText-root': {
+                            color: guestsError ? '#f44336' : 'rgba(255, 255, 255, 0.5)',
+                            fontSize: '0.75rem',
+                            mt: 0.5,
+                          },
+                        }}
                       />
                     </Grid>
                   </Grid>
                 </LocalizationProvider>
 
+                {/* Login to Book Button */}
                 <Button
                   fullWidth
                   variant="contained"
                   size="large"
                   onClick={handleBookNow}
-                  disabled={!room.available || !checkInDate || !checkOutDate}
+                  disabled={!room.available || !checkInDate || !checkOutDate || !guests || guests === '' || (typeof guests === 'number' && (guests < 1 || guests > room.capacity))}
+                  sx={{
+                    backgroundColor: '#1976d2',
+                    color: '#ffffff',
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: '#1565c0',
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'rgba(255, 255, 255, 0.3)',
+                    },
+                  }}
                 >
                   {isAuthenticated ? 'Book Now' : 'Login to Book'}
                 </Button>

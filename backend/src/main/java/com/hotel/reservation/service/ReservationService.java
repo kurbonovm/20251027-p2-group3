@@ -107,7 +107,7 @@ public class ReservationService {
         }
 
         long numberOfNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
-        BigDecimal totalAmount = room.getPricePerNight()
+        BigDecimal totalAmount = BigDecimal.valueOf(room.getPricePerNight())
                 .multiply(BigDecimal.valueOf(numberOfNights));
 
         Reservation reservation = new Reservation();
@@ -163,7 +163,7 @@ public class ReservationService {
         }
 
         long numberOfNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
-        BigDecimal totalAmount = room.getPricePerNight()
+        BigDecimal totalAmount = BigDecimal.valueOf(room.getPricePerNight())
                 .multiply(BigDecimal.valueOf(numberOfNights));
 
         reservation.setCheckInDate(checkInDate);

@@ -155,6 +155,15 @@ export interface UpdateRoomRequest extends Partial<CreateRoomRequest> {
   id: string;
 }
 
+export interface CreateUserRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+  roles: User['roles'];
+}
+
 export interface CreateReservationRequest {
   roomId: string;
   checkInDate: string;

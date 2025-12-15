@@ -29,16 +29,52 @@ const OAuth2Callback: React.FC = () => {
     }
 
     if (token) {
-      // OAuth2 authentication succeeded
-      try {
-        // Parse token and user info (assuming JWT or similar format)
-        const userInfo = {
-          token,
-          // Add additional user info if available in URL params
-        };
-
-        dispatch(setCredentials(userInfo));
+      // OAuth2 authentication succeeded - create async function to handle token processing
+      const processToken = async () => {
+        try {
+          // Fetch user info from backend using the token
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch user info');
+          }
+          
+          const userInfo = await response.json();
+          
+          // Dispatch setCredentials to update Redux state and localStorage
+          dispatch(setCredentials({ user: userInfo, token }));
+          
+          // Retrieve returnTo and bookingContext from sessionStorage
+          const returnTo = sessionStorage.getItem('oauth2_returnTo');
+          const bookingContextStr = sessionStorage.getItem('oauth2_bookingContext');
+          
+          // Clear sessionStorage
+          sessionStorage.removeItem('oauth2_returnTo');
+          sessionStorage.removeItem('oauth2_bookingContext');
+          
+          // Check user role and route accordingly
+          const userRoles = userInfo.roles || [];
+          const isAdmin = userRoles.includes('ADMIN');
+          const isManager = userRoles.includes('MANAGER');
+          
+          // If user has admin or manager role, redirect to admin dashboard
+          if (isAdmin || isManager) {
+            navigate('/admin/dashboard', { replace: true });
+          } else if (returnTo) {
+            // Regular users: redirect to returnTo path with booking context if available
+            const bookingContext = bookingContextStr ? JSON.parse(bookingContextStr) : undefined;
+            navigate(returnTo, {
+              replace: true,
+              state: bookingContext ? { bookingContext } : undefined,
+            });
+          } else {
+            // Regular users: go to home page
         navigate('/', { replace: true });
+          }
       } catch (err) {
         console.error('Failed to process OAuth2 token:', err);
         navigate('/login', {
@@ -46,6 +82,10 @@ const OAuth2Callback: React.FC = () => {
           replace: true,
         });
       }
+      };
+
+      // Call the async function
+      processToken();
     } else {
       // No token or error - redirect to login
       navigate('/login', {

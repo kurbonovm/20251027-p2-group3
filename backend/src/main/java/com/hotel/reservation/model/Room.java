@@ -50,7 +50,7 @@ public class Room {
     /**
      * Price per night
      */
-    private BigDecimal pricePerNight;
+    private int pricePerNight;
 
     /**
      * Maximum number of guests allowed

@@ -1,5 +1,6 @@
 package com.hotel.reservation.controller;
 
+import com.hotel.reservation.dto.CreateUserRequest;
 import com.hotel.reservation.dto.UserDto;
 import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.model.Room;
@@ -11,8 +12,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
@@ -28,6 +31,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final ReservationRepository reservationRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // Dashboard Overview
     @GetMapping("/dashboard")
@@ -38,7 +42,7 @@ public class AdminController {
         // Calculate total rooms by summing up totalRooms field from all room types
         List<Room> allRooms = roomRepository.findAll();
         long totalRooms = allRooms.stream()
-                .mapToLong(Room::getTotalRooms)
+                .mapToLong(room -> room.getTotalRooms())
                 .sum();
 
         // Calculate active reservations
@@ -66,8 +70,8 @@ public class AdminController {
                 .filter(r -> r.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
                             r.getStatus() == Reservation.ReservationStatus.CHECKED_IN ||
                             r.getStatus() == Reservation.ReservationStatus.CHECKED_OUT)
-                .map(Reservation::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(r -> r.getTotalAmount())
+                .reduce(BigDecimal.ZERO, (sum, amount) -> sum.add(amount));
 
         Map<String, Object> dashboard = new HashMap<>();
         dashboard.put("totalRooms", totalRooms);
@@ -81,6 +85,34 @@ public class AdminController {
     }
 
     // User Management
+    @PostMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
+        log.info("Creating new user with email: {}", createUserRequest.getEmail());
+
+        if (userRepository.existsByEmail(createUserRequest.getEmail())) {
+            throw new RuntimeException("Email already in use");
+        }
+
+        if (createUserRequest.getRoles() == null || createUserRequest.getRoles().isEmpty()) {
+            throw new RuntimeException("At least one role is required");
+        }
+
+        User user = new User();
+        user.setFirstName(createUserRequest.getFirstName());
+        user.setLastName(createUserRequest.getLastName());
+        user.setEmail(createUserRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(createUserRequest.getPassword()));
+        user.setPhoneNumber(createUserRequest.getPhoneNumber());
+        user.setRoles(createUserRequest.getRoles());
+        user.setEnabled(createUserRequest.isEnabled());
+
+        User savedUser = userRepository.save(user);
+        log.info("User created successfully with id: {}", savedUser.getId());
+
+        return ResponseEntity.ok(convertToDto(savedUser));
+    }
+
     @GetMapping("/users")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<List<UserDto>> getAllUsers() {
@@ -111,7 +143,7 @@ public class AdminController {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setEnabled(request.get("enabled"));
+        user.setEnabled(request.get("enabled") != null ? request.get("enabled") : true);
         User updatedUser = userRepository.save(user);
 
         return ResponseEntity.ok(convertToDto(updatedUser));
@@ -142,7 +174,7 @@ public class AdminController {
 
         // Calculate total rooms by summing up totalRooms field from all room types
         long totalRooms = allRooms.stream()
-                .mapToLong(Room::getTotalRooms)
+                .mapToLong(room -> room.getTotalRooms())
                 .sum();
 
         // Calculate occupied rooms based on active reservations count
@@ -157,8 +189,8 @@ public class AdminController {
         // Count room types by summing totalRooms for each type
         Map<String, Long> roomsByType = allRooms.stream()
                 .collect(Collectors.groupingBy(
-                        room -> room.getType().name(),
-                        Collectors.summingLong(Room::getTotalRooms)
+                        room -> room.getType() != null ? room.getType().name() : "UNKNOWN",
+                        Collectors.summingLong(room -> room.getTotalRooms())
                 ));
 
         Map<String, Object> statistics = new HashMap<>();
@@ -232,8 +264,8 @@ public class AdminController {
                 .filter(r -> r.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
                             r.getStatus() == Reservation.ReservationStatus.CHECKED_IN ||
                             r.getStatus() == Reservation.ReservationStatus.CHECKED_OUT)
-                .map(Reservation::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(r -> r.getTotalAmount())
+                .reduce(BigDecimal.ZERO, (sum, amount) -> sum.add(amount));
 
         Map<String, Object> statistics = new HashMap<>();
         statistics.put("totalReservations", totalReservations);
