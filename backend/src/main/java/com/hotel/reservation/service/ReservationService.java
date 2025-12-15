@@ -5,7 +5,6 @@ import com.hotel.reservation.model.Room;
 import com.hotel.reservation.model.User;
 import com.hotel.reservation.repository.ReservationRepository;
 import com.hotel.reservation.repository.RoomRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
  * @version 1.0
  */
 @Service
-@RequiredArgsConstructor
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
@@ -109,7 +107,7 @@ public class ReservationService {
         }
 
         long numberOfNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
-        BigDecimal totalAmount = room.getPricePerNight()
+        BigDecimal totalAmount = BigDecimal.valueOf(room.getPricePerNight())
                 .multiply(BigDecimal.valueOf(numberOfNights));
 
         Reservation reservation = new Reservation();
@@ -165,7 +163,7 @@ public class ReservationService {
         }
 
         long numberOfNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
-        BigDecimal totalAmount = room.getPricePerNight()
+        BigDecimal totalAmount = BigDecimal.valueOf(room.getPricePerNight())
                 .multiply(BigDecimal.valueOf(numberOfNights));
 
         reservation.setCheckInDate(checkInDate);

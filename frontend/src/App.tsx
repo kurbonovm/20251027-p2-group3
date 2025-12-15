@@ -7,10 +7,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import About from './pages/About';
 import Rooms from './pages/Rooms';
 import RoomDetails from './pages/RoomDetails';
 import Booking from './pages/Booking';
+import BookingConfirmation from './pages/BookingConfirmation';
 import Reservations from './pages/Reservations';
+import ReservationDetails from './pages/ReservationDetails';
+import ReservationManage from './pages/ReservationManage';
 import Profile from './pages/Profile';
 import PaymentHistory from './pages/PaymentHistory';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -32,6 +36,7 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
             <Route path="/oauth2/callback" element={<OAuth2Callback />} />
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/rooms/:id" element={<RoomDetails />} />
@@ -44,10 +49,34 @@ const App: React.FC = () => {
               }
             />
             <Route
+              path="/booking/confirmation"
+              element={
+                <ProtectedRoute>
+                  <BookingConfirmation />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/reservations"
               element={
                 <ProtectedRoute>
                   <Reservations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reservation/:id"
+              element={
+                <ProtectedRoute>
+                  <ReservationDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reservation/:id/manage"
+              element={
+                <ProtectedRoute>
+                  <ReservationManage />
                 </ProtectedRoute>
               }
             />

@@ -1,110 +1,107 @@
-import React from 'react';
-import { Box, Container, Typography, Button, Grid, Card, CardContent } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Container, Grid, CircularProgress, Alert, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { Hotel, EventAvailable, Payment, Security } from '@mui/icons-material';
-import { selectIsAuthenticated } from '../features/auth/authSlice';
-
-interface Feature {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}
+import { SearchParams } from '../components/SearchBar';
+import RoomCard from '../components/RoomCard';
+import BottomNavigation from '../components/BottomNavigation';
+import { useGetRoomsQuery } from '../features/rooms/roomsApi';
+import { Room } from '../types';
 
 /**
- * Home page component
+ * Home page component - displays room listings
+ * Header is handled by MainLayout (AuthenticatedHeader or GuestHeader)
  */
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const [searchParams, setSearchParams] = useState<SearchParams>({});
 
-  const features: Feature[] = [
-    {
-      icon: <Hotel sx={{ fontSize: 60, color: 'primary.main' }} />,
-      title: 'Browse Rooms',
-      description: 'Explore our wide selection of comfortable and luxurious rooms.',
-    },
-    {
-      icon: <EventAvailable sx={{ fontSize: 60, color: 'primary.main' }} />,
-      title: 'Easy Booking',
-      description: 'Book your stay in just a few clicks with real-time availability.',
-    },
-    {
-      icon: <Payment sx={{ fontSize: 60, color: 'primary.main' }} />,
-      title: 'Secure Payments',
-      description: 'Safe and secure payment processing with Stripe integration.',
-    },
-    {
-      icon: <Security sx={{ fontSize: 60, color: 'primary.main' }} />,
-      title: 'Trusted Service',
-      description: 'OAuth2 authentication for a secure and seamless experience.',
-    },
-  ];
+  // Fetch rooms from database using RTK Query
+  const { data: rooms, isLoading, error } = useGetRoomsQuery(
+    searchParams.roomType ? { type: searchParams.roomType } : undefined
+  );
+
+  // Filter and display rooms from database
+  const displayedRooms = (rooms || [])
+    .filter((room) => {
+      // Filter by room type if search params are provided
+      if (searchParams.roomType) {
+        return room.type === searchParams.roomType;
+      }
+      // Show all rooms (no availability filter)
+      return true;
+    });
 
   return (
-    <Box>
       <Box
         sx={{
-          bgcolor: 'primary.main',
-          color: 'white',
-          py: 8,
-          px: 2,
-          textAlign: 'center',
+        minHeight: 'calc(100vh - 200px)',
+        backgroundColor: '#000000',
+        color: '#ffffff',
+        pb: { xs: 8, md: 0 }, // Space for bottom navigation on mobile
+        display: 'flex',
+        flexDirection: 'column',
         }}
       >
-        <Container maxWidth="md">
-          <Typography variant="h2" component="h1" gutterBottom>
-            Welcome to Hotel Reservation System
-          </Typography>
-          <Typography variant="h5" component="p" gutterBottom>
-            Your perfect stay is just a click away
-          </Typography>
-          <Box sx={{ mt: 4 }}>
-            <Button
-              variant="contained"
-              size="large"
-              color="secondary"
-              onClick={() => navigate('/rooms')}
-              sx={{ mr: isAuthenticated ? 0 : 2 }}
+      {/* Room Listings - Scrollable only if content exceeds viewport */}
+      <Box
+        sx={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            },
+          },
+        }}
+      >
+        <Container 
+          maxWidth="xl" 
+          sx={{ 
+            px: { xs: 2, sm: 3, md: 3 }, 
+            py: { xs: 3, md: 3 },
+          }}
+        >
+          {isLoading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
+              <CircularProgress sx={{ color: '#1976d2' }} />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336' }}>
+              Failed to load rooms. Please try again later.
+            </Alert>
+          ) : displayedRooms.length === 0 ? (
+            <Alert severity="info" sx={{ backgroundColor: 'rgba(33, 150, 243, 0.1)', color: '#2196f3' }}>
+              No available rooms found.
+            </Alert>
+          ) : (
+            <Grid 
+              container 
+              spacing={{ xs: 2, sm: 2, md: 2.5 }} 
+              sx={{ 
+                justifyContent: 'flex-start',
+              }}
             >
-              Browse Rooms
-            </Button>
-            {!isAuthenticated && (
-              <Button
-                variant="outlined"
-                size="large"
-                sx={{ color: 'white', borderColor: 'white' }}
-                onClick={() => navigate('/register')}
-              >
-                Get Started
-              </Button>
-            )}
-          </Box>
+              {displayedRooms.map((room: Room) => (
+                <Grid item xs={12} sm={6} md={3} lg={3} key={room.id}>
+                  <RoomCard room={room} />
+                </Grid>
+              ))}
+            </Grid>
+          )}
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Typography variant="h3" component="h2" align="center" gutterBottom>
-          Why Choose Us?
-        </Typography>
-        <Grid container spacing={4} sx={{ mt: 2 }}>
-          {features.map((feature, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <Card sx={{ height: '100%', textAlign: 'center', p: 2 }}>
-                <CardContent>
-                  <Box sx={{ mb: 2 }}>{feature.icon}</Box>
-                  <Typography variant="h6" component="h3" gutterBottom>
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {feature.description}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
+      {/* Bottom Navigation (Mobile Only) */}
+      <BottomNavigation />
     </Box>
   );
 };

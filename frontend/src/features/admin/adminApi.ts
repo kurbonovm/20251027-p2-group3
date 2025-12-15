@@ -7,6 +7,7 @@ import type {
   RoomStatistics,
   ReservationStatistics,
   ReservationStatus,
+  CreateUserRequest,
 } from '../../types';
 
 interface UpdateUserStatusRequest {
@@ -33,6 +34,14 @@ export const adminApi = apiSlice.injectEndpoints({
     }),
 
     // Users Management
+    createUser: builder.mutation<User, CreateUserRequest>({
+      query: (userData) => ({
+        url: '/admin/users',
+        method: 'POST',
+        body: userData,
+      }),
+      invalidatesTags: ['User'],
+    }),
     getAllUsers: builder.query<User[], void>({
       query: () => '/admin/users',
       providesTags: ['User'],
@@ -65,6 +74,62 @@ export const adminApi = apiSlice.injectEndpoints({
     getRoomStatistics: builder.query<RoomStatistics, void>({
       query: () => '/admin/rooms/statistics',
       providesTags: ['Room'],
+    }),
+    updateRoom: builder.mutation<Room, { id: string; room: Partial<Room> }>({
+      query: ({ id, room }) => ({
+        url: `/rooms/${id}`,
+        method: 'PUT',
+        body: room,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Room', id },
+        'Room',
+        'Admin',
+      ],
+      // Optimistic update for immediate UI feedback
+      onQueryStarted: async ({ id, room: updateData }, { dispatch, queryFulfilled }) => {
+        // Optimistically update the cache
+        const patchResult = dispatch(
+          adminApi.util.updateQueryData('getAllRoomsAdmin', undefined, (draft) => {
+            const roomIndex = draft.findIndex((r) => r.id === id);
+            if (roomIndex !== -1) {
+              draft[roomIndex] = { ...draft[roomIndex], ...updateData };
+            }
+          })
+        );
+
+        // Also update room statistics cache
+        dispatch(
+          adminApi.util.updateQueryData('getRoomStatistics', undefined, (draft) => {
+            // Statistics will be recalculated when invalidated
+          })
+        );
+
+        try {
+          // Wait for the server response
+          const { data: updatedRoom } = await queryFulfilled;
+          
+          // Update with the actual server response
+          dispatch(
+            adminApi.util.updateQueryData('getAllRoomsAdmin', undefined, (draft) => {
+              const roomIndex = draft.findIndex((r) => r.id === id);
+              if (roomIndex !== -1) {
+                draft[roomIndex] = updatedRoom;
+              }
+            })
+          );
+        } catch {
+          // If the update fails, revert the optimistic update
+          patchResult.undo();
+        }
+      },
+    }),
+    deleteRoom: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/rooms/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Room', 'Admin'],
     }),
 
     // Reservations Management
@@ -99,6 +164,7 @@ export const adminApi = apiSlice.injectEndpoints({
 });
 
 export const {
+  useCreateUserMutation,
   useGetDashboardOverviewQuery,
   useGetAllUsersQuery,
   useGetUserByIdQuery,
@@ -106,6 +172,8 @@ export const {
   useDeleteUserMutation,
   useGetAllRoomsAdminQuery,
   useGetRoomStatisticsQuery,
+  useUpdateRoomMutation,
+  useDeleteRoomMutation,
   useGetAllReservationsAdminQuery,
   useGetReservationsByDateRangeQuery,
   useUpdateReservationStatusMutation,

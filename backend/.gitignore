@@ -1,42 +1,3 @@
-<<<<<<< HEAD
-# Maven
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.asc
-.flattened-pom.xml
-
-# IDE
-.idea/
-*.iml
-*.iws
-*.ipr
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment
-.env
-.env.local
-
-# Logs
-logs/
-*.log
-
-# Extra Files
-API_DESIGN_DOCUMENT.md
-IMPLEMENTATION_SUMMARY.md
-meDoc.txt
-models_backup.md
-
-../.DS_Store
-=======
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
@@ -83,4 +44,11 @@ logs/
 ### OS ###
 .DS_Store
 Thumbs.db
->>>>>>> p2group3
+
+# extra docx
+API_DESIGN_DOCUMENT.md
+IMPLEMENTATION_SUMMARY.md
+meDoc.txt
+models_backup.md
+requirements.md
+todo.md
