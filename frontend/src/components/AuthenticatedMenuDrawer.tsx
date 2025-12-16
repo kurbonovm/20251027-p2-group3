@@ -8,11 +8,11 @@ import {
   ListItemButton,
   ListItemText,
   Divider,
+  Card,
+  CardContent,
 } from '@mui/material';
 import {
   AccountCircle,
-  Logout,
-  EventNote,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -32,11 +32,6 @@ const AuthenticatedMenuDrawer: React.FC<AuthenticatedMenuDrawerProps> = ({ open,
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
-
-  const handleMyBookings = () => {
-    onClose();
-    navigate('/reservations');
-  };
 
   const handleProfile = () => {
     onClose();
@@ -76,49 +71,72 @@ const AuthenticatedMenuDrawer: React.FC<AuthenticatedMenuDrawerProps> = ({ open,
     >
       <Box sx={{ p: 2 }}>
         {/* Welcome Header */}
-        <Box sx={{ mb: 2, pb: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <Typography
-            variant="body1"
-            sx={{
-              color: '#ffffff',
-              fontWeight: 600,
-            }}
-          >
-            Welcome {user?.firstName} {user?.lastName}!
-          </Typography>
-        </Box>
+        <Typography
+          variant="body1"
+          sx={{
+            color: '#ffffff',
+            fontWeight: 600,
+            mb: 2,
+          }}
+        >
+          Welcome {user?.firstName} {user?.lastName}!
+        </Typography>
+
+        {/* Promotional Card: Value Proposition */}
+        <Card
+          sx={{
+            backgroundColor: '#1a1a1a',
+            borderRadius: 2,
+            mb: 2,
+          }}
+        >
+          <CardContent sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    mb: 0.5,
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  Enjoy Your Stay
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    lineHeight: 1.5,
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  It's very comfy to room with Luxe.
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 1.5,
+                  flexShrink: 0,
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px',
+                }}
+              >
+                🍺
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Menu Items */}
         <List sx={{ p: 0 }}>
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={handleMyBookings}
-              sx={{
-                backgroundColor: '#1a1a1a',
-                borderRadius: 2,
-                mb: 1.5,
-                py: 1.5,
-                px: 2,
-                cursor: 'pointer',
-                '&:hover': {
-                  backgroundColor: '#252525',
-                },
-              }}
-            >
-              <EventNote sx={{ color: '#ffffff', mr: 2, fontSize: 20 }} />
-              <ListItemText
-                primary="My Reservations"
-                primaryTypographyProps={{
-                  sx: {
-                    color: '#ffffff',
-                    fontWeight: 500,
-                    fontSize: '0.9rem',
-                  },
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-
+          {/* Profile - shown for all users */}
           <ListItem disablePadding>
             <ListItemButton
               onClick={handleProfile}

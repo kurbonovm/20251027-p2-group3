@@ -3,6 +3,7 @@ package com.hotel.reservation.controller;
 import com.hotel.reservation.dto.UpdateRoomRequest;
 import com.hotel.reservation.model.Room;
 import com.hotel.reservation.service.RoomService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -84,13 +85,14 @@ public class RoomController {
 
     /**
      * Create a new room (Manager/Admin only).
+     * Validates all required fields and constraints before creation.
      *
-     * @param room room details
+     * @param room room details with validation
      * @return created room
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ResponseEntity<Room> createRoom(@RequestBody Room room) {
+    public ResponseEntity<Room> createRoom(@Valid @RequestBody Room room) {
         Room createdRoom = roomService.createRoom(room);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRoom);
     }

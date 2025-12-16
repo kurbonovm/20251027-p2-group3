@@ -8,6 +8,11 @@ import {
   Chip,
   Box,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -17,6 +22,7 @@ import {
   AcUnit,
   Tv,
   Build as BuildIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import {
   useGetAllRoomsAdminQuery,
@@ -27,6 +33,7 @@ import {
 import AdminLayout from '../../layouts/AdminLayout';
 import Loading from '../../components/Loading';
 import EditRoomModal from '../../components/EditRoomModal';
+import CreateRoomModal from '../../components/CreateRoomModal';
 import { Room, RoomStatistics } from '../../types';
 
 const AdminRooms: React.FC = () => {
@@ -35,7 +42,10 @@ const AdminRooms: React.FC = () => {
   const { data: reservations, isLoading: reservationsLoading, error: reservationsError } = useGetAllReservationsAdminQuery();
   const [deleteRoom] = useDeleteRoomMutation();
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
 
   if (roomsLoading || statsLoading || reservationsLoading) return <Loading message="Loading rooms..." />;
 
@@ -129,15 +139,37 @@ const AdminRooms: React.FC = () => {
     setEditModalOpen(true);
   };
 
-  const handleDeleteClick = async (roomId: string) => {
-    if (window.confirm('Are you sure you want to delete this room?')) {
-      try {
-        await deleteRoom(roomId).unwrap();
-      } catch (error) {
-        console.error('Failed to delete room:', error);
-        alert('Failed to delete room. Please try again.');
-      }
+  const handleDeleteClick = (room: Room) => {
+    setRoomToDelete(room);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!roomToDelete) return;
+
+    try {
+      await deleteRoom(roomToDelete.id).unwrap();
+      setDeleteDialogOpen(false);
+      setRoomToDelete(null);
+      
+      // Refetch rooms and stats to update the UI
+      await Promise.all([
+        refetchRooms(),
+        refetchStats(),
+      ]);
+    } catch (error: any) {
+      console.error('Failed to delete room:', error);
+      setDeleteDialogOpen(false);
+      setRoomToDelete(null);
+      
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete room. Please try again.';
+      alert(`Error: ${errorMessage}`);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setRoomToDelete(null);
   };
 
   const handleCloseEditModal = () => {
@@ -153,20 +185,62 @@ const AdminRooms: React.FC = () => {
     ]);
   };
 
+  const handleCreateSuccess = async () => {
+    setCreateModalOpen(false);
+    // Refetch rooms and stats to show the new room
+    await Promise.all([
+      refetchRooms(),
+      refetchStats(),
+    ]);
+  };
+
   return (
     <AdminLayout>
-      {/* Title */}
-      <Typography 
-        variant="h4" 
-        gutterBottom 
+      {/* Title and Create Button */}
+      <Box 
         sx={{ 
-          color: '#ffffff', 
-          fontWeight: 700,
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
           mb: 4,
         }}
       >
-        Room Inventory Management
-      </Typography>
+        <Typography 
+          variant="h4" 
+          sx={{ 
+            color: '#ffffff', 
+            fontWeight: 700,
+          }}
+        >
+          Room Inventory Management
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => setCreateModalOpen(true)}
+          sx={{
+            backgroundColor: '#2196F3',
+            color: '#ffffff',
+            fontWeight: 600,
+            px: 3,
+            py: 1.5,
+            borderRadius: 2,
+            textTransform: 'none',
+            fontSize: '1rem',
+            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.3)',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              backgroundColor: '#1976D2',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 20px rgba(33, 150, 243, 0.4)',
+            },
+            '&:active': {
+              transform: 'translateY(0)',
+            },
+          }}
+        >
+          Create A Room
+        </Button>
+      </Box>
 
       {/* Stats Section */}
       <Box sx={{ mb: 5 }}>
@@ -177,7 +251,7 @@ const AdminRooms: React.FC = () => {
         )}
         <Grid container spacing={3}>
           {/* Total Rooms Card */}
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
                 backgroundColor: '#1a1a1a',
@@ -218,7 +292,7 @@ const AdminRooms: React.FC = () => {
           </Grid>
 
           {/* Available Rooms Card */}
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
                 backgroundColor: '#1a1a1a',
@@ -259,7 +333,7 @@ const AdminRooms: React.FC = () => {
           </Grid>
 
           {/* Occupied Rooms Card */}
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={6} md={3}>
             <Card
               sx={{
                 backgroundColor: '#1a1a1a',
@@ -294,6 +368,47 @@ const AdminRooms: React.FC = () => {
                   }}
                 >
                   {displayStats.occupiedRooms}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Maintenance Rooms Card */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              sx={{
+                backgroundColor: '#1a1a1a',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 2,
+                transition: 'all 0.3s ease',
+                cursor: 'pointer',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                  borderColor: 'rgba(255, 152, 0, 0.5)',
+                  backgroundColor: '#1f1f1f',
+                },
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    mb: 1,
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  Maintenance
+                </Typography>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    color: '#ff9800',
+                    fontWeight: 700,
+                  }}
+                >
+                  {rooms?.filter(r => !r.available).length || 0}
                 </Typography>
               </CardContent>
             </Card>
@@ -552,7 +667,7 @@ const AdminRooms: React.FC = () => {
                           startIcon={<DeleteIcon />}
                           size="small"
                           fullWidth
-                          onClick={() => handleDeleteClick(room.id)}
+                          onClick={() => handleDeleteClick(room)}
                           sx={{
                             color: '#f44336',
                             borderColor: 'rgba(244, 67, 54, 0.3)',
@@ -583,6 +698,84 @@ const AdminRooms: React.FC = () => {
         room={selectedRoom}
         onUpdateSuccess={handleUpdateSuccess}
       />
+
+      {/* Create Room Modal */}
+      <CreateRoomModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreateSuccess={handleCreateSuccess}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: '#1a1a1a',
+            border: '1px solid rgba(244, 67, 54, 0.3)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: '#ffffff', fontWeight: 600 }}>
+          Confirm Room Deletion
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+            Are you sure you want to delete <strong style={{ color: '#f44336' }}>{roomToDelete?.name || 'this room'}</strong>?
+          </DialogContentText>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.6)', mt: 2 }}>
+            This action cannot be undone. The room will be permanently removed from the database.
+          </DialogContentText>
+          {roomToDelete && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: 'rgba(244, 67, 54, 0.1)', borderRadius: 1 }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                <strong>Room Details:</strong>
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 1 }}>
+                • Type: {formatRoomType(roomToDelete.type)}
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                • Price: ${roomToDelete.pricePerNight}/night
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                • Capacity: {roomToDelete.capacity} guests
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={handleCancelDelete}
+            variant="outlined"
+            sx={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              '&:hover': {
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            sx={{
+              backgroundColor: '#f44336',
+              color: '#ffffff',
+              '&:hover': {
+                backgroundColor: '#d32f2f',
+              },
+            }}
+          >
+            Delete Room
+          </Button>
+        </DialogActions>
+      </Dialog>
     </AdminLayout>
   );
 };

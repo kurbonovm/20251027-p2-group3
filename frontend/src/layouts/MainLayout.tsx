@@ -21,6 +21,7 @@ const MainLayout: React.FC = () => {
 
   // Check if current route is an admin route or special pages that don't need search
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isProfilePage = location.pathname === '/profile';
   const isLoginPage = location.pathname === '/login';
   const isRegisterPage = location.pathname === '/register';
   const isOAuthCallback = location.pathname === '/oauth2/callback';
@@ -29,7 +30,7 @@ const MainLayout: React.FC = () => {
   const isAdminOrManager = user?.roles?.some(role => role === 'ADMIN' || role === 'MANAGER');
   
   // Pages that should not show search bar
-  const hideSearchBar = isAdminRoute || isLoginPage || isRegisterPage || isOAuthCallback;
+  const hideSearchBar = isAdminRoute || isLoginPage || isRegisterPage || isOAuthCallback || (isProfilePage && isAdminOrManager);
 
   const handleSearch = (params: SearchParams) => {
     // Navigate to rooms page with search params
@@ -38,8 +39,8 @@ const MainLayout: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header - Show AdminHeader for admin routes, AuthenticatedHeader for regular users, GuestHeader for guests */}
-      {isAuthenticated && isAdminRoute && isAdminOrManager ? (
+      {/* Header - Show AdminHeader for admin routes and admin/manager profile, AuthenticatedHeader for regular users, GuestHeader for guests */}
+      {isAuthenticated && (isAdminRoute || (isProfilePage && isAdminOrManager)) && isAdminOrManager ? (
         <AdminHeader />
       ) : isAuthenticated ? (
         <AuthenticatedHeader onSearch={hideSearchBar ? undefined : handleSearch} />

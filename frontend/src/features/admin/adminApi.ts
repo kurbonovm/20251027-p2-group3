@@ -75,6 +75,14 @@ export const adminApi = apiSlice.injectEndpoints({
       query: () => '/admin/rooms/statistics',
       providesTags: ['Room'],
     }),
+    createRoom: builder.mutation<Room, Partial<Room>>({
+      query: (room) => ({
+        url: '/rooms',
+        method: 'POST',
+        body: room,
+      }),
+      invalidatesTags: ['Room', 'Admin'],
+    }),
     updateRoom: builder.mutation<Room, { id: string; room: Partial<Room> }>({
       query: ({ id, room }) => ({
         url: `/rooms/${id}`,
@@ -172,6 +180,7 @@ export const {
   useDeleteUserMutation,
   useGetAllRoomsAdminQuery,
   useGetRoomStatisticsQuery,
+  useCreateRoomMutation,
   useUpdateRoomMutation,
   useDeleteRoomMutation,
   useGetAllReservationsAdminQuery,

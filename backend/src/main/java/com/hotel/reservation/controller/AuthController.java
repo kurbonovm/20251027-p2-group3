@@ -78,14 +78,25 @@ public class AuthController {
     @PutMapping("/profile")
     public ResponseEntity<UserDto> updateProfile(
             @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @RequestBody UserDto userDto) {
+            @Valid @RequestBody UserDto userDto) {
 
         User user = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setFirstName(userDto.getFirstName());
-        user.setLastName(userDto.getLastName());
-        user.setPhoneNumber(userDto.getPhoneNumber());
+        // Validate and update first name
+        if (userDto.getFirstName() != null && !userDto.getFirstName().trim().isEmpty()) {
+            user.setFirstName(userDto.getFirstName().trim());
+        }
+
+        // Validate and update last name
+        if (userDto.getLastName() != null && !userDto.getLastName().trim().isEmpty()) {
+            user.setLastName(userDto.getLastName().trim());
+        }
+
+        // Validate and update phone number (can be empty)
+        if (userDto.getPhoneNumber() != null) {
+            user.setPhoneNumber(userDto.getPhoneNumber().trim());
+        }
 
         User updatedUser = userRepository.save(user);
         return ResponseEntity.ok(mapToUserDto(updatedUser));
