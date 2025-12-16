@@ -8,6 +8,7 @@ import type {
   ReservationStatistics,
   ReservationStatus,
   CreateUserRequest,
+  TodaysPulseEvent,
 } from '../../types';
 
 interface UpdateUserStatusRequest {
@@ -168,6 +169,10 @@ export const adminApi = apiSlice.injectEndpoints({
       query: () => '/admin/reservations/statistics',
       providesTags: ['Reservation'],
     }),
+    getTodaysPulse: builder.query<TodaysPulseEvent[], void>({
+      query: () => '/admin/reservations/todays-pulse',
+      providesTags: ['Reservation'],
+    }),
   }),
 });
 
@@ -187,4 +192,5 @@ export const {
   useGetReservationsByDateRangeQuery,
   useUpdateReservationStatusMutation,
   useGetReservationStatisticsQuery,
+  useGetTodaysPulseQuery,
 } = adminApi;

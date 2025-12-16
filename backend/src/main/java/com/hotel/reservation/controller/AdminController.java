@@ -275,6 +275,84 @@ public class AdminController {
         return ResponseEntity.ok(statistics);
     }
 
+    @GetMapping("/reservations/todays-pulse")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<Map<String, Object>>> getTodaysPulse() {
+        log.info("Getting today's pulse events");
+
+        LocalDate today = LocalDate.now();
+        List<Map<String, Object>> events = new ArrayList<>();
+
+        // Get today's check-outs (reservations with checkout date = today)
+        List<Reservation> checkOuts = reservationRepository.findAll().stream()
+                .filter(r -> today.equals(r.getCheckOutDate()) && 
+                           (Reservation.ReservationStatus.CHECKED_IN.equals(r.getStatus()) ||
+                            Reservation.ReservationStatus.CHECKED_OUT.equals(r.getStatus())))
+                .collect(Collectors.toList());
+
+        // Get today's check-ins (reservations with checkin date = today)
+        List<Reservation> checkIns = reservationRepository.findAll().stream()
+                .filter(r -> today.equals(r.getCheckInDate()) && 
+                           (Reservation.ReservationStatus.CONFIRMED.equals(r.getStatus()) ||
+                            Reservation.ReservationStatus.CHECKED_IN.equals(r.getStatus())))
+                .collect(Collectors.toList());
+
+        // Add check-out events
+        for (Reservation reservation : checkOuts) {
+            Map<String, Object> event = new HashMap<>();
+            event.put("id", reservation.getId());
+            event.put("type", "CHECK_OUT");
+            event.put("guestName", reservation.getUser().getFirstName() + " " + reservation.getUser().getLastName());
+            event.put("roomNumber", reservation.getRoom().getName());
+            event.put("roomType", reservation.getRoom().getType().name());
+            event.put("status", reservation.getStatus().name());
+            event.put("time", "11:00 AM"); // Default checkout time
+            event.put("date", reservation.getCheckOutDate().toString());
+            
+            // Determine additional status
+            String additionalStatus = "Housekeeping Pending";
+            if (reservation.getStatus() == Reservation.ReservationStatus.CHECKED_OUT) {
+                additionalStatus = "Completed";
+            }
+            event.put("additionalStatus", additionalStatus);
+            
+            events.add(event);
+        }
+
+        // Add check-in events
+        for (Reservation reservation : checkIns) {
+            Map<String, Object> event = new HashMap<>();
+            event.put("id", reservation.getId());
+            event.put("type", "CHECK_IN");
+            event.put("guestName", reservation.getUser().getFirstName() + " " + reservation.getUser().getLastName());
+            event.put("roomNumber", reservation.getRoom().getName());
+            event.put("roomType", reservation.getRoom().getType().name());
+            event.put("status", reservation.getStatus().name());
+            event.put("time", "14:00 PM"); // Default checkin time
+            event.put("date", reservation.getCheckInDate().toString());
+            
+            // Determine additional status
+            String additionalStatus = reservation.getRoom().getType().name().replace("_", " ");
+            if (reservation.getStatus() == Reservation.ReservationStatus.CHECKED_IN) {
+                additionalStatus = "Checked In";
+            } else {
+                additionalStatus = reservation.getRoom().getType().name().replace("_", " ");
+            }
+            event.put("additionalStatus", additionalStatus);
+            
+            events.add(event);
+        }
+
+        // Sort events by time (check-outs first at 11 AM, then check-ins at 2 PM)
+        events.sort((e1, e2) -> {
+            String time1 = (String) e1.get("time");
+            String time2 = (String) e2.get("time");
+            return time1.compareTo(time2);
+        });
+
+        return ResponseEntity.ok(events);
+    }
+
     // Helper method to convert User to UserDto
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
