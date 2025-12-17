@@ -1,5 +1,6 @@
 package com.hotel.reservation.model;
 
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,26 +36,34 @@ public class Room {
     /**
      * Room name/number
      */
+    @NotBlank(message = "Room name is required")
+    @Size(min = 1, max = 200, message = "Room name must be between 1 and 200 characters")
     private String name;
 
     /**
      * Room type (Standard, Deluxe, Suite, Presidential)
      */
+    @NotNull(message = "Room type is required")
     private RoomType type;
 
     /**
      * Detailed description of the room
      */
+    @Size(max = 2000, message = "Description cannot exceed 2000 characters")
     private String description;
 
     /**
      * Price per night
      */
+    @Positive(message = "Price per night must be a positive number")
+    @Max(value = 1000000, message = "Price per night cannot exceed $1,000,000")
     private int pricePerNight;
 
     /**
      * Maximum number of guests allowed
      */
+    @Min(value = 1, message = "Capacity must be at least 1")
+    @Max(value = 20, message = "Capacity cannot exceed 20 guests")
     private int capacity;
 
     /**
@@ -80,16 +89,22 @@ public class Room {
     /**
      * Total number of rooms of this type available in the hotel
      */
+    @Min(value = 1, message = "Total rooms must be at least 1")
+    @Max(value = 1000, message = "Total rooms cannot exceed 1000")
     private int totalRooms = 1;
 
     /**
      * Floor number where the room is located
      */
+    @Min(value = 1, message = "Floor number must be at least 1")
+    @Max(value = 200, message = "Floor number cannot exceed 200")
     private int floorNumber;
 
     /**
      * Size of the room in square feet
      */
+    @Min(value = 0, message = "Size cannot be negative")
+    @Max(value = 10000, message = "Size cannot exceed 10,000 sq ft")
     private int size;
 
     /**

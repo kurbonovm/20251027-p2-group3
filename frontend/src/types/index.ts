@@ -196,3 +196,29 @@ export interface RefundRequest {
   paymentId: string;
   amount?: number;
 }
+
+// Today's Pulse Event Type
+export interface TodaysPulseEvent {
+  id: string;
+  type: 'CHECK_IN' | 'CHECK_OUT';
+  guestName: string;
+  roomNumber: string;
+  roomType: string;
+  status: ReservationStatus;
+  time: string;
+  date: string;
+  additionalStatus: string;
+}
+
+// Recent Reservation Type
+export interface RecentReservation {
+  id: string;
+  userName: string;
+  userAvatar: string;
+  roomName: string;
+  roomType: string;
+  nights: number;
+  status: ReservationStatus;
+  timeAgo: string;
+  createdAt: string;
+}

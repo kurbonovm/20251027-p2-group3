@@ -1,7 +1,9 @@
 package com.hotel.reservation.controller;
 
+import com.hotel.reservation.dto.UpdateRoomRequest;
 import com.hotel.reservation.model.Room;
 import com.hotel.reservation.service.RoomService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -11,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 /**
  * REST controller for room management endpoints.
@@ -84,13 +85,14 @@ public class RoomController {
 
     /**
      * Create a new room (Manager/Admin only).
+     * Validates all required fields and constraints before creation.
      *
-     * @param room room details
+     * @param room room details with validation
      * @return created room
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ResponseEntity<Room> createRoom(@RequestBody Room room) {
+    public ResponseEntity<Room> createRoom(@Valid @RequestBody Room room) {
         Room createdRoom = roomService.createRoom(room);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdRoom);
     }
@@ -99,118 +101,109 @@ public class RoomController {
      * Update an existing room (Manager/Admin only).
      *
      * @param id room ID
-     * @param room updated room details
+     * @param updateRequest DTO containing fields to update (only provided fields will be updated)
+     * @return updated room
+     */
+    /**
+     * Update an existing room (Manager/Admin only).
+     * Accepts a nested room object from the frontend: {room: {pricePerNight: 300, ...}}
+     *
+     * @param id room ID
+     * @param rawRequest request body containing room update data (may be nested under 'room' key)
      * @return updated room
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ResponseEntity<Room> updateRoom(@PathVariable String id, @RequestBody Map<String, Object> roomData) {
-        System.out.println("=== UPDATE ROOM REQUEST ===");
-        System.out.println("Room ID: " + id);
-        System.out.println("Received room data: " + roomData);
+    public ResponseEntity<Room> updateRoom(
+            @PathVariable String id, 
+            @RequestBody java.util.Map<String, Object> rawRequest) {
         
-        try {
-            // Track which fields were actually provided in the request
-            java.util.Set<String> providedFields = new java.util.HashSet<>(roomData.keySet());
-            System.out.println("Fields provided in request: " + providedFields);
-            
-            // Create a Room object and manually set only the fields that are present
-            Room room = new Room();
-            
-            // Handle pricePerNight conversion to int
-            if (roomData.containsKey("pricePerNight")) {
-                Object priceObj = roomData.get("pricePerNight");
-                System.out.println("=== PRICE IN REQUEST ===");
-                System.out.println("Price object type: " + (priceObj != null ? priceObj.getClass().getName() : "null"));
-                System.out.println("Price object value: " + priceObj);
-                
-                int price = 0;
-                if (priceObj instanceof Number) {
-                    price = ((Number) priceObj).intValue();
-                    System.out.println("Price converted from Number to int: " + price);
-                } else if (priceObj instanceof String) {
-                    try {
-                        price = Integer.parseInt((String) priceObj);
-                        System.out.println("Price converted from String to int: " + price);
-                    } catch (NumberFormatException e) {
-                        System.err.println("Invalid price format: " + priceObj);
-                    }
-                }
-                
-                if (price > 0) {
-                    room.setPricePerNight(price);
-                    System.out.println("✓ Price set in Room object: " + room.getPricePerNight() + " (int)");
-                } else {
-                    System.out.println("✗ WARNING: Price is 0 or negative: " + price + " (not setting)");
-                }
-            } else {
-                System.out.println("✗ pricePerNight NOT in request data");
-            }
-            
-            // Handle other fields
-            if (roomData.containsKey("name")) {
-                room.setName((String) roomData.get("name"));
-            }
-            if (roomData.containsKey("type")) {
-                String typeStr = (String) roomData.get("type");
-                room.setType(Room.RoomType.valueOf(typeStr));
-            }
-            if (roomData.containsKey("description")) {
-                room.setDescription((String) roomData.get("description"));
-            }
-            if (roomData.containsKey("capacity")) {
-                Object capObj = roomData.get("capacity");
-                if (capObj instanceof Number) {
-                    room.setCapacity(((Number) capObj).intValue());
-                }
-            }
-            if (roomData.containsKey("amenities")) {
-                @SuppressWarnings("unchecked")
-                List<String> amenities = (List<String>) roomData.get("amenities");
-                room.setAmenities(amenities);
-            }
-            if (roomData.containsKey("imageUrl")) {
-                room.setImageUrl((String) roomData.get("imageUrl"));
-            }
-            if (roomData.containsKey("additionalImages")) {
-                @SuppressWarnings("unchecked")
-                List<String> additionalImages = (List<String>) roomData.get("additionalImages");
-                room.setAdditionalImages(additionalImages);
-            }
-            if (roomData.containsKey("available")) {
-                room.setAvailable((Boolean) roomData.get("available"));
-            }
-            if (roomData.containsKey("floorNumber")) {
-                Object floorObj = roomData.get("floorNumber");
-                if (floorObj instanceof Number) {
-                    room.setFloorNumber(((Number) floorObj).intValue());
-                }
-            }
-            if (roomData.containsKey("size")) {
-                Object sizeObj = roomData.get("size");
-                if (sizeObj instanceof Number) {
-                    room.setSize(((Number) sizeObj).intValue());
-                }
-            }
-            if (roomData.containsKey("totalRooms")) {
-                Object totalObj = roomData.get("totalRooms");
-                if (totalObj instanceof Number) {
-                    room.setTotalRooms(((Number) totalObj).intValue());
-                }
-            }
-            
-            System.out.println("Room object created for service - Price: " + room.getPricePerNight());
-            Room updatedRoom = roomService.updateRoom(id, room, providedFields);
-            System.out.println("Room updated - Final Price: " + updatedRoom.getPricePerNight());
-            return ResponseEntity.ok(updatedRoom);
-        } catch (Exception e) {
-            System.err.println("ERROR updating room: " + e.getMessage());
-            System.err.println("Exception type: " + e.getClass().getName());
-            e.printStackTrace();
-            
-            // Let GlobalExceptionHandler handle the error response
-            throw new RuntimeException("Failed to update room: " + e.getMessage(), e);
+        // Extract the nested 'room' object if present (frontend sends {room: {...}})
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> roomData = rawRequest.containsKey("room") 
+            ? (java.util.Map<String, Object>) rawRequest.get("room")
+            : rawRequest;
+        
+        // Convert map to UpdateRoomRequest DTO
+        UpdateRoomRequest updateRequest = mapToUpdateRequest(roomData);
+        
+        // Update the room
+        Room updatedRoom = roomService.updateRoom(id, updateRequest);
+        return ResponseEntity.ok(updatedRoom);
+    }
+    
+    /**
+     * Helper method to convert a map to UpdateRoomRequest DTO.
+     * Handles type conversions for numeric fields.
+     *
+     * @param roomData map containing room update data
+     * @return UpdateRoomRequest DTO
+     */
+    private UpdateRoomRequest mapToUpdateRequest(java.util.Map<String, Object> roomData) {
+        UpdateRoomRequest updateRequest = new UpdateRoomRequest();
+        
+        if (roomData.containsKey("name")) {
+            updateRequest.setName((String) roomData.get("name"));
         }
+        if (roomData.containsKey("type")) {
+            updateRequest.setType(Room.RoomType.valueOf((String) roomData.get("type")));
+        }
+        if (roomData.containsKey("description")) {
+            updateRequest.setDescription((String) roomData.get("description"));
+        }
+        if (roomData.containsKey("pricePerNight")) {
+            updateRequest.setPricePerNight(convertToInteger(roomData.get("pricePerNight")));
+        }
+        if (roomData.containsKey("capacity")) {
+            updateRequest.setCapacity(convertToInteger(roomData.get("capacity")));
+        }
+        if (roomData.containsKey("amenities")) {
+            @SuppressWarnings("unchecked")
+            java.util.List<String> amenities = (java.util.List<String>) roomData.get("amenities");
+            updateRequest.setAmenities(amenities);
+        }
+        if (roomData.containsKey("imageUrl")) {
+            updateRequest.setImageUrl((String) roomData.get("imageUrl"));
+        }
+        if (roomData.containsKey("additionalImages")) {
+            @SuppressWarnings("unchecked")
+            java.util.List<String> additionalImages = (java.util.List<String>) roomData.get("additionalImages");
+            updateRequest.setAdditionalImages(additionalImages);
+        }
+        if (roomData.containsKey("available")) {
+            updateRequest.setAvailable((Boolean) roomData.get("available"));
+        }
+        if (roomData.containsKey("totalRooms")) {
+            updateRequest.setTotalRooms(convertToInteger(roomData.get("totalRooms")));
+        }
+        if (roomData.containsKey("floorNumber")) {
+            updateRequest.setFloorNumber(convertToInteger(roomData.get("floorNumber")));
+        }
+        if (roomData.containsKey("size")) {
+            updateRequest.setSize(convertToInteger(roomData.get("size")));
+        }
+        
+        return updateRequest;
+    }
+    
+    /**
+     * Helper method to convert various numeric types to Integer.
+     *
+     * @param value the value to convert
+     * @return Integer value or null if conversion fails
+     */
+    private Integer convertToInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Double) return ((Double) value).intValue();
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     /**

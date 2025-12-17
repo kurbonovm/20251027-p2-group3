@@ -400,6 +400,7 @@ const EditRoomModal: React.FC<EditRoomModalProps> = ({ open, onClose, room, onUp
                 onChange={(e) => handleChange('capacity', parseInt(e.target.value) || 1)}
                 required
                 inputProps={{ min: 1 }}
+                InputLabelProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
@@ -419,6 +420,7 @@ const EditRoomModal: React.FC<EditRoomModalProps> = ({ open, onClose, room, onUp
                 value={formData.floorNumber}
                 onChange={(e) => handleChange('floorNumber', parseInt(e.target.value) || 1)}
                 inputProps={{ min: 1 }}
+                InputLabelProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
@@ -438,6 +440,7 @@ const EditRoomModal: React.FC<EditRoomModalProps> = ({ open, onClose, room, onUp
                 value={formData.size}
                 onChange={(e) => handleChange('size', parseInt(e.target.value) || 0)}
                 inputProps={{ min: 0 }}
+                InputLabelProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
@@ -457,6 +460,7 @@ const EditRoomModal: React.FC<EditRoomModalProps> = ({ open, onClose, room, onUp
                 value={formData.totalRooms}
                 onChange={(e) => handleChange('totalRooms', parseInt(e.target.value) || 1)}
                 inputProps={{ min: 1 }}
+                InputLabelProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',

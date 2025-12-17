@@ -567,7 +567,7 @@ const RoomDetails: React.FC = () => {
                 <LocalizationProvider dateAdapter={AdapterDateFns}>
                   <Grid container spacing={1.5} sx={{ mb: 2 }}>
                     {/* Check-in */}
-                    <Grid item xs={12} sm={4} sx={{ minWidth: 0 }}>
+                    <Grid item xs={12} sm={6} md={4} sx={{ minWidth: 0 }}>
                       <Typography
                         variant="body2"
                         sx={{
@@ -615,7 +615,7 @@ const RoomDetails: React.FC = () => {
                       />
                     </Grid>
                     {/* Check-out */}
-                    <Grid item xs={12} sm={4} sx={{ minWidth: 0 }}>
+                    <Grid item xs={12} sm={6} md={4} sx={{ minWidth: 0 }}>
                       <Typography
                         variant="body2"
                         sx={{
@@ -664,7 +664,7 @@ const RoomDetails: React.FC = () => {
                       />
                     </Grid>
                     {/* Guests */}
-                    <Grid item xs={12} sm={4} sx={{ minWidth: 0 }}>
+                    <Grid item xs={12} sm={6} md={4} sx={{ minWidth: 0 }}>
                       <Typography
                         variant="body2"
                         sx={{
@@ -678,8 +678,7 @@ const RoomDetails: React.FC = () => {
                       </Typography>
                       <TextField
                         fullWidth
-                        type="text"
-                        inputMode="numeric"
+                        type="number"
                         value={guests === '' ? '' : guests}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -688,10 +687,16 @@ const RoomDetails: React.FC = () => {
                             handleGuestsChange(value);
                           }
                         }}
-                        placeholder="Enter a Number"
+                        placeholder="Number"
                         error={!!guestsError}
                         helperText={guestsError}
+                        inputProps={{
+                          min: 1,
+                          max: room?.capacity || 10,
+                          step: 1,
+                        }}
                         sx={{
+                          minWidth: '140px',
                           '& .MuiOutlinedInput-root': {
                             backgroundColor: 'rgba(255, 255, 255, 0.1)',
                             color: '#ffffff',
@@ -712,16 +717,17 @@ const RoomDetails: React.FC = () => {
                           },
                           '& .MuiInputBase-input': {
                             color: '#ffffff',
+                            paddingRight: '8px',
                             '&::placeholder': {
                               color: 'rgba(255, 255, 255, 0.5) !important',
                               opacity: '1 !important',
-                              fontSize: '0.875rem',
+                              fontSize: '1rem',
                             },
                           },
                           '& .MuiInputBase-input::placeholder': {
                             color: 'rgba(255, 255, 255, 0.5)',
                             opacity: 1,
-                            fontSize: '0.875rem',
+                            fontSize: '1rem',
                           },
                           '& .MuiFormHelperText-root': {
                             color: guestsError ? '#f44336' : 'rgba(255, 255, 255, 0.5)',

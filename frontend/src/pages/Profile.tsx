@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Box,
   Typography,
   Paper,
@@ -37,6 +36,11 @@ const Profile: React.FC = () => {
   });
   const [success, setSuccess] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [fieldErrors, setFieldErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+    phoneNumber?: string;
+  }>({});
 
   // Update Redux state when currentUser query returns data
   useEffect(() => {
@@ -58,157 +62,355 @@ const Profile: React.FC = () => {
   }, [displayUser?.firstName, displayUser?.lastName, displayUser?.phoneNumber, isEditing]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
+    
+    // Clear field error when user starts typing
+    if (fieldErrors[name as keyof typeof fieldErrors]) {
+      setFieldErrors({
+        ...fieldErrors,
+        [name]: undefined,
+      });
+    }
+    
+    // Clear general error
+    if (error) {
+      setError('');
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: typeof fieldErrors = {};
+    let isValid = true;
+
+    // Validate first name
+    if (!formData.firstName || formData.firstName.trim() === '') {
+      errors.firstName = 'First name is required';
+      isValid = false;
+    } else if (formData.firstName.trim().length < 1 || formData.firstName.trim().length > 50) {
+      errors.firstName = 'First name must be between 1 and 50 characters';
+      isValid = false;
+    }
+
+    // Validate last name
+    if (!formData.lastName || formData.lastName.trim() === '') {
+      errors.lastName = 'Last name is required';
+      isValid = false;
+    } else if (formData.lastName.trim().length < 1 || formData.lastName.trim().length > 50) {
+      errors.lastName = 'Last name must be between 1 and 50 characters';
+      isValid = false;
+    }
+
+    // Validate phone number (optional, but if provided must be valid)
+    if (formData.phoneNumber && formData.phoneNumber.trim() !== '') {
+      const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/;
+      if (!phoneRegex.test(formData.phoneNumber.trim())) {
+        errors.phoneNumber = 'Phone number format is invalid';
+        isValid = false;
+      } else if (formData.phoneNumber.trim().length > 20) {
+        errors.phoneNumber = 'Phone number must not exceed 20 characters';
+        isValid = false;
+      }
+    }
+
+    setFieldErrors(errors);
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setFieldErrors({});
+
+    // Validate form before submission
+    if (!validateForm()) {
+      setError('Please fix the errors in the form');
+      return;
+    }
 
     try {
-      const updatedUser = await updateProfile(formData).unwrap();
+      // Trim values before sending
+      const trimmedData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        phoneNumber: formData.phoneNumber?.trim() || '',
+      };
+
+      const updatedUser = await updateProfile(trimmedData).unwrap();
+      
       // Update Redux state with the updated user data
       dispatch(updateUser(updatedUser));
+      
       // Immediately update formData with the updated user data
       setFormData({
         firstName: updatedUser.firstName || '',
         lastName: updatedUser.lastName || '',
         phoneNumber: updatedUser.phoneNumber || '',
       });
+      
       // Refetch current user to ensure we have the latest data from the server
       await refetchCurrentUser();
+      
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (err: any) {
-      setError(err.data?.message || 'Failed to update profile');
+      console.error('Profile update error:', err);
+      
+      // Handle validation errors from backend
+      if (err?.data?.errors) {
+        // Backend returned field-specific errors
+        const backendErrors: typeof fieldErrors = {};
+        Object.keys(err.data.errors).forEach((key) => {
+          backendErrors[key as keyof typeof fieldErrors] = err.data.errors[key];
+        });
+        setFieldErrors(backendErrors);
+        setError('Please fix the errors in the form');
+      } else if (err?.data?.message) {
+        setError(err.data.message);
+      } else if (err?.message) {
+        setError(err.message);
+      } else {
+        setError('Failed to update profile. Please try again.');
+      }
     }
   };
 
+  // Check if user is admin or manager
+  const isAdminOrManager = displayUser?.roles?.some(role => role === 'ADMIN' || role === 'MANAGER');
+
   return (
-    <Container maxWidth="md">
-      <Box sx={{ my: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-            <Avatar
-              sx={{ width: 80, height: 80, mr: 2, bgcolor: 'primary.main' }}
-              src={displayUser?.avatar}
-            >
-              <Person sx={{ fontSize: 40 }} />
-            </Avatar>
-            <Box>
-              <Typography variant="h4">
-                {displayUser?.firstName} {displayUser?.lastName}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {displayUser?.email}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Role: {displayUser?.roles?.join(', ')}
-              </Typography>
-            </Box>
-          </Box>
-
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-              {success}
-            </Alert>
-          )}
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-            <Typography variant="h5">Profile Information</Typography>
-            {!isEditing ? (
-              <Button
-                variant="outlined"
-                startIcon={<Edit />}
-                onClick={() => setIsEditing(true)}
-              >
-                Edit Profile
-              </Button>
-            ) : (
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  setIsEditing(false);
-                  setFormData({
-                    firstName: displayUser?.firstName || '',
-                    lastName: displayUser?.lastName || '',
-                    phoneNumber: displayUser?.phoneNumber || '',
-                  });
+    <Box sx={{ my: 4, maxWidth: isAdminOrManager ? '100%' : '960px', mx: 'auto' }}>
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: 4,
+          backgroundColor: isAdminOrManager ? '#1a1a1a' : '#ffffff',
+          color: isAdminOrManager ? '#ffffff' : 'inherit',
+        }}
+      >
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+              <Avatar
+                sx={{ 
+                  width: 80, 
+                  height: 80, 
+                  mr: 2, 
+                  bgcolor: isAdminOrManager ? '#1976d2' : 'primary.main',
                 }}
+                src={displayUser?.avatar}
               >
-                Cancel
-              </Button>
+                <Person sx={{ fontSize: 40 }} />
+              </Avatar>
+              <Box>
+                <Typography 
+                  variant="h4"
+                  sx={{ color: isAdminOrManager ? '#ffffff' : 'inherit' }}
+                >
+                  {displayUser?.firstName} {displayUser?.lastName}
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  sx={{ color: isAdminOrManager ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}
+                >
+                  {displayUser?.email}
+                </Typography>
+                <Typography 
+                  variant="body2" 
+                  sx={{ color: isAdminOrManager ? 'rgba(255, 255, 255, 0.6)' : 'text.secondary' }}
+                >
+                  Role: {displayUser?.roles?.join(', ')}
+                </Typography>
+              </Box>
+            </Box>
+
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+                {success}
+              </Alert>
             )}
-          </Box>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  value={displayUser?.email || ''}
-                  disabled
-                  helperText="Email cannot be changed"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                />
-              </Grid>
-            </Grid>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+                {error}
+              </Alert>
+            )}
 
-            {isEditing && (
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={<Save />}
-                sx={{ mt: 3 }}
-                disabled={isLoading}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+              <Typography 
+                variant="h5"
+                sx={{ color: isAdminOrManager ? '#ffffff' : 'inherit' }}
               >
-                {isLoading ? 'Saving...' : 'Save Changes'}
-              </Button>
+                Profile Information
+              </Typography>
+              {!isEditing ? (
+                <Button
+                  variant="outlined"
+                  startIcon={<Edit />}
+                  onClick={() => setIsEditing(true)}
+                  sx={isAdminOrManager ? {
+                    color: '#ffffff',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    '&:hover': {
+                      borderColor: '#1976d2',
+                      backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                    },
+                  } : {}}
+                >
+                  Edit Profile
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setFormData({
+                      firstName: displayUser?.firstName || '',
+                      lastName: displayUser?.lastName || '',
+                      phoneNumber: displayUser?.phoneNumber || '',
+                    });
+                    setFieldErrors({});
+                    setError('');
+                    setSuccess('');
+                  }}
+                  sx={isAdminOrManager ? {
+                    color: '#ffffff',
+                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                    '&:hover': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    },
+                  } : {}}
+                >
+                  Cancel
+                </Button>
+              )}
+            </Box>
+
+            <Box component="form" onSubmit={handleSubmit}>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="First Name"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    required
+                    error={!!fieldErrors.firstName}
+                    helperText={fieldErrors.firstName}
+                    sx={isAdminOrManager ? {
+                      '& .MuiOutlinedInput-root': {
+                        color: '#ffffff',
+                        '& fieldset': { borderColor: fieldErrors.firstName ? '#f44336' : 'rgba(255, 255, 255, 0.3)' },
+                      },
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiFormHelperText-root': { color: '#f44336' },
+                      '& .Mui-disabled': {
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                    } : {}}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Last Name"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    required
+                    error={!!fieldErrors.lastName}
+                    helperText={fieldErrors.lastName}
+                    sx={isAdminOrManager ? {
+                      '& .MuiOutlinedInput-root': {
+                        color: '#ffffff',
+                        '& fieldset': { borderColor: fieldErrors.lastName ? '#f44336' : 'rgba(255, 255, 255, 0.3)' },
+                      },
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiFormHelperText-root': { color: '#f44336' },
+                      '& .Mui-disabled': {
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                    } : {}}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={displayUser?.email || ''}
+                    disabled
+                    helperText="Email cannot be changed"
+                    sx={isAdminOrManager ? {
+                      '& .MuiOutlinedInput-root': {
+                        color: '#ffffff',
+                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                      },
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiFormHelperText-root': { color: 'rgba(255, 255, 255, 0.5)' },
+                      '& .Mui-disabled': {
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                    } : {}}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    name="phoneNumber"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    disabled={!isEditing}
+                    error={!!fieldErrors.phoneNumber}
+                    helperText={fieldErrors.phoneNumber || 'Optional - Format: +1234567890 or (123) 456-7890'}
+                    placeholder="+1 (555) 123-4567"
+                    sx={isAdminOrManager ? {
+                      '& .MuiOutlinedInput-root': {
+                        color: '#ffffff',
+                        '& fieldset': { borderColor: fieldErrors.phoneNumber ? '#f44336' : 'rgba(255, 255, 255, 0.3)' },
+                      },
+                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                      '& .MuiFormHelperText-root': { color: fieldErrors.phoneNumber ? '#f44336' : 'rgba(255, 255, 255, 0.5)' },
+                      '& .Mui-disabled': {
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                      },
+                    } : {}}
+                  />
+                </Grid>
+              </Grid>
+
+              {isEditing && (
+                <Button
+                  type="submit"
+                  variant="contained"
+                  startIcon={<Save />}
+                  sx={{ 
+                    mt: 3,
+                    ...(isAdminOrManager && {
+                      backgroundColor: '#2196F3',
+                      '&:hover': {
+                        backgroundColor: '#1976D2',
+                      },
+                    }),
+                  }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </Button>
             )}
           </Box>
         </Paper>
-      </Box>
-    </Container>
+    </Box>
   );
 };
 

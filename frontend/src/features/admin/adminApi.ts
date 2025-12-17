@@ -8,6 +8,8 @@ import type {
   ReservationStatistics,
   ReservationStatus,
   CreateUserRequest,
+  TodaysPulseEvent,
+  RecentReservation,
 } from '../../types';
 
 interface UpdateUserStatusRequest {
@@ -18,6 +20,13 @@ interface UpdateUserStatusRequest {
 interface UpdateReservationStatusRequest {
   id: string;
   status: ReservationStatus;
+}
+
+interface UpdateReservationDatesRequest {
+  id: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
 }
 
 interface DateRangeRequest {
@@ -74,6 +83,14 @@ export const adminApi = apiSlice.injectEndpoints({
     getRoomStatistics: builder.query<RoomStatistics, void>({
       query: () => '/admin/rooms/statistics',
       providesTags: ['Room'],
+    }),
+    createRoom: builder.mutation<Room, Partial<Room>>({
+      query: (room) => ({
+        url: '/rooms',
+        method: 'POST',
+        body: room,
+      }),
+      invalidatesTags: ['Room', 'Admin'],
     }),
     updateRoom: builder.mutation<Room, { id: string; room: Partial<Room> }>({
       query: ({ id, room }) => ({
@@ -156,8 +173,28 @@ export const adminApi = apiSlice.injectEndpoints({
         'Room',
       ],
     }),
+    updateReservationDates: builder.mutation<Reservation, UpdateReservationDatesRequest>({
+      query: ({ id, checkInDate, checkOutDate, numberOfGuests }) => ({
+        url: `/reservations/${id}`,
+        method: 'PUT',
+        body: { checkInDate, checkOutDate, numberOfGuests },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Reservation', id },
+        'Reservation',
+        'Room',
+      ],
+    }),
     getReservationStatistics: builder.query<ReservationStatistics, void>({
       query: () => '/admin/reservations/statistics',
+      providesTags: ['Reservation'],
+    }),
+    getTodaysPulse: builder.query<TodaysPulseEvent[], void>({
+      query: () => '/admin/reservations/todays-pulse',
+      providesTags: ['Reservation'],
+    }),
+    getRecentReservations: builder.query<RecentReservation[], void>({
+      query: () => '/admin/reservations/recent',
       providesTags: ['Reservation'],
     }),
   }),
@@ -172,10 +209,14 @@ export const {
   useDeleteUserMutation,
   useGetAllRoomsAdminQuery,
   useGetRoomStatisticsQuery,
+  useCreateRoomMutation,
   useUpdateRoomMutation,
   useDeleteRoomMutation,
   useGetAllReservationsAdminQuery,
   useGetReservationsByDateRangeQuery,
   useUpdateReservationStatusMutation,
+  useUpdateReservationDatesMutation,
   useGetReservationStatisticsQuery,
+  useGetTodaysPulseQuery,
+  useGetRecentReservationsQuery,
 } = adminApi;
