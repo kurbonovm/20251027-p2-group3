@@ -24,12 +24,31 @@ import {
   InputAdornment,
   Grid,
   SelectChangeEvent,
+  Avatar,
+  Card,
+  CardContent,
+  IconButton,
+  Divider,
 } from '@mui/material';
-import { Search, FilterList } from '@mui/icons-material';
+import { 
+  Search, 
+  FilterList, 
+  Login, 
+  Logout, 
+  CheckCircle, 
+  Cancel, 
+  MoreVert, 
+  Edit, 
+  ArrowForward,
+  Hotel,
+  CalendarToday,
+  AttachMoney,
+} from '@mui/icons-material';
 import {
   useGetAllReservationsAdminQuery,
   useGetReservationStatisticsQuery,
   useUpdateReservationStatusMutation,
+  useUpdateReservationDatesMutation,
 } from '../../features/admin/adminApi';
 import AdminLayout from '../../layouts/AdminLayout';
 import Loading from '../../components/Loading';
@@ -48,10 +67,15 @@ const AdminReservations: React.FC = () => {
   const { data: reservations, isLoading: reservationsLoading } = useGetAllReservationsAdminQuery();
   const { data: stats, isLoading: statsLoading } = useGetReservationStatisticsQuery();
   const [updateStatus] = useUpdateReservationStatusMutation();
+  const [updateDates] = useUpdateReservationDatesMutation();
 
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState<boolean>(false);
+  const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
   const [newStatus, setNewStatus] = useState<ReservationStatus>('PENDING');
+  const [editCheckInDate, setEditCheckInDate] = useState<string>('');
+  const [editCheckOutDate, setEditCheckOutDate] = useState<string>('');
+  const [editNumberOfGuests, setEditNumberOfGuests] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -86,6 +110,39 @@ const AdminReservations: React.FC = () => {
       } catch (err) {
         console.error('Failed to update status:', err);
       }
+    }
+  };
+
+  const handleEditDates = async () => {
+    if (selectedReservation && editCheckInDate && editCheckOutDate && editNumberOfGuests) {
+      try {
+        await updateDates({
+          id: selectedReservation.id,
+          checkInDate: editCheckInDate,
+          checkOutDate: editCheckOutDate,
+          numberOfGuests: editNumberOfGuests,
+        }).unwrap();
+        setEditDialogOpen(false);
+        setSelectedReservation(null);
+      } catch (err) {
+        console.error('Failed to update reservation dates:', err);
+      }
+    }
+  };
+
+  const openEditDialog = (reservation: Reservation) => {
+    setSelectedReservation(reservation);
+    setEditCheckInDate(reservation.checkInDate);
+    setEditCheckOutDate(reservation.checkOutDate);
+    setEditNumberOfGuests(reservation.numberOfGuests);
+    setEditDialogOpen(true);
+  };
+
+  const handleQuickStatusChange = async (reservation: Reservation, status: ReservationStatus) => {
+    try {
+      await updateStatus({ id: reservation.id, status }).unwrap();
+    } catch (err) {
+      console.error('Failed to update status:', err);
     }
   };
 
@@ -130,11 +187,11 @@ const AdminReservations: React.FC = () => {
       )}
 
       <Box sx={{ mb: 3 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={8}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
+          <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 auto' }, minWidth: 0 }}>
             <TextField
               fullWidth
-              placeholder="Search by guest name, email, room, or reservation ID..."
+              placeholder="Search by name or email"
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -144,9 +201,14 @@ const AdminReservations: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
+              sx={{
+                '& .MuiInputBase-root': {
+                  width: '100%',
+                },
+              }}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </Box>
+          <Box sx={{ flex: { xs: '1 1 100%', md: '0 0 auto' }, minWidth: { xs: '100%', md: '200px' } }}>
             <FormControl fullWidth>
               <InputLabel>Filter by Status</InputLabel>
               <Select
@@ -167,77 +229,251 @@ const AdminReservations: React.FC = () => {
                 <MenuItem value="CANCELLED">Cancelled</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Guest</TableCell>
-              <TableCell>Room</TableCell>
-              <TableCell>Check-in</TableCell>
-              <TableCell>Check-out</TableCell>
-              <TableCell>Guests</TableCell>
-              <TableCell>Total</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredReservations?.map((reservation: Reservation) => (
-              <TableRow key={reservation.id}>
-                <TableCell>
-                  {reservation.user?.firstName} {reservation.user?.lastName}
-                </TableCell>
-                <TableCell>{reservation.room?.name}</TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="body2">
-                      {parseDate(reservation.checkInDate).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {reservation.checkInTime || '3:00 PM'}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Box>
-                    <Typography variant="body2">
-                      {parseDate(reservation.checkOutDate).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {reservation.checkOutTime || '11:00 AM'}
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>{reservation.numberOfGuests}</TableCell>
-                <TableCell>${reservation.totalAmount?.toFixed(2)}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={reservation.status}
-                    color={getStatusColor(reservation.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    size="small"
-                    onClick={() => {
-                      setSelectedReservation(reservation);
-                      setNewStatus(reservation.status);
-                      setStatusDialogOpen(true);
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {filteredReservations?.map((reservation: Reservation) => (
+          <Paper 
+            key={reservation.id}
+            sx={{
+              p: 3,
+            }}
+          >
+              {/* Header: Avatar, Name, ID, and Status */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar
+                    src={reservation.user?.avatar}
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      backgroundColor: '#1976d2',
                     }}
                   >
-                    Update
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                    {!reservation.user?.avatar && 
+                      `${reservation.user?.firstName?.charAt(0) || ''}${reservation.user?.lastName?.charAt(0) || ''}`
+                    }
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {reservation.user?.firstName} {reservation.user?.lastName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      #{reservation.id.substring(0, 6)}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Chip
+                  label={reservation.status === 'CHECKED_IN' ? 'Checked-in' : 
+                         reservation.status === 'CHECKED_OUT' ? 'Checked-out' :
+                         reservation.status.charAt(0) + reservation.status.slice(1).toLowerCase()}
+                  sx={{
+                    backgroundColor: 
+                      reservation.status === 'CONFIRMED' ? 'rgba(46, 125, 50, 0.2)' :
+                      reservation.status === 'PENDING' ? 'rgba(237, 108, 2, 0.2)' :
+                      reservation.status === 'CHECKED_IN' ? 'rgba(2, 136, 209, 0.2)' :
+                      reservation.status === 'CHECKED_OUT' ? 'rgba(117, 117, 117, 0.2)' :
+                      'rgba(211, 47, 47, 0.2)',
+                    color: 
+                      reservation.status === 'CONFIRMED' ? '#4caf50' :
+                      reservation.status === 'PENDING' ? '#ff9800' :
+                      reservation.status === 'CHECKED_IN' ? '#2196f3' :
+                      reservation.status === 'CHECKED_OUT' ? '#9e9e9e' :
+                      '#f44336',
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    height: 28,
+                  }}
+                />
+              </Box>
+
+              {/* Room Info and Total Amount */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Room Info
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {reservation.room?.name?.split(' ')[0] || 'N/A'} • {reservation.room?.type?.replace('_', ' ') || 'N/A'}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                    Total Amount
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    ${reservation.totalAmount?.toFixed(2) || '0.00'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Reservation Dates */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                  Reservation Dates
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {parseDate(reservation.checkInDate).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </Typography>
+                  <ArrowForward color="action" sx={{ fontSize: 20 }} />
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {parseDate(reservation.checkOutDate).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Action Buttons - Only show for active reservations */}
+              {(reservation.status !== 'CHECKED_OUT' && reservation.status !== 'CANCELLED') && (
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  {/* CONFIRMED Status: Check-in, Update, Cancel */}
+                  {reservation.status === 'CONFIRMED' && (
+                    <>
+                      <Button
+                        variant="contained"
+                        startIcon={<Login />}
+                        onClick={() => handleQuickStatusChange(reservation, 'CHECKED_IN')}
+                        sx={{
+                          backgroundColor: '#2196f3',
+                          color: '#fff',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          '&:hover': {
+                            backgroundColor: '#1976d2',
+                          },
+                        }}
+                      >
+                        Check-in
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() => openEditDialog(reservation)}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Update
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Cancel />}
+                        onClick={() => handleQuickStatusChange(reservation, 'CANCELLED')}
+                        sx={{
+                          borderColor: 'error.main',
+                          color: 'error.main',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          '&:hover': {
+                            borderColor: 'error.dark',
+                            backgroundColor: 'error.light',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+
+                  {/* PENDING Status: Update, Cancel */}
+                  {reservation.status === 'PENDING' && (
+                    <>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() => openEditDialog(reservation)}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Update
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Cancel />}
+                        onClick={() => handleQuickStatusChange(reservation, 'CANCELLED')}
+                        sx={{
+                          borderColor: 'error.main',
+                          color: 'error.main',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          '&:hover': {
+                            borderColor: 'error.dark',
+                            backgroundColor: 'error.light',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+
+                  {/* CHECKED_IN Status: Check-out, Update, Cancel */}
+                  {reservation.status === 'CHECKED_IN' && (
+                    <>
+                      <Button
+                        variant="contained"
+                        startIcon={<Logout />}
+                        onClick={() => handleQuickStatusChange(reservation, 'CHECKED_OUT')}
+                        sx={{
+                          backgroundColor: '#d32f2f',
+                          color: '#fff',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          '&:hover': {
+                            backgroundColor: '#c62828',
+                          },
+                        }}
+                      >
+                        Check-out
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() => openEditDialog(reservation)}
+                        sx={{
+                          textTransform: 'none',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Update
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Cancel />}
+                        onClick={() => handleQuickStatusChange(reservation, 'CANCELLED')}
+                        sx={{
+                          borderColor: 'error.main',
+                          color: 'error.main',
+                          textTransform: 'none',
+                          fontWeight: 600,
+                          '&:hover': {
+                            borderColor: 'error.dark',
+                            backgroundColor: 'error.light',
+                          },
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                </Box>
+              )}
+          </Paper>
+        ))}
+      </Box>
 
       <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)}>
         <DialogTitle>Update Reservation Status</DialogTitle>
@@ -261,6 +497,44 @@ const AdminReservations: React.FC = () => {
           <Button onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleStatusChange} variant="contained">
             Update
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Update Reservation Dates</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              label="Check-in Date"
+              type="date"
+              value={editCheckInDate}
+              onChange={(e) => setEditCheckInDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+            <TextField
+              label="Check-out Date"
+              type="date"
+              value={editCheckOutDate}
+              onChange={(e) => setEditCheckOutDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+            <TextField
+              label="Number of Guests"
+              type="number"
+              value={editNumberOfGuests}
+              onChange={(e) => setEditNumberOfGuests(parseInt(e.target.value))}
+              inputProps={{ min: 1 }}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleEditDates} variant="contained" color="primary">
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>

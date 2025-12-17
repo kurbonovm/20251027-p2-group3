@@ -19,6 +19,7 @@ import { useGetDashboardOverviewQuery, useGetAllReservationsAdminQuery } from '.
 import AdminLayout from '../../layouts/AdminLayout';
 import Loading from '../../components/Loading';
 import TodaysPulse from '../../components/TodaysPulse';
+import RecentReservations from '../../components/RecentReservations';
 
 interface StatCard {
   title: string;
@@ -262,6 +263,9 @@ const AdminDashboard: React.FC = () => {
 
       {/* Today's Pulse Section */}
       <TodaysPulse />
+
+      {/* Recent Reservations Section */}
+      <RecentReservations />
     </AdminLayout>
   );
 };

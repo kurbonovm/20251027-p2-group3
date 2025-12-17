@@ -209,3 +209,16 @@ export interface TodaysPulseEvent {
   date: string;
   additionalStatus: string;
 }
+
+// Recent Reservation Type
+export interface RecentReservation {
+  id: string;
+  userName: string;
+  userAvatar: string;
+  roomName: string;
+  roomType: string;
+  nights: number;
+  status: ReservationStatus;
+  timeAgo: string;
+  createdAt: string;
+}
