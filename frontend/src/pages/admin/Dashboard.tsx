@@ -148,15 +148,7 @@ const AdminDashboard: React.FC = () => {
                   backgroundColor: 'transparent',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: 1.5,
-                  transition: 'all 0.2s ease',
-                  cursor: 'pointer',
                   height: '100%',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                  },
                 }}
               >
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>

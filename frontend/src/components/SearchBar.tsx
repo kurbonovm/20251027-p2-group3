@@ -611,6 +611,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
                   if (newValue >= checkInDate) {
                     setCheckOutDate(newValue);
                     setActiveDateField(null);
+                    // Auto-close the picker after both dates are selected
+                    setTimeout(() => {
+                      setWhenOpen(false);
+                    }, 500);
                   } else {
                     // If selected date is before check-in, reset check-in to this date
                     setCheckInDate(newValue);

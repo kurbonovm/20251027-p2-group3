@@ -13,6 +13,8 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -44,6 +46,10 @@ const AdminRooms: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [warningDialogOpen, setWarningDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
 
@@ -139,7 +145,26 @@ const AdminRooms: React.FC = () => {
     setEditModalOpen(true);
   };
 
+  // Helper function to check if room has active reservations
+  const hasActiveReservations = (roomId: string): boolean => {
+    if (!reservations) return false;
+    
+    return reservations.some(reservation => 
+      reservation.room?.id === roomId && 
+      (reservation.status === 'PENDING' || 
+       reservation.status === 'CONFIRMED' || 
+       reservation.status === 'CHECKED_IN')
+    );
+  };
+
   const handleDeleteClick = (room: Room) => {
+    // Check if room has active reservations
+    if (hasActiveReservations(room.id)) {
+      setRoomToDelete(room);
+      setWarningDialogOpen(true);
+      return;
+    }
+    
     setRoomToDelete(room);
     setDeleteDialogOpen(true);
   };
@@ -152,6 +177,11 @@ const AdminRooms: React.FC = () => {
       setDeleteDialogOpen(false);
       setRoomToDelete(null);
       
+      // Show success message
+      setSnackbarMessage('Room deleted successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
       // Refetch rooms and stats to update the UI
       await Promise.all([
         refetchRooms(),
@@ -160,10 +190,18 @@ const AdminRooms: React.FC = () => {
     } catch (error: any) {
       console.error('Failed to delete room:', error);
       setDeleteDialogOpen(false);
-      setRoomToDelete(null);
       
       const errorMessage = error?.data?.message || error?.message || 'Failed to delete room. Please try again.';
-      alert(`Error: ${errorMessage}`);
+      
+      // If error is about active reservations, show warning dialog
+      if (errorMessage.includes('active reservation')) {
+        setWarningDialogOpen(true);
+      } else {
+        setRoomToDelete(null);
+        setSnackbarMessage(errorMessage);
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
+      }
     }
   };
 
@@ -257,14 +295,6 @@ const AdminRooms: React.FC = () => {
                 backgroundColor: '#1a1a1a',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: 2,
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  backgroundColor: '#1f1f1f',
-                },
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -298,14 +328,6 @@ const AdminRooms: React.FC = () => {
                 backgroundColor: '#1a1a1a',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: 2,
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-                  borderColor: 'rgba(76, 175, 80, 0.5)',
-                  backgroundColor: '#1f1f1f',
-                },
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -339,14 +361,6 @@ const AdminRooms: React.FC = () => {
                 backgroundColor: '#1a1a1a',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: 2,
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-                  borderColor: 'rgba(244, 67, 54, 0.5)',
-                  backgroundColor: '#1f1f1f',
-                },
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -380,14 +394,6 @@ const AdminRooms: React.FC = () => {
                 backgroundColor: '#1a1a1a',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: 2,
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-                  borderColor: 'rgba(255, 152, 0, 0.5)',
-                  backgroundColor: '#1f1f1f',
-                },
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -445,14 +451,6 @@ const AdminRooms: React.FC = () => {
                     overflow: 'visible',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-                      borderColor: 'rgba(25, 118, 210, 0.5)',
-                      backgroundColor: '#1f1f1f',
-                    },
                   }}
                 >
                   {/* First Container: Image, Room Name, Status Badge, Room Type, Price */}
@@ -706,6 +704,67 @@ const AdminRooms: React.FC = () => {
         onCreateSuccess={handleCreateSuccess}
       />
 
+      {/* Warning Dialog for Active Reservations */}
+      <Dialog
+        open={warningDialogOpen}
+        onClose={() => {
+          setWarningDialogOpen(false);
+          setRoomToDelete(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: '#1a1a1a',
+            border: '1px solid rgba(255, 152, 0, 0.5)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: '#ff9800', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <BuildIcon />
+          Cannot Delete Room
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+            The room <strong style={{ color: '#ff9800' }}>{roomToDelete?.name || 'this room'}</strong> cannot be deleted because it has active reservations.
+          </DialogContentText>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.6)', mt: 2 }}>
+            Please wait until all active reservations (Pending, Confirmed, or Checked-In) are completed or cancelled before deleting this room.
+          </DialogContentText>
+          {roomToDelete && (
+            <Box sx={{ mt: 2, p: 2, backgroundColor: 'rgba(255, 152, 0, 0.1)', borderRadius: 1, border: '1px solid rgba(255, 152, 0, 0.3)' }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                <strong>Active Reservations:</strong>
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 1 }}>
+                This room has {reservations?.filter(r => 
+                  r.room?.id === roomToDelete.id && 
+                  (r.status === 'PENDING' || r.status === 'CONFIRMED' || r.status === 'CHECKED_IN')
+                ).length || 0} active reservation(s).
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              setWarningDialogOpen(false);
+              setRoomToDelete(null);
+            }}
+            variant="contained"
+            sx={{
+              backgroundColor: '#ff9800',
+              color: '#ffffff',
+              '&:hover': {
+                backgroundColor: '#f57c00',
+              },
+            }}
+          >
+            Understood
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
@@ -776,6 +835,22 @@ const AdminRooms: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </AdminLayout>
   );
 };
