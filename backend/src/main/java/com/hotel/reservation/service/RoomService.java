@@ -2,6 +2,7 @@ package com.hotel.reservation.service;
 
 import com.hotel.reservation.dto.UpdateRoomRequest;
 import com.hotel.reservation.model.Room;
+import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.repository.RoomRepository;
 import com.hotel.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
@@ -157,6 +158,26 @@ public class RoomService {
     @Transactional
     public void deleteRoom(String id) {
         Room room = getRoomById(id);
+        
+        // Check if room has active reservations
+        List<Reservation> activeReservations = reservationRepository.findAll().stream()
+            .filter(reservation -> {
+                if (reservation.getRoom() == null) return false;
+                return reservation.getRoom().getId().equals(id) && 
+                       (reservation.getStatus() == Reservation.ReservationStatus.PENDING ||
+                        reservation.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                        reservation.getStatus() == Reservation.ReservationStatus.CHECKED_IN);
+            })
+            .collect(Collectors.toList());
+        
+        if (!activeReservations.isEmpty()) {
+            throw new IllegalStateException(
+                "Cannot delete room with active reservations. " +
+                "This room has " + activeReservations.size() + " active reservation(s). " +
+                "Please wait until all active reservations are completed or cancelled."
+            );
+        }
+        
         roomRepository.delete(room);
     }
 

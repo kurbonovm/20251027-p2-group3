@@ -50,11 +50,14 @@ public class AdminController {
         long activeReservations = reservationRepository.countByStatus(Reservation.ReservationStatus.CONFIRMED) +
                                  reservationRepository.countByStatus(Reservation.ReservationStatus.CHECKED_IN);
 
-        // Calculate occupied rooms by counting active reservations
-        List<Reservation> activeReservationsList = reservationRepository.findByStatus(Reservation.ReservationStatus.CONFIRMED);
-        activeReservationsList.addAll(reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN));
-
-        long occupiedRooms = activeReservationsList.size();
+        // Calculate occupied rooms based on unique rooms with CHECKED_IN status
+        List<Reservation> checkedInReservations = reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN);
+        
+        long occupiedRooms = checkedInReservations.stream()
+                .filter(reservation -> reservation.getRoom() != null)
+                .map(reservation -> reservation.getRoom().getId())
+                .distinct()
+                .count();
 
         long availableRooms = totalRooms - occupiedRooms;
         double occupancyRate = totalRooms > 0 ? ((double)occupiedRooms / totalRooms) * 100 : 0;
@@ -200,11 +203,14 @@ public class AdminController {
                 .mapToLong(room -> room.getTotalRooms())
                 .sum();
 
-        // Calculate occupied rooms based on active reservations count
-        List<Reservation> activeReservationsList = reservationRepository.findByStatus(Reservation.ReservationStatus.CONFIRMED);
-        activeReservationsList.addAll(reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN));
-
-        long occupiedRooms = activeReservationsList.size();
+        // Calculate occupied rooms based on unique rooms with CHECKED_IN status
+        List<Reservation> checkedInReservations = reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN);
+        
+        long occupiedRooms = checkedInReservations.stream()
+                .filter(reservation -> reservation.getRoom() != null)
+                .map(reservation -> reservation.getRoom().getId())
+                .distinct()
+                .count();
 
         long availableRooms = totalRooms - occupiedRooms;
         double occupancyRate = totalRooms > 0 ? ((double) occupiedRooms / totalRooms) * 100 : 0;
