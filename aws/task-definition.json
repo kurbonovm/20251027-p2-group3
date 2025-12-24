@@ -13,7 +13,7 @@
       "portMappings": [{"containerPort": 8080, "protocol": "tcp"}],
       "environment": [
         {"name": "SPRING_PROFILES_ACTIVE", "value": "prod"},
-        {"name": "FRONTEND_URL", "value": "https://d32joxegsl0xnf.cloudfront.net"},
+        {"name": "FRONTEND_URL", "value": "https://d7vv9cemk0w3z.cloudfront.net"},
         {"name": "DATABASE_NAME", "value": "hotelx"}
       ],
       "secrets": [
