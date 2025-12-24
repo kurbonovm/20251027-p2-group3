@@ -65,8 +65,10 @@ const roomTypes: {
  * Search button is integrated in the When modal
  */
 const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
+
   const location = useLocation();
   const isRoomsPage = location.pathname === '/rooms';
+  const isHomePage = location.pathname === '/';
   
   const [whatOpen, setWhatOpen] = useState(false);
   const [whenOpen, setWhenOpen] = useState(false);
@@ -147,7 +149,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
     return 'Add dates';
   };
 
-  return (
+  return (<>
+    {(isHomePage || isRoomsPage)&&
     <Box sx={{ width: '100%', maxWidth: 800 }}>
       <Paper
         elevation={0}
@@ -697,6 +700,8 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
         </LocalizationProvider>
       </Popover>
     </Box>
+  }
+    </>
   );
 };
 
