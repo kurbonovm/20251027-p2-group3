@@ -1,0 +1,27 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "397345411365.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-group3-backend:latest",
+    "Update": "true"
+  },
+  "Ports": [
+    {
+      "ContainerPort": 8080,
+      "HostPort": 8080
+    }
+  ],
+  "Logging": "/var/log/hotel-reservation",
+  "Volumes": [
+    {
+      "HostDirectory": "/var/log/hotel-reservation",
+      "ContainerDirectory": "/app/logs"
+    }
+  ],
+  "Environment": [
+    {
+      "Name": "SPRING_PROFILES_ACTIVE",
+      "Value": "prod"
+    }
+  ]
+}
+

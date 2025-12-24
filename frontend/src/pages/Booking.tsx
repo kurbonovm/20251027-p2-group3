@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -21,6 +21,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { useCreateReservationMutation } from '../features/reservations/reservationsApi';
 import { useCreatePaymentIntentMutation, useConfirmPaymentMutation } from '../features/payments/paymentsApi';
+import { useGetRoomByIdQuery } from '../features/rooms/roomsApi';
 import StripePaymentForm from '../components/StripePaymentForm';
 import { Room } from '../types';
 import { PaymentIntent } from '@stripe/stripe-js';
@@ -39,10 +40,16 @@ const stripePromise = stripePublicKey && stripePublicKey !== 'undefined'
   : null;
 
 interface BookingLocationState {
-  room: Room;
-  checkInDate: string;
-  checkOutDate: string;
-  guests: number;
+  room?: Room;
+  checkInDate?: string;
+  checkOutDate?: string;
+  guests?: number;
+  bookingContext?: {
+    roomId?: string;
+    checkInDate?: string;
+    checkOutDate?: string;
+    guests?: number;
+  };
 }
 
 /**
@@ -60,7 +67,26 @@ const parseDate = (dateStr: string): Date => {
 const Booking: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { room, checkInDate, checkOutDate, guests } = (location.state as BookingLocationState) || {};
+  const locationState = (location.state as BookingLocationState) || {};
+  
+  // Extract booking data from either direct state or bookingContext (from login redirect)
+  const bookingContext = locationState.bookingContext;
+  const roomFromState = locationState.room;
+  const checkInDateFromState = locationState.checkInDate || bookingContext?.checkInDate;
+  const checkOutDateFromState = locationState.checkOutDate || bookingContext?.checkOutDate;
+  const guestsFromState = locationState.guests || bookingContext?.guests;
+  const roomIdFromContext = bookingContext?.roomId;
+
+  // Fetch room data if coming from login redirect (has roomId in bookingContext)
+  const { data: fetchedRoom, isLoading: isLoadingRoom } = useGetRoomByIdQuery(roomIdFromContext || '', {
+    skip: !roomIdFromContext || !!roomFromState,
+  });
+
+  // Use room from state or fetched room
+  const room = roomFromState || fetchedRoom;
+  const checkInDate = checkInDateFromState;
+  const checkOutDate = checkOutDateFromState;
+  const guests = guestsFromState;
 
   const [createReservation, { isLoading: isCreatingReservation }] = useCreateReservationMutation();
   const [createPaymentIntent, { isLoading: isCreatingPayment }] = useCreatePaymentIntentMutation();
@@ -73,6 +99,17 @@ const Booking: React.FC = () => {
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
 
   const steps = ['Review Booking', 'Payment'];
+
+  // Show loading while fetching room data
+  if (isLoadingRoom) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
 
   // Redirect if no booking data
   if (!room || !checkInDate || !checkOutDate) {

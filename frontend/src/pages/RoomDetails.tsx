@@ -72,11 +72,12 @@ const RoomDetails: React.FC = () => {
         return d.toISOString().split('T')[0];
       };
       
-      // Navigate to login with booking context to redirect back after authentication
+      // Navigate to login with booking context to redirect to booking payment page after authentication
       navigate('/login', {
         state: {
-          returnTo: `/rooms/${id}`,
+          returnTo: `/booking`,
           bookingContext: {
+            roomId: id,
             checkInDate: formatDate(checkInDate),
             checkOutDate: formatDate(checkOutDate),
             guests: typeof guests === 'number' ? guests : (guests === '' ? 1 : parseInt(guests.toString()) || 1),

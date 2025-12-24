@@ -72,6 +72,8 @@ const AdminReservations: React.FC = () => {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState<boolean>(false);
   const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
+  const [cancelConfirmDialogOpen, setCancelConfirmDialogOpen] = useState<boolean>(false);
+  const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null);
   const [newStatus, setNewStatus] = useState<ReservationStatus>('PENDING');
   const [editCheckInDate, setEditCheckInDate] = useState<string>('');
   const [editCheckOutDate, setEditCheckOutDate] = useState<string>('');
@@ -139,11 +141,38 @@ const AdminReservations: React.FC = () => {
   };
 
   const handleQuickStatusChange = async (reservation: Reservation, status: ReservationStatus) => {
+    // If status is CANCELLED, show confirmation dialog
+    if (status === 'CANCELLED') {
+      setReservationToCancel(reservation);
+      setCancelConfirmDialogOpen(true);
+      return;
+    }
+
+    // For other status changes, proceed directly
     try {
       await updateStatus({ id: reservation.id, status }).unwrap();
     } catch (err) {
       console.error('Failed to update status:', err);
     }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!reservationToCancel) return;
+
+    try {
+      await updateStatus({ id: reservationToCancel.id, status: 'CANCELLED' }).unwrap();
+      setCancelConfirmDialogOpen(false);
+      setReservationToCancel(null);
+    } catch (err) {
+      console.error('Failed to cancel reservation:', err);
+      setCancelConfirmDialogOpen(false);
+      setReservationToCancel(null);
+    }
+  };
+
+  const handleCancelDialogClose = () => {
+    setCancelConfirmDialogOpen(false);
+    setReservationToCancel(null);
   };
 
   const getStatusColor = (status: string | undefined): 'success' | 'warning' | 'error' | 'info' | 'default' => {
@@ -535,6 +564,84 @@ const AdminReservations: React.FC = () => {
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
           <Button onClick={handleEditDates} variant="contained" color="primary">
             Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog 
+        open={cancelConfirmDialogOpen} 
+        onClose={handleCancelDialogClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          color: '#ffffff',
+          backgroundColor: '#1a1a1a',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}>
+          <Cancel sx={{ color: '#f44336' }} />
+          Confirm Cancellation
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          {reservationToCancel && (
+            <Box>
+              <Typography variant="body1" gutterBottom>
+                Are you sure you want to cancel this reservation?
+              </Typography>
+              <Box sx={{ 
+                mt: 2, 
+                p: 2, 
+                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                borderRadius: 1,
+                border: '1px solid rgba(244, 67, 54, 0.3)',
+              }}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Guest:</strong> {reservationToCancel.user?.firstName} {reservationToCancel.user?.lastName}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Room:</strong> {reservationToCancel.room?.name}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Check-in:</strong> {new Date(reservationToCancel.checkInDate).toLocaleDateString()}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Check-out:</strong> {new Date(reservationToCancel.checkOutDate).toLocaleDateString()}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Total:</strong> ${reservationToCancel.totalPrice}
+                </Typography>
+              </Box>
+              <Alert severity="warning" sx={{ mt: 2 }}>
+                This action will change the reservation status to <strong>CANCELLED</strong>. 
+                This action cannot be undone.
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={handleCancelDialogClose}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)',
+              textTransform: 'none',
+            }}
+          >
+            No, Keep Reservation
+          </Button>
+          <Button 
+            onClick={handleConfirmCancel}
+            variant="contained"
+            color="error"
+            startIcon={<Cancel />}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Yes, Cancel Reservation
           </Button>
         </DialogActions>
       </Dialog>

@@ -26,8 +26,17 @@ dist-ssr
 *.sln
 *.sw?
 
+# AWS resources
+iam-policies/
+iam-policies/ecr-s3-policy.json
+iam-policies/eb-service-trust-policy.json
+iam-policies/ec2-trust-policy.json
+aws-resources-config.txt
+fix-eb-environment.sh
+
+
 # extra docx
-Dockerfile
+Frontend/Dockerfile
 aws-deployment.md
 CREDENTIALS_CHECKLIST.md
 SETUP_GUIDE.md
@@ -46,3 +55,19 @@ IMPLEMENTATION_SUMMARY.md
 CREDENTIALS_CHECKLIST.md
 ADMIN_AUTHORIZATION_IMPLEMENTATION.md
 ADMIN_AUTH_SUMMARY.md
+CANCEL_CONFIRMATION_IMPLEMENTATION.md
+CANCEL_RESERVATION_CONFIRMATION.md
+CONFIGURATION_UPDATES.md
+CREATE_ROOM_VALIDATION_SUMMARY.md
+CREDENTIALS_CHECKLIST.md
+DEPLOYMENT_README.md
+DEPLOYMENT_UPDATES_SUMMARY.md
+DOCUMENTDB_SETUP_GUIDE.md
+FINAL_CONFIGURATION.md
+fix-subnet-group.sh
+LOGIN_TO_BOOK_FLOW_DIAGRAM.md
+LOGIN_TO_BOOK_REDIRECT.md
+QUICK_DEPLOY_GUIDE.md
+released-unused-eips.sh
+SUBNET_SELECTION_DEBUG.md
+VALIDATION_SUMMARY.md
