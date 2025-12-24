@@ -277,9 +277,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialTab = 'logi
           <Typography
             variant="h4"
             sx={{
-              color: '#ffffff',
-              fontWeight: 700,
-              mb: 1,
+              // color: '#ffffff',
+              // fontWeight: 800,
+              // mb: 1,
+              // textShadow: '5px 5px 10px #000000, -5px  -5px 10px #000000',
+              color: 
+              '#ffffff',
+              mb: 3,
+              textShadow: '5px 5px 10px #000000, -5px  -5px 10px #000000',
+              fontWeight: 800,
+              fontSize: '1.5rem',
             }}
           >
             {tab === 'login' ? 'Welcome Back' : 'Create Account'}
@@ -287,8 +294,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialTab = 'logi
           <Typography
             variant="body2"
             sx={{
-              color: 'rgba(255, 255, 255, 0.8)',
+              color: '#ffffff',
               mb: 3,
+              textShadow: '5px 5px 10px #000000, -5px  -5px 10px #000000',
+              fontWeight: 700,
+              fontSize: '1.1rem',
             }}
           >
             {tab === 'login'
@@ -312,17 +322,28 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialTab = 'logi
               fullWidth
               sx={{
                 backgroundColor: tab === 'login' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
-                color: '#ffffff',
+                color: '#000000',
                 textTransform: 'none',
                 fontWeight: tab === 'login' ? 600 : 400,
                 borderRadius: 1,
                 py: 1,
+                textShadow: '10px 10px 13px #000000',
                 '&:hover': {
                   backgroundColor: 'rgba(255, 255, 255, 0.15)',
                 },
               }}
             >
-              Log In
+             <Typography
+                sx={{
+                  color: '#ffffff',
+                  textShadow: '5px 5px 10px #000000, -5px  -5px 10px #000000',
+                  fontWeight: tab === 'login' ? 800 : 700,
+                  fontSize: '1.5rem',
+                  textTransform: 'none',
+                }}
+              >
+                Log In
+              </Typography>
             </Button>
             <Button
               onClick={() => setTab('register')}
@@ -331,7 +352,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialTab = 'logi
                 backgroundColor: tab === 'register' ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
                 color: '#ffffff',
                 textTransform: 'none',
-                fontWeight: tab === 'register' ? 600 : 400,
+                // fontWeight: tab === 'register' ? 800 : 700,
                 borderRadius: 1,
                 py: 1,
                 '&:hover': {
@@ -339,7 +360,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, initialTab = 'logi
                 },
               }}
             >
-              Sign Up
+              <Typography
+                sx={{
+                  color: '#ffffff',
+                  textShadow: '5px 5px 10px #000000, -5px  -5px 10px #000000',
+                  fontWeight: tab === 'register' ? 800 : 700,
+                  fontSize: '1.5rem',
+                  textTransform: 'none',
+                }}
+              >
+                Sign Up
+              </Typography>
+              
             </Button>
           </Box>
         </Box>
