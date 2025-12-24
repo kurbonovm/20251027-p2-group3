@@ -7,6 +7,7 @@ interface LocationState {
   error?: string;
   returnTo?: string;
   bookingContext?: {
+    roomId?: string;
     checkInDate?: string;
     checkOutDate?: string;
     guests?: number;

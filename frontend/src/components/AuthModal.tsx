@@ -29,6 +29,7 @@ import { setCredentials } from '../features/auth/authSlice';
 import { LoginRequest, RegisterRequest } from '../types';
 
 interface BookingContext {
+  roomId?: string;
   checkInDate?: string;
   checkOutDate?: string;
   guests?: number;

@@ -34,6 +34,7 @@ build/
 
 ### Environment Variables ###
 .env
+.env.production
 application-local.yml
 application-local.properties
 
@@ -52,3 +53,9 @@ meDoc.txt
 models_backup.md
 requirements.md
 todo.md
+docs/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

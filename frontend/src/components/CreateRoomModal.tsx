@@ -64,12 +64,140 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
   const [newAmenity, setNewAmenity] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [priceInput, setPriceInput] = useState<string>('');
-  const [priceError, setPriceError] = useState<string>('');
   const [error, setError] = useState<string>('');
+  
+  // Individual field validation errors
+  const [fieldErrors, setFieldErrors] = useState({
+    name: '',
+    price: '',
+    description: '',
+    capacity: '',
+    floorNumber: '',
+    size: '',
+    totalRooms: '',
+    imageUrl: '',
+  });
 
   const handleChange = (field: keyof Room, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    setError(''); // Clear error when user makes changes
+    setError(''); // Clear global error when user makes changes
+  };
+
+  // Validation helper functions
+  const validateName = (value: string): string => {
+    if (!value || value.trim() === '') {
+      return 'Room name is required';
+    }
+    if (value.length < 1 || value.length > 200) {
+      return 'Room name must be between 1 and 200 characters';
+    }
+    return '';
+  };
+
+  const validateDescription = (value: string): string => {
+    if (value && value.length > 2000) {
+      return 'Description must not exceed 2000 characters';
+    }
+    return '';
+  };
+
+  const validateCapacity = (value: number): string => {
+    if (!value || value < 1) {
+      return 'Capacity must be at least 1 guest';
+    }
+    if (value > 20) {
+      return 'Capacity cannot exceed 20 guests';
+    }
+    return '';
+  };
+
+  const validateFloorNumber = (value: number): string => {
+    if (!value || value < 1) {
+      return 'Floor number must be at least 1';
+    }
+    if (value > 200) {
+      return 'Floor number cannot exceed 200';
+    }
+    return '';
+  };
+
+  const validateSize = (value: number): string => {
+    if (value < 0) {
+      return 'Size cannot be negative';
+    }
+    if (value > 10000) {
+      return 'Size cannot exceed 10,000 sq ft';
+    }
+    return '';
+  };
+
+  const validateTotalRooms = (value: number): string => {
+    if (!value || value < 1) {
+      return 'Total rooms must be at least 1';
+    }
+    if (value > 1000) {
+      return 'Total rooms cannot exceed 1000';
+    }
+    return '';
+  };
+
+  const validateImageUrl = (value: string): string => {
+    if (!value || value.trim() === '') {
+      return ''; // Image URL is optional
+    }
+    try {
+      new URL(value);
+      return '';
+    } catch {
+      return 'Please enter a valid URL (e.g., https://example.com/image.jpg)';
+    }
+  };
+
+  // Field change handlers with validation
+  const handleNameChange = (value: string) => {
+    handleChange('name', value);
+    const error = validateName(value);
+    setFieldErrors((prev) => ({ ...prev, name: error }));
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    handleChange('description', value);
+    const error = validateDescription(value);
+    setFieldErrors((prev) => ({ ...prev, description: error }));
+  };
+
+  const handleCapacityChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
+    handleChange('capacity', numValue);
+    const error = validateCapacity(numValue);
+    setFieldErrors((prev) => ({ ...prev, capacity: error }));
+  };
+
+  const handleFloorNumberChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
+    handleChange('floorNumber', numValue);
+    const error = validateFloorNumber(numValue);
+    setFieldErrors((prev) => ({ ...prev, floorNumber: error }));
+  };
+
+  const handleSizeChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
+    handleChange('size', numValue);
+    const error = validateSize(numValue);
+    setFieldErrors((prev) => ({ ...prev, size: error }));
+  };
+
+  const handleTotalRoomsChange = (value: string) => {
+    const numValue = parseInt(value) || 0;
+    handleChange('totalRooms', numValue);
+    const error = validateTotalRooms(numValue);
+    setFieldErrors((prev) => ({ ...prev, totalRooms: error }));
+  };
+
+  const handleImageUrlChange = (value: string) => {
+    handleChange('imageUrl', value);
+    const error = validateImageUrl(value);
+    setFieldErrors((prev) => ({ ...prev, imageUrl: error }));
   };
 
   const handleAddAmenity = () => {
@@ -105,7 +233,7 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
     
     // Allow empty string for typing
     if (value === '') {
-      setPriceError('');
+      setFieldErrors((prev) => ({ ...prev, price: 'Price per night is required' }));
       handleChange('pricePerNight', 0);
       return;
     }
@@ -119,46 +247,49 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
     
     // Validate positive number
     if (isNaN(numValue) || numValue < 0) {
-      setPriceError('Price must be a positive number');
+      setFieldErrors((prev) => ({ ...prev, price: 'Price must be a positive number' }));
       handleChange('pricePerNight', 0);
     } else if (numValue === 0) {
-      setPriceError('Price must be greater than 0');
+      setFieldErrors((prev) => ({ ...prev, price: 'Price must be greater than $0' }));
+      handleChange('pricePerNight', 0);
+    } else if (numValue > 1000000) {
+      setFieldErrors((prev) => ({ ...prev, price: 'Price cannot exceed $1,000,000 per night' }));
       handleChange('pricePerNight', 0);
     } else {
-      setPriceError('');
+      setFieldErrors((prev) => ({ ...prev, price: '' }));
       handleChange('pricePerNight', Math.round(numValue)); // Convert to integer
     }
   };
 
   const validateForm = (): boolean => {
-    // Required fields validation
-    if (!formData.name || formData.name.trim() === '') {
-      setError('Room name is required');
-      return false;
-    }
+    // Check all field errors
+    const nameError = validateName(formData.name || '');
+    const priceError = !formData.pricePerNight || formData.pricePerNight <= 0 
+      ? 'Price per night is required and must be greater than $0' 
+      : '';
+    const descriptionError = validateDescription(formData.description || '');
+    const capacityError = validateCapacity(formData.capacity || 0);
+    const floorNumberError = validateFloorNumber(formData.floorNumber || 0);
+    const sizeError = validateSize(formData.size || 0);
+    const totalRoomsError = validateTotalRooms(formData.totalRooms || 0);
+    const imageUrlError = validateImageUrl(formData.imageUrl || '');
 
-    if (!formData.pricePerNight || formData.pricePerNight <= 0) {
-      setError('Price per night must be greater than 0');
-      return false;
-    }
+    // Update all field errors
+    setFieldErrors({
+      name: nameError,
+      price: priceError,
+      description: descriptionError,
+      capacity: capacityError,
+      floorNumber: floorNumberError,
+      size: sizeError,
+      totalRooms: totalRoomsError,
+      imageUrl: imageUrlError,
+    });
 
-    if (!formData.capacity || formData.capacity < 1) {
-      setError('Capacity must be at least 1');
-      return false;
-    }
-
-    if (!formData.totalRooms || formData.totalRooms < 1) {
-      setError('Total rooms must be at least 1');
-      return false;
-    }
-
-    if (!formData.floorNumber || formData.floorNumber < 1) {
-      setError('Floor number must be at least 1');
-      return false;
-    }
-
-    if (formData.size !== undefined && formData.size < 0) {
-      setError('Size cannot be negative');
+    // Check if any errors exist
+    if (nameError || priceError || descriptionError || capacityError || 
+        floorNumberError || sizeError || totalRoomsError || imageUrlError) {
+      setError('Please fix all validation errors before submitting');
       return false;
     }
 
@@ -211,7 +342,16 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
         totalRooms: 1,
       });
       setPriceInput('');
-      setPriceError('');
+      setFieldErrors({
+        name: '',
+        price: '',
+        description: '',
+        capacity: '',
+        floorNumber: '',
+        size: '',
+        totalRooms: '',
+        imageUrl: '',
+      });
       
       if (onCreateSuccess) {
         onCreateSuccess();
@@ -224,7 +364,16 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
 
   const handleClose = () => {
     setError('');
-    setPriceError('');
+    setFieldErrors({
+      name: '',
+      price: '',
+      description: '',
+      capacity: '',
+      floorNumber: '',
+      size: '',
+      totalRooms: '',
+      imageUrl: '',
+    });
     onClose();
   };
 
@@ -254,14 +403,19 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                 fullWidth
                 label="Room Name *"
                 value={formData.name || ''}
-                onChange={(e) => handleChange('name', e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 required
+                error={!!fieldErrors.name}
+                helperText={fieldErrors.name || 'Enter a unique name for the room'}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.name ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
@@ -299,34 +453,46 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                 value={priceInput}
                 onChange={(e) => handlePriceChange(e.target.value)}
                 required
-                error={!!priceError}
-                helperText={priceError}
+                error={!!fieldErrors.price}
+                helperText={fieldErrors.price || 'Enter the nightly rate in dollars'}
+                placeholder="e.g., 150"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                  '& .MuiFormHelperText-root': { color: '#f44336' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.price ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
 
             {/* Description */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 multiline
                 rows={3}
                 label="Description"
                 value={formData.description || ''}
-                onChange={(e) => handleChange('description', e.target.value)}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                error={!!fieldErrors.description}
+                helperText={
+                  fieldErrors.description || 
+                  `Describe the room features and amenities (${(formData.description || '').length}/2000 characters)`
+                }
+                placeholder="e.g., Spacious room with ocean view, king-size bed, and modern amenities..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.description ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
@@ -337,9 +503,11 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                 fullWidth
                 type="number"
                 label="Capacity (Guests) *"
-                value={formData.capacity || 1}
-                onChange={(e) => handleChange('capacity', parseInt(e.target.value) || 1)}
+                value={formData.capacity || ''}
+                onChange={(e) => handleCapacityChange(e.target.value)}
                 required
+                error={!!fieldErrors.capacity}
+                helperText={fieldErrors.capacity || 'Maximum number of guests (1-20)'}
                 inputProps={{ min: 1, max: 20 }}
                 InputLabelProps={{ shrink: true }}
                 sx={{
@@ -348,6 +516,9 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.capacity ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
@@ -358,9 +529,11 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                 fullWidth
                 type="number"
                 label="Floor Number *"
-                value={formData.floorNumber || 1}
-                onChange={(e) => handleChange('floorNumber', parseInt(e.target.value) || 1)}
+                value={formData.floorNumber || ''}
+                onChange={(e) => handleFloorNumberChange(e.target.value)}
                 required
+                error={!!fieldErrors.floorNumber}
+                helperText={fieldErrors.floorNumber || 'Which floor is this room on? (1-200)'}
                 inputProps={{ min: 1, max: 200 }}
                 InputLabelProps={{ shrink: true }}
                 sx={{
@@ -369,6 +542,9 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.floorNumber ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
@@ -379,8 +555,11 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                 fullWidth
                 type="number"
                 label="Size (sq ft)"
-                value={formData.size || 0}
-                onChange={(e) => handleChange('size', parseInt(e.target.value) || 0)}
+                value={formData.size || ''}
+                onChange={(e) => handleSizeChange(e.target.value)}
+                error={!!fieldErrors.size}
+                helperText={fieldErrors.size || 'Room size in square feet (optional, max 10,000)'}
+                placeholder="e.g., 350"
                 inputProps={{ min: 0, max: 10000 }}
                 InputLabelProps={{ shrink: true }}
                 sx={{
@@ -389,6 +568,9 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.size ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
@@ -399,9 +581,11 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                 fullWidth
                 type="number"
                 label="Total Rooms *"
-                value={formData.totalRooms || 1}
-                onChange={(e) => handleChange('totalRooms', parseInt(e.target.value) || 1)}
+                value={formData.totalRooms || ''}
+                onChange={(e) => handleTotalRoomsChange(e.target.value)}
                 required
+                error={!!fieldErrors.totalRooms}
+                helperText={fieldErrors.totalRooms || 'How many rooms of this type? (1-1000)'}
                 inputProps={{ min: 1, max: 1000 }}
                 InputLabelProps={{ shrink: true }}
                 sx={{
@@ -410,6 +594,9 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.totalRooms ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
@@ -418,16 +605,21 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Image URL"
+                label="Main Image URL"
                 value={formData.imageUrl || ''}
-                onChange={(e) => handleChange('imageUrl', e.target.value)}
-                placeholder="https://example.com/image.jpg"
+                onChange={(e) => handleImageUrlChange(e.target.value)}
+                error={!!fieldErrors.imageUrl}
+                helperText={fieldErrors.imageUrl || 'Enter a valid URL for the main room image (optional)'}
+                placeholder="https://example.com/room-image.jpg"
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     color: '#ffffff',
                     '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                   },
                   '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
+                  '& .MuiFormHelperText-root': { 
+                    color: fieldErrors.imageUrl ? '#f44336' : 'rgba(255, 255, 255, 0.5)' 
+                  },
                 }}
               />
             </Grid>
@@ -621,11 +813,18 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({ open, onClose, onCrea
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading || !!priceError}
+            disabled={
+              isLoading || 
+              Object.values(fieldErrors).some(error => error !== '')
+            }
             sx={{
               backgroundColor: '#2196F3',
               '&:hover': {
                 backgroundColor: '#1976D2',
+              },
+              '&.Mui-disabled': {
+                backgroundColor: 'rgba(33, 150, 243, 0.3)',
+                color: 'rgba(255, 255, 255, 0.3)',
               },
             }}
           >

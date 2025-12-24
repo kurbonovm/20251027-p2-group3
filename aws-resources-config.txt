@@ -1,0 +1,25 @@
+AWS Resources Configuration
+Generated: Mon Dec 22 23:54:41 PST 2025
+
+BatchID: 20251027
+CreatedBy: aepanda
+Region: us-east-1
+Environment: Production
+
+ECR Repository: 397345411365.dkr.ecr.us-east-1.amazonaws.com/hotel-reservation-group3-backend
+S3 Frontend Bucket: hotel-reservation-group3-frontend
+S3 Artifacts Bucket: hotel-reservation-group3-artifacts
+
+EB Service Role: hotel-reservation-group3-eb-service-role
+EC2 Instance Role: hotel-reservation-group3-ec2-role
+Instance Profile: hotel-reservation-group3-ec2-profile
+
+DocumentDB Cluster: hotel-reservation-group3-docdb
+DocumentDB Instance Class: db.t3.small
+DocumentDB Endpoint: hotel-reservation-group3-docdb.cluster-c09fa9cjdd70.us-east-1.docdb.amazonaws.com
+DocumentDB Username: group3
+DocumentDB Database: hotel_reservation
+DocumentDB Security Group: sg-0166abde529806801
+
+Connection String:
+mongodb://group3:<password>@hotel-reservation-group3-docdb.cluster-c09fa9cjdd70.us-east-1.docdb.amazonaws.com:27017/hotel_reservation?tls=true&tlsAllowInvalidHostnames=true&retryWrites=false
