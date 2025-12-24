@@ -189,7 +189,7 @@ const Profile: React.FC = () => {
         sx={{ 
           p: 4,
           backgroundColor: isAdminOrManager ? '#1a1a1a' : '#ffffff',
-          color: isAdminOrManager ? '#ffffff' : 'inherit',
+          color: 'black', // Ensure text color is always black
         }}
       >
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
@@ -207,19 +207,19 @@ const Profile: React.FC = () => {
               <Box>
                 <Typography 
                   variant="h4"
-                  sx={{ color: isAdminOrManager ? '#ffffff' : 'inherit' }}
+                  sx={{ color: 'black' }} // Ensure text color is always black
                 >
                   {displayUser?.firstName} {displayUser?.lastName}
                 </Typography>
                 <Typography 
                   variant="body1" 
-                  sx={{ color: isAdminOrManager ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}
+                  sx={{ color: 'text.secondary' }} // Use default secondary text color
                 >
                   {displayUser?.email}
                 </Typography>
                 <Typography 
                   variant="body2" 
-                  sx={{ color: isAdminOrManager ? 'rgba(255, 255, 255, 0.6)' : 'text.secondary' }}
+                  sx={{ color: 'text.secondary' }} // Use default secondary text color
                 >
                   Role: {displayUser?.roles?.join(', ')}
                 </Typography>
@@ -241,7 +241,7 @@ const Profile: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
               <Typography 
                 variant="h5"
-                sx={{ color: isAdminOrManager ? '#ffffff' : 'inherit' }}
+                sx={{ color: 'black' }} // Ensure text color is always black
               >
                 Profile Information
               </Typography>
