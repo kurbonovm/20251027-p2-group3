@@ -188,8 +188,8 @@ const Profile: React.FC = () => {
         elevation={3} 
         sx={{ 
           p: 4,
-          backgroundColor: isAdminOrManager ? '#1a1a1a' : '#ffffff',
-          color: 'black', // Ensure text color is always black
+          backgroundColor: '#ffffff', // Ensure background is white
+          color: 'black', // Ensure text color is black
         }}
       >
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
@@ -198,28 +198,28 @@ const Profile: React.FC = () => {
                   width: 80, 
                   height: 80, 
                   mr: 2, 
-                  bgcolor: isAdminOrManager ? '#1976d2' : 'primary.main',
+                  bgcolor: 'primary.main', // Ensure consistent avatar background
                 }}
                 src={displayUser?.avatar}
               >
-                <Person sx={{ fontSize: 40 }} />
+                <Person sx={{ fontSize: 40, color: 'black' }} /> {/* Ensure icon color is black */}
               </Avatar>
               <Box>
                 <Typography 
                   variant="h4"
-                  sx={{ color: 'black' }} // Ensure text color is always black
+                  sx={{ color: 'black' }} // Ensure text color is black
                 >
                   {displayUser?.firstName} {displayUser?.lastName}
                 </Typography>
                 <Typography 
                   variant="body1" 
-                  sx={{ color: 'text.secondary' }} // Use default secondary text color
+                  sx={{ color: 'black' }} // Ensure text color is black
                 >
                   {displayUser?.email}
                 </Typography>
                 <Typography 
                   variant="body2" 
-                  sx={{ color: 'text.secondary' }} // Use default secondary text color
+                  sx={{ color: 'black' }} // Ensure text color is black
                 >
                   Role: {displayUser?.roles?.join(', ')}
                 </Typography>
@@ -302,18 +302,18 @@ const Profile: React.FC = () => {
                     required
                     error={!!fieldErrors.firstName}
                     helperText={fieldErrors.firstName}
-                    sx={isAdminOrManager ? {
+                    sx={{
                       '& .MuiOutlinedInput-root': {
-                        color: '#ffffff',
-                        '& fieldset': { borderColor: fieldErrors.firstName ? '#f44336' : 'rgba(255, 255, 255, 0.3)' },
+                        color: 'black', // Ensure input text is black
+                        '& fieldset': { borderColor: fieldErrors.firstName ? '#f44336' : 'rgba(0, 0, 0, 0.3)' },
                       },
-                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                      '& .MuiFormHelperText-root': { color: '#f44336' },
+                      '& .MuiInputLabel-root': { color: 'rgba(0, 0, 0, 0.7)' }, // Ensure label text is black
+                      '& .MuiFormHelperText-root': { color: '#f44336' }, // Error text remains red
                       '& .Mui-disabled': {
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                        color: 'rgba(0, 0, 0, 0.5)', // Ensure disabled text is gray
+                        WebkitTextFillColor: 'rgba(0, 0, 0, 0.5)',
                       },
-                    } : {}}
+                    }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -327,18 +327,18 @@ const Profile: React.FC = () => {
                     required
                     error={!!fieldErrors.lastName}
                     helperText={fieldErrors.lastName}
-                    sx={isAdminOrManager ? {
+                    sx={{
                       '& .MuiOutlinedInput-root': {
-                        color: '#ffffff',
-                        '& fieldset': { borderColor: fieldErrors.lastName ? '#f44336' : 'rgba(255, 255, 255, 0.3)' },
+                        color: 'black', // Ensure input text is black
+                        '& fieldset': { borderColor: fieldErrors.lastName ? '#f44336' : 'rgba(0, 0, 0, 0.3)' },
                       },
-                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                      '& .MuiFormHelperText-root': { color: '#f44336' },
+                      '& .MuiInputLabel-root': { color: 'rgba(0, 0, 0, 0.7)' }, // Ensure label text is black
+                      '& .MuiFormHelperText-root': { color: '#f44336' }, // Error text remains red
                       '& .Mui-disabled': {
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                        color: 'rgba(0, 0, 0, 0.5)', // Ensure disabled text is gray
+                        WebkitTextFillColor: 'rgba(0, 0, 0, 0.5)',
                       },
-                    } : {}}
+                    }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
@@ -348,18 +348,18 @@ const Profile: React.FC = () => {
                     value={displayUser?.email || ''}
                     disabled
                     helperText="Email cannot be changed"
-                    sx={isAdminOrManager ? {
+                    sx={{
                       '& .MuiOutlinedInput-root': {
-                        color: '#ffffff',
-                        '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                        color: 'black', // Ensure input text is black
+                        '& fieldset': { borderColor: 'rgba(0, 0, 0, 0.3)' },
                       },
-                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                      '& .MuiFormHelperText-root': { color: 'rgba(255, 255, 255, 0.5)' },
+                      '& .MuiInputLabel-root': { color: 'rgba(0, 0, 0, 0.7)' }, // Ensure label text is black
+                      '& .MuiFormHelperText-root': { color: 'rgba(0, 0, 0, 0.5)' }, // Ensure helper text is gray
                       '& .Mui-disabled': {
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                        color: 'rgba(0, 0, 0, 0.5)', // Ensure disabled text is gray
+                        WebkitTextFillColor: 'rgba(0, 0, 0, 0.5)',
                       },
-                    } : {}}
+                    }}
                   />
                 </Grid>
                 <Grid size={{ xs: 12 }}>
@@ -373,18 +373,18 @@ const Profile: React.FC = () => {
                     error={!!fieldErrors.phoneNumber}
                     helperText={fieldErrors.phoneNumber || 'Optional - Format: +1234567890 or (123) 456-7890'}
                     placeholder="+1 (555) 123-4567"
-                    sx={isAdminOrManager ? {
+                    sx={{
                       '& .MuiOutlinedInput-root': {
-                        color: '#ffffff',
-                        '& fieldset': { borderColor: fieldErrors.phoneNumber ? '#f44336' : 'rgba(255, 255, 255, 0.3)' },
+                        color: 'black', // Ensure input text is black
+                        '& fieldset': { borderColor: fieldErrors.phoneNumber ? '#f44336' : 'rgba(0, 0, 0, 0.3)' },
                       },
-                      '& .MuiInputLabel-root': { color: 'rgba(255, 255, 255, 0.7)' },
-                      '& .MuiFormHelperText-root': { color: fieldErrors.phoneNumber ? '#f44336' : 'rgba(255, 255, 255, 0.5)' },
+                      '& .MuiInputLabel-root': { color: 'rgba(0, 0, 0, 0.7)' }, // Ensure label text is black
+                      '& .MuiFormHelperText-root': { color: fieldErrors.phoneNumber ? '#f44336' : 'rgba(0, 0, 0, 0.5)' }, // Ensure helper text is gray
                       '& .Mui-disabled': {
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        WebkitTextFillColor: 'rgba(255, 255, 255, 0.5)',
+                        color: 'rgba(0, 0, 0, 0.5)', // Ensure disabled text is gray
+                        WebkitTextFillColor: 'rgba(0, 0, 0, 0.5)',
                       },
-                    } : {}}
+                    }}
                   />
                 </Grid>
               </Grid>
