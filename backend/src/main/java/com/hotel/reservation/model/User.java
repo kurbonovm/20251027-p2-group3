@@ -64,7 +64,7 @@ public class User {
     private Set<Role> roles = new HashSet<>();
 
     /**
-     * OAuth2 provider (google, facebook, null for local auth)
+     * OAuth2 provider (google, null for local auth)
      */
     private String provider;
 

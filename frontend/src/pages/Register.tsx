@@ -12,7 +12,7 @@ import {
   Paper,
   Divider,
 } from '@mui/material';
-import { Google as GoogleIcon, Facebook as FacebookIcon } from '@mui/icons-material';
+import { Google as GoogleIcon } from '@mui/icons-material';
 import { useRegisterMutation } from '../features/auth/authApi';
 import { setCredentials } from '../features/auth/authSlice';
 import { RegisterRequest } from '../types';
@@ -162,17 +162,8 @@ const Register: React.FC = () => {
               variant="outlined"
               startIcon={<GoogleIcon />}
               onClick={() => handleOAuth2Login('google')}
-              sx={{ mb: 1 }}
             >
               Sign up with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<FacebookIcon />}
-              onClick={() => handleOAuth2Login('facebook')}
-            >
-              Sign up with Facebook
             </Button>
 
             <Box sx={{ mt: 2, textAlign: 'center' }}>

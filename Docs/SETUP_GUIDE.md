@@ -72,24 +72,7 @@ GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-xxxxx
 ```
 
-### 2. Facebook OAuth2
-
-**Where:** [Facebook Developers](https://developers.facebook.com/apps/)
-
-- [ ] Create app (Consumer type)
-- [ ] Add Facebook Login product
-- [ ] Configure Valid OAuth Redirect URIs:
-  - `http://localhost:8080/login/oauth2/code/facebook`
-  - `http://localhost:5173/oauth2/callback` (dev)
-  - `http://hotelx-system-backend.s3-website-us-east-1.amazonaws.com/oauth2/callback` (AWS)
-
-**Copy to .env:**
-```env
-FACEBOOK_CLIENT_ID=1234567890123456
-FACEBOOK_CLIENT_SECRET=xxxxx
-```
-
-### 3. Stripe
+### 2. Stripe
 
 **Where:** [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys)
 
@@ -114,21 +97,7 @@ VITE_STRIPE_PUBLIC_KEY=pk_test_51xxxxx
 - Expiry: Any future date
 - CVC: Any 3 digits
 
-### 4. Gmail (Email Notifications)
-
-**Where:** [Google App Passwords](https://myaccount.google.com/apppasswords)
-
-- [ ] Enable 2-Step Verification
-- [ ] Generate App Password (Select app: Mail, Device: Other)
-- [ ] Copy 16-character password
-
-**Copy to .env:**
-```env
-EMAIL_USERNAME=your-email@gmail.com
-EMAIL_PASSWORD=xxxx xxxx xxxx xxxx
-```
-
-### 5. JWT Secret
+### 3. JWT Secret
 
 **Generate:**
 ```bash
@@ -140,7 +109,7 @@ openssl rand -base64 64
 JWT_SECRET=generated-secret-key
 ```
 
-### 6. MongoDB Password
+### 4. MongoDB Password
 
 **Copy to .env:**
 ```env
@@ -176,19 +145,6 @@ cd 20251027-p2-group3
      - `http://localhost:8080/login/oauth2/code/google`
      - `http://localhost:5173/oauth2/callback`
 6. **Copy** Client ID and Client Secret
-
-#### 🔵 Facebook OAuth2
-
-1. **Go to:** [Facebook Developers](https://developers.facebook.com/)
-2. **Create App → Consumer**
-3. **Add Facebook Login → Web**
-4. **Configure Settings:**
-   - Valid OAuth Redirect URIs:
-     - `http://localhost:8080/login/oauth2/code/facebook`
-     - `http://localhost:5173/oauth2/callback`
-5. **Get credentials** from Settings → Basic
-   - App ID (Client ID)
-   - App Secret (Client Secret)
 
 #### 💳 Stripe
 
@@ -227,34 +183,16 @@ JWT_SECRET=your-super-secret-jwt-key-at-least-256-bits-long-change-this
 STRIPE_API_KEY=sk_test_51ABC...  # Your secret key
 STRIPE_WEBHOOK_SECRET=whsec_...  # Your webhook secret
 
-# Email (Gmail example)
-EMAIL_USERNAME=your-email@gmail.com
-EMAIL_PASSWORD=your-gmail-app-password  # See Gmail App Password setup below
-
 # Google OAuth2 (from Google Cloud Console)
 GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
-
-# Facebook OAuth2 (from Facebook Developers)
-FACEBOOK_CLIENT_ID=1234567890
-FACEBOOK_CLIENT_SECRET=your-facebook-secret
 
 # Frontend
 VITE_API_URL=http://localhost:8080/api
 VITE_STRIPE_PUBLIC_KEY=pk_test_51ABC...  # Your publishable key
 ```
 
-### Step 4: Setup Gmail App Password (for email notifications)
-
-1. **Go to:** [Google Account Security](https://myaccount.google.com/security)
-2. **Enable 2-Step Verification** (if not already enabled)
-3. **Go to:** [App Passwords](https://myaccount.google.com/apppasswords)
-4. **Select app:** Mail
-5. **Select device:** Other (Custom name) → "Hotel Reservation"
-6. **Click Generate**
-7. **Copy the 16-character password** → Use as `EMAIL_PASSWORD`
-
-### Step 5: Generate JWT Secret
+### Step 4: Generate JWT Secret
 
 Generate a secure random key:
 
@@ -267,7 +205,7 @@ openssl rand -base64 64
 
 Copy the output and use it as your `JWT_SECRET`.
 
-### Step 6: Update Frontend .env
+### Step 5: Update Frontend .env
 
 Edit `frontend/.env`:
 
@@ -377,7 +315,7 @@ You should see all API endpoints documented.
 ### 3. Test OAuth2 Login
 
 1. Go to frontend: http://localhost:5173
-2. Click "Login with Google" or "Login with Facebook"
+2. Click "Login with Google"
 3. Authorize the app
 4. You should be redirected back with a JWT token
 
@@ -390,13 +328,6 @@ You should see all API endpoints documented.
 5. Payment should succeed
 
 **More test cards:** https://stripe.com/docs/testing
-
-### 5. Test Email Notifications
-
-1. Register a new user with your real email
-2. Check your inbox for welcome email
-3. Create a reservation
-4. Check for reservation confirmation email
 
 ---
 
@@ -439,10 +370,9 @@ mvn spring-boot:run
 
 ### Issue: OAuth2 "redirect_uri_mismatch" error
 
-**Solution:** Make sure redirect URIs in Google/Facebook console EXACTLY match:
+**Solution:** Make sure redirect URIs in Google console EXACTLY match:
 ```
 http://localhost:8080/login/oauth2/code/google
-http://localhost:8080/login/oauth2/code/facebook
 ```
 
 ### Issue: Stripe webhook signature verification failed
@@ -453,13 +383,6 @@ http://localhost:8080/login/oauth2/code/facebook
    stripe listen --forward-to localhost:8080/api/payments/webhook
    ```
 2. Use the webhook secret from CLI output in your `.env`
-
-### Issue: Email not sending
-
-**Solution:**
-1. Make sure 2-Step Verification is enabled
-2. Use App Password, not your regular Gmail password
-3. Check `EMAIL_USERNAME` and `EMAIL_PASSWORD` are correct
 
 ### Issue: MongoDB connection refused
 
@@ -584,8 +507,6 @@ hotelx/email-username
 hotelx/email-password
 hotelx/google-client-id
 hotelx/google-client-secret
-hotelx/facebook-client-id
-hotelx/facebook-client-secret
 hotelx/prod/documentdb-connection
 ```
 
@@ -602,7 +523,6 @@ hotelx/prod/documentdb-connection
 ### External Resources
 - **Stripe Testing:** https://stripe.com/docs/testing
 - **Google OAuth2:** https://developers.google.com/identity/protocols/oauth2
-- **Facebook Login:** https://developers.facebook.com/docs/facebook-login
 - **Spring Security OAuth2:** https://spring.io/guides/tutorials/spring-boot-oauth2/
 - **MongoDB Documentation:** https://docs.mongodb.com/
 - **AWS DocumentDB:** https://docs.aws.amazon.com/documentdb/

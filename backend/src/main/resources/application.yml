@@ -1,6 +1,6 @@
 spring:
   application:
-    name: hotelx-system
+    name: hotelx-backend
 
   # MongoDB Configuration
   data:
@@ -22,19 +22,6 @@ spring:
               - profile
               - email
             redirect-uri: ${BACKEND_URL}/login/oauth2/code/google
-
-  # Email Configuration
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${EMAIL_USERNAME}
-    password: ${EMAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
 
   # File Upload Configuration
   servlet:
@@ -70,7 +57,7 @@ app:
 
   # CORS Configuration
   cors:
-    allowed-origins: ${FRONTEND_URL}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
 
 # Logging Configuration
 logging:

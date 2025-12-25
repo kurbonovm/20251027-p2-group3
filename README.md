@@ -12,7 +12,7 @@ This system simplifies the booking process for guests and provides hotel adminis
 - **Java 17** with **Spring Boot 3.2.0**
 - **MongoDB** - NoSQL database
 - **Spring Security** - Authentication & Authorization
-- **OAuth2** - Social login (Google, Facebook)
+- **OAuth2** - Social login (Google)
 - **JWT** - Token-based authentication
 - **Stripe** - Payment processing
 - **Maven** - Build tool
@@ -35,7 +35,7 @@ This system simplifies the booking process for guests and provides hotel adminis
 
 ### User Management
 - Email/password registration and login
-- OAuth2 social login (Google, Facebook)
+- OAuth2 social login (Google)
 - Role-based access control (GUEST, MANAGER, ADMIN)
 - User profile management
 

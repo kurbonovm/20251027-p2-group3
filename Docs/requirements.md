@@ -29,7 +29,7 @@ The system must be a full-stack solution with components deployed to AWS.
 
 * **Authentication & Authorization:**
     * Implement **OAuth2-based authentication** using **Spring Security**.
-    * Allow users to sign in via third-party providers (e.g., Google, Facebook).
+    * Allow users to sign in via third-party providers (e.g., Google).
 * **Role-Based Access Control (RBAC):**
     * Define and enforce distinct permissions for the following roles:
         * **Guest:** Can view rooms, book, view/modify/cancel own reservations.

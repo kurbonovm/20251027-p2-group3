@@ -34,13 +34,6 @@ spring:
             scope:
               - email
               - profile
-          facebook:
-            client-id: test-facebook-client-id
-            client-secret: test-facebook-client-secret
-            redirect-uri: http://localhost:8080/oauth2/callback/facebook
-            scope:
-              - email
-              - public_profile
 
 # JWT Configuration for Tests
 jwt:

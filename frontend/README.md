@@ -16,7 +16,7 @@ A modern, responsive React frontend for the Hotel Reservation System built with 
 ## 📋 Features
 
 ### User Management
-- ✅ OAuth2 authentication (Google, Facebook)
+- ✅ OAuth2 authentication (Google)
 - ✅ Email/password login and registration
 - ✅ Role-based access control (Guest, Manager, Admin)
 - ✅ User profile management
@@ -171,7 +171,7 @@ npm run format
 The application supports multiple authentication methods:
 
 1. **Email/Password**: Traditional authentication
-2. **OAuth2**: Google and Facebook login
+2. **OAuth2**: Google login
 
 All authenticated routes are protected using the `ProtectedRoute` component.
 

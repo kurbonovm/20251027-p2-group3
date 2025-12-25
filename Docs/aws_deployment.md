@@ -158,8 +158,6 @@ Complete AWS infrastructure deployment guide and current production status.
 - JWT_SECRET
 - STRIPE_API_KEY
 - STRIPE_WEBHOOK_SECRET
-- EMAIL_USERNAME
-- EMAIL_PASSWORD
 - GOOGLE_CLIENT_ID
 - GOOGLE_CLIENT_SECRET
 - BACKEND_URL
@@ -644,7 +642,7 @@ gh run view [RUN_ID] --log
 ### OAuth2 Not Working
 
 **Check:**
-1. Google/Facebook credentials in Secrets Manager
+1. Google credentials in Secrets Manager
 2. Authorized redirect URIs in Google Console:
    - https://d32joxegsl0xnf.cloudfront.net/login/oauth2/code/google
 3. Backend URL configured correctly in secrets

@@ -27,7 +27,7 @@ public interface UserRepository extends MongoRepository<User, String> {
     /**
      * Find a user by OAuth2 provider and provider ID.
      *
-     * @param provider the OAuth2 provider (google, facebook)
+     * @param provider the OAuth2 provider (google)
      * @param providerId the provider's user ID
      * @return Optional containing the user if found
      */

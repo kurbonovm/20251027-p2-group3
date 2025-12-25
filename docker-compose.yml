@@ -41,10 +41,6 @@ services:
       STRIPE_API_KEY: ${STRIPE_API_KEY:-sk_test_your_stripe_key}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_your_webhook_secret}
 
-      # Email Configuration
-      EMAIL_USERNAME: ${EMAIL_USERNAME:-your-email@gmail.com}
-      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-your-app-password}
-
       # OAuth Configuration
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}

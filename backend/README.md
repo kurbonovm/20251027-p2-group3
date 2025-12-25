@@ -8,7 +8,7 @@ Spring Boot REST API for the Hotel Reservation System with MongoDB, Spring Secur
 - **Spring Boot 3.2.0** - Framework
 - **Spring Data MongoDB** - Database integration
 - **Spring Security** - Authentication and authorization
-- **OAuth2** - Social login (Google, Facebook)
+- **OAuth2** - Social login (Google)
 - **JWT** - Token-based authentication
 - **Stripe** - Payment processing
 - **Lombok** - Code generation
@@ -18,7 +18,7 @@ Spring Boot REST API for the Hotel Reservation System with MongoDB, Spring Secur
 
 ### Authentication & Authorization
 - Email/password registration and login
-- OAuth2 social login (Google, Facebook)
+- OAuth2 social login (Google)
 - JWT token-based authentication
 - Role-based access control (GUEST, MANAGER, ADMIN)
 - Password encryption with BCrypt
@@ -134,11 +134,7 @@ stripe:
 ```bash
 export GOOGLE_CLIENT_ID=your-google-client-id
 export GOOGLE_CLIENT_SECRET=your-google-client-secret
-export FACEBOOK_CLIENT_ID=your-facebook-client-id
-export FACEBOOK_CLIENT_SECRET=your-facebook-client-secret
 export STRIPE_API_KEY=your-stripe-api-key
-export EMAIL_USERNAME=your-email@gmail.com
-export EMAIL_PASSWORD=your-email-password
 ```
 
 4. Build the project:
@@ -210,7 +206,7 @@ The API will be available at `http://localhost:8080`
   "password": "String (hashed)",
   "phoneNumber": "String",
   "roles": ["GUEST", "MANAGER", "ADMIN"],
-  "provider": "String (google/facebook/null)",
+  "provider": "String (google/null)",
   "providerId": "String",
   "avatar": "String",
   "enabled": "Boolean",
@@ -327,7 +323,6 @@ SPRING_DATA_MONGODB_URI=mongodb://documentdb-endpoint:27017/hotel_reservation
 JWT_SECRET=production-secret-256-bits
 STRIPE_API_KEY=live_stripe_key
 GOOGLE_CLIENT_ID=production-google-id
-FACEBOOK_CLIENT_ID=production-facebook-id
 ```
 
 ## Key Implementation Details
