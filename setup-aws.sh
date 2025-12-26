@@ -125,12 +125,15 @@ create_internet_gateway() {
             --output text \
             --region $AWS_REGION)
 
-        aws ec2 attach-internet-gateway \
+        # Try to attach, but don't fail if already attached
+        if ! aws ec2 attach-internet-gateway \
             --internet-gateway-id $IGW_ID \
             --vpc-id $VPC_ID \
-            --region $AWS_REGION
-
-        print_success "Internet Gateway created and attached: $IGW_ID"
+            --region $AWS_REGION 2>&1 | grep -q "already has an internet gateway attached"; then
+            print_success "Internet Gateway created and attached: $IGW_ID"
+        else
+            print_warning "VPC already has an Internet Gateway attached, using: $IGW_ID"
+        fi
     fi
 }
 
@@ -170,8 +173,20 @@ get_or_create_subnet() {
             --tag-specifications "ResourceType=subnet,Tags=[{Key=Name,Value=${SUBNET_NAME}},{Key=CreatedBy,Value=mkurbonov}]" \
             --query 'Subnet.SubnetId' \
             --output text \
-            --region $AWS_REGION)
-        print_success "Subnet $SUBNET_NAME created: $SUBNET_ID" >&2
+            --region $AWS_REGION 2>&1)
+
+        # Check if creation failed due to conflict
+        if [[ "$SUBNET_ID" == *"InvalidSubnet.Conflict"* ]]; then
+            # Try to find existing subnet with same CIDR
+            SUBNET_ID=$(aws ec2 describe-subnets \
+                --filters "Name=cidr-block,Values=${CIDR}" "Name=vpc-id,Values=$VPC_ID" \
+                --query 'Subnets[0].SubnetId' \
+                --output text \
+                --region $AWS_REGION 2>/dev/null)
+            print_warning "Subnet with CIDR $CIDR already exists: $SUBNET_ID" >&2
+        else
+            print_success "Subnet $SUBNET_NAME created: $SUBNET_ID" >&2
+        fi
     fi
 
     echo $SUBNET_ID
@@ -212,12 +227,33 @@ create_nat_gateways() {
             --region $AWS_REGION 2>/dev/null)
 
         if [ "$EIP_1" = "None" ] || [ -z "$EIP_1" ]; then
-            EIP_1=$(aws ec2 allocate-address \
-                --domain vpc \
-                --tag-specifications "ResourceType=elastic-ip,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-eip-1},{Key=CreatedBy,Value=mkurbonov}]" \
-                --query 'AllocationId' \
+            # Try to find any available unassociated EIP
+            EIP_1=$(aws ec2 describe-addresses \
+                --filters "Name=domain,Values=vpc" \
+                --query 'Addresses[?AssociationId==`null`] | [0].AllocationId' \
                 --output text \
-                --region $AWS_REGION)
+                --region $AWS_REGION 2>/dev/null)
+
+            if [ "$EIP_1" = "None" ] || [ -z "$EIP_1" ]; then
+                EIP_1=$(aws ec2 allocate-address \
+                    --domain vpc \
+                    --tag-specifications "ResourceType=elastic-ip,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-eip-1},{Key=CreatedBy,Value=mkurbonov}]" \
+                    --query 'AllocationId' \
+                    --output text \
+                    --region $AWS_REGION 2>&1)
+
+                if [[ "$EIP_1" == *"AddressLimitExceeded"* ]]; then
+                    print_error "Elastic IP limit exceeded. Please release unused Elastic IPs or request limit increase."
+                    exit 1
+                fi
+            else
+                print_warning "Reusing available Elastic IP: $EIP_1"
+            fi
+        fi
+
+        if [ -z "$EIP_1" ] || [ "$EIP_1" = "None" ]; then
+            print_error "Failed to get Elastic IP for NAT Gateway 1"
+            exit 1
         fi
 
         NAT_GW_1_ID=$(aws ec2 create-nat-gateway \
@@ -226,7 +262,13 @@ create_nat_gateways() {
             --tag-specifications "ResourceType=natgateway,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-gw-1},{Key=CreatedBy,Value=mkurbonov}]" \
             --query 'NatGateway.NatGatewayId' \
             --output text \
-            --region $AWS_REGION)
+            --region $AWS_REGION 2>&1)
+
+        if [[ "$NAT_GW_1_ID" == *"error"* ]] || [ -z "$NAT_GW_1_ID" ]; then
+            print_error "Failed to create NAT Gateway 1"
+            exit 1
+        fi
+
         print_success "NAT Gateway 1 created: $NAT_GW_1_ID"
     fi
 
@@ -249,12 +291,33 @@ create_nat_gateways() {
             --region $AWS_REGION 2>/dev/null)
 
         if [ "$EIP_2" = "None" ] || [ -z "$EIP_2" ]; then
-            EIP_2=$(aws ec2 allocate-address \
-                --domain vpc \
-                --tag-specifications "ResourceType=elastic-ip,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-eip-2},{Key=CreatedBy,Value=mkurbonov}]" \
-                --query 'AllocationId' \
+            # Try to find any available unassociated EIP
+            EIP_2=$(aws ec2 describe-addresses \
+                --filters "Name=domain,Values=vpc" \
+                --query 'Addresses[?AssociationId==`null`] | [0].AllocationId' \
                 --output text \
-                --region $AWS_REGION)
+                --region $AWS_REGION 2>/dev/null)
+
+            if [ "$EIP_2" = "None" ] || [ -z "$EIP_2" ]; then
+                EIP_2=$(aws ec2 allocate-address \
+                    --domain vpc \
+                    --tag-specifications "ResourceType=elastic-ip,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-eip-2},{Key=CreatedBy,Value=mkurbonov}]" \
+                    --query 'AllocationId' \
+                    --output text \
+                    --region $AWS_REGION 2>&1)
+
+                if [[ "$EIP_2" == *"AddressLimitExceeded"* ]]; then
+                    print_error "Elastic IP limit exceeded. Please release unused Elastic IPs or request limit increase."
+                    exit 1
+                fi
+            else
+                print_warning "Reusing available Elastic IP: $EIP_2"
+            fi
+        fi
+
+        if [ -z "$EIP_2" ] || [ "$EIP_2" = "None" ]; then
+            print_error "Failed to get Elastic IP for NAT Gateway 2"
+            exit 1
         fi
 
         NAT_GW_2_ID=$(aws ec2 create-nat-gateway \
@@ -263,7 +326,13 @@ create_nat_gateways() {
             --tag-specifications "ResourceType=natgateway,Tags=[{Key=Name,Value=${PROJECT_NAME}-nat-gw-2},{Key=CreatedBy,Value=mkurbonov}]" \
             --query 'NatGateway.NatGatewayId' \
             --output text \
-            --region $AWS_REGION)
+            --region $AWS_REGION 2>&1)
+
+        if [[ "$NAT_GW_2_ID" == *"error"* ]] || [ -z "$NAT_GW_2_ID" ]; then
+            print_error "Failed to create NAT Gateway 2"
+            exit 1
+        fi
+
         print_success "NAT Gateway 2 created: $NAT_GW_2_ID"
     fi
 
@@ -336,10 +405,11 @@ create_route_tables() {
         print_success "Private route table 1 created: $PRIVATE_RT_1_ID"
     fi
 
+    # Use IGW instead of NAT Gateway (NAT Gateway skipped due to EIP limit)
     aws ec2 create-route \
         --route-table-id $PRIVATE_RT_1_ID \
         --destination-cidr-block 0.0.0.0/0 \
-        --nat-gateway-id $NAT_GW_1_ID \
+        --gateway-id $IGW_ID \
         --region $AWS_REGION 2>/dev/null || true
 
     aws ec2 associate-route-table \
@@ -366,10 +436,11 @@ create_route_tables() {
         print_success "Private route table 2 created: $PRIVATE_RT_2_ID"
     fi
 
+    # Use IGW instead of NAT Gateway (NAT Gateway skipped due to EIP limit)
     aws ec2 create-route \
         --route-table-id $PRIVATE_RT_2_ID \
         --destination-cidr-block 0.0.0.0/0 \
-        --nat-gateway-id $NAT_GW_2_ID \
+        --gateway-id $IGW_ID \
         --region $AWS_REGION 2>/dev/null || true
 
     aws ec2 associate-route-table \
@@ -399,7 +470,7 @@ get_or_create_security_group() {
             --group-name ${SG_NAME} \
             --description "$DESCRIPTION" \
             --vpc-id $VPC_ID \
-            --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${SG_NAME},{Key=CreatedBy,Value=mkurbonov}}]" \
+            --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=${SG_NAME}},{Key=CreatedBy,Value=mkurbonov}]" \
             --query 'GroupId' \
             --output text \
             --region $AWS_REGION)
@@ -573,6 +644,16 @@ create_documentdb() {
         --region $AWS_REGION &>/dev/null; then
         print_warning "DB subnet group already exists, reusing..."
     else
+        # Verify we have valid subnet IDs before creating subnet group
+        if [ -z "$PRIVATE_SUBNET_1_ID" ] || [ "$PRIVATE_SUBNET_1_ID" = "None" ]; then
+            print_error "PRIVATE_SUBNET_1_ID is not set. Cannot create DB subnet group."
+            exit 1
+        fi
+        if [ -z "$PRIVATE_SUBNET_2_ID" ] || [ "$PRIVATE_SUBNET_2_ID" = "None" ]; then
+            print_error "PRIVATE_SUBNET_2_ID is not set. Cannot create DB subnet group."
+            exit 1
+        fi
+
         # Create subnet group
         aws docdb create-db-subnet-group \
             --db-subnet-group-name ${PROJECT_NAME}-docdb-subnet-group \
@@ -1274,7 +1355,7 @@ create_ecs_backend_service() {
         --desired-count 1 \
         --launch-type FARGATE \
         --platform-version LATEST \
-        --network-configuration "awsvpcConfiguration={subnets=[$PRIVATE_SUBNET_1_ID,$PRIVATE_SUBNET_2_ID],securityGroups=[$ECS_SG_ID],assignPublicIp=DISABLED}" \
+        --network-configuration "awsvpcConfiguration={subnets=[$PRIVATE_SUBNET_1_ID,$PRIVATE_SUBNET_2_ID],securityGroups=[$ECS_SG_ID],assignPublicIp=ENABLED}" \
         --load-balancers "targetGroupArn=$TARGET_GROUP_ARN,containerName=hotelx-backend,containerPort=8080" \
         --health-check-grace-period-seconds 60 \
         --deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={enable=true,rollback=true}" \
@@ -1437,7 +1518,8 @@ main() {
     create_vpc
     create_internet_gateway
     create_subnets
-    create_nat_gateways
+    # Skipping NAT Gateways due to EIP limit - using public subnets for all resources
+    # create_nat_gateways
     create_route_tables
     create_security_groups
     create_documentdb
