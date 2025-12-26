@@ -1056,6 +1056,10 @@ create_secrets() {
     fi
     create_or_update_secret "${PROJECT_NAME}/jwt-secret" "$JWT_SECRET"
 
+    # JWT Expiration (24 hours in milliseconds)
+    create_or_update_secret "${PROJECT_NAME}/jwt-expiration" "86400000"
+
+
     # Placeholder secrets (you'll need to update these with real values)
     create_or_update_secret "${PROJECT_NAME}/stripe-api-key" "sk_test_REPLACE_WITH_YOUR_STRIPE_KEY"
     create_or_update_secret "${PROJECT_NAME}/stripe-webhook-secret" "whsec_REPLACE_WITH_YOUR_WEBHOOK_SECRET"
@@ -1066,13 +1070,75 @@ create_secrets() {
     create_or_update_secret "${PROJECT_NAME}/okta-issuer-uri" "https://dev-XXXXXXXX.okta.com/oauth2/default"
     create_or_update_secret "${PROJECT_NAME}/backend-url" "https://${BACKEND_CF_DOMAIN}"
     create_or_update_secret "${PROJECT_NAME}/frontend-url" "https://${FRONTEND_CF_DOMAIN}"
+    
+    # CORS Allowed Origins (include localhost for development)
+    create_or_update_secret "${PROJECT_NAME}/allowed-origins" "http://localhost:5173,http://localhost:3000,https://${FRONTEND_CF_DOMAIN}"
+
 
     print_success "Secrets created/updated in Secrets Manager"
     print_warning "Remember to update placeholder secrets with real values!"
 }
 
+# Function to create ECS Task Role (for enable-execute-command)
+create_ecs_task_role() {
+    print_info "Creating ECS Task Role..."
+
+    if aws iam get-role --role-name ecsTaskRole &>/dev/null; then
+        print_warning "ecsTaskRole already exists, skipping..."
+    else
+        cat > /tmp/task-role-trust-policy.json <<EOFT
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOFT
+
+        aws iam create-role \
+            --role-name ecsTaskRole \
+            --assume-role-policy-document file:///tmp/task-role-trust-policy.json \
+            --description "IAM role for ECS tasks"
+
+        cat > /tmp/task-role-policy.json <<EOFT
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOFT
+
+        aws iam put-role-policy \
+            --role-name ecsTaskRole \
+            --policy-name ECSExecPolicy \
+            --policy-document file:///tmp/task-role-policy.json
+
+        rm /tmp/task-role-trust-policy.json /tmp/task-role-policy.json
+
+        print_success "ECS Task Role created"
+    fi
+}
+
+
 # Function to create IAM role for ECS Task Execution
 create_ecs_task_execution_role() {
+    create_ecs_task_role
     print_info "Creating ECS Task Execution Role..."
 
     if aws iam get-role --role-name ecsTaskExecutionRole &>/dev/null; then
@@ -1361,6 +1427,7 @@ main() {
     create_ecr_repositories
     create_ecs_cluster
     create_ecs_task_execution_role
+    create_ecs_task_role
     create_alb
     create_s3_bucket
     create_cloudfront
