@@ -664,8 +664,12 @@ create_documentdb() {
         print_success "DB subnet group created"
     fi
 
-    # Generate random password
-    DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
+    # Generate random password (no special characters to avoid URL encoding issues)
+    DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/@:" | cut -c1-25)
+
+    # Save password to file for GitHub secrets setup
+    echo "$DB_PASSWORD" > .documentdb-password
+    chmod 600 .documentdb-password
 
     # Create cluster
     aws docdb create-db-cluster \
@@ -1138,43 +1142,69 @@ EOF
     print_success "Backend CloudFront distribution created: https://$BACKEND_CF_DOMAIN"
 }
 
-# Function to create secrets in Secrets Manager
+# Function to setup GitHub secrets (replaces AWS Secrets Manager)
 create_secrets() {
-    print_info "Creating application secrets..."
+    print_info "Skipping AWS Secrets Manager - using GitHub Secrets instead"
+    print_info "GitHub Secrets setup instructions saved to: github-secrets-setup.sh"
 
-    # Generate JWT secret (only if creating new)
-    if ! aws secretsmanager describe-secret --secret-id ${PROJECT_NAME}/jwt-secret --region $AWS_REGION &>/dev/null; then
-        JWT_SECRET=$(openssl rand -base64 64)
-    else
-        JWT_SECRET=$(aws secretsmanager get-secret-value \
-            --secret-id ${PROJECT_NAME}/jwt-secret \
-            --query 'SecretString' \
-            --output text \
-            --region $AWS_REGION 2>/dev/null || openssl rand -base64 64)
-    fi
-    create_or_update_secret "${PROJECT_NAME}/jwt-secret" "$JWT_SECRET"
+    # Generate JWT secret
+    JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n')
 
-    # JWT Expiration (24 hours in milliseconds)
-    create_or_update_secret "${PROJECT_NAME}/jwt-expiration" "86400000"
+    # Create a script to set up GitHub secrets
+    cat > github-secrets-setup.sh <<'GHSECRET'
+#!/bin/bash
 
+# GitHub Secrets Setup Script
+# Run this script to configure all required secrets for deployment
 
-    # Placeholder secrets (you'll need to update these with real values)
-    create_or_update_secret "${PROJECT_NAME}/stripe-api-key" "sk_test_REPLACE_WITH_YOUR_STRIPE_KEY"
-    create_or_update_secret "${PROJECT_NAME}/stripe-webhook-secret" "whsec_REPLACE_WITH_YOUR_WEBHOOK_SECRET"
-    create_or_update_secret "${PROJECT_NAME}/google-client-id" "REPLACE_WITH_GOOGLE_CLIENT_ID"
-    create_or_update_secret "${PROJECT_NAME}/google-client-secret" "REPLACE_WITH_GOOGLE_CLIENT_SECRET"
-    create_or_update_secret "${PROJECT_NAME}/okta-client-id" "REPLACE_WITH_OKTA_CLIENT_ID"
-    create_or_update_secret "${PROJECT_NAME}/okta-client-secret" "REPLACE_WITH_OKTA_CLIENT_SECRET"
-    create_or_update_secret "${PROJECT_NAME}/okta-issuer-uri" "https://dev-XXXXXXXX.okta.com/oauth2/default"
-    create_or_update_secret "${PROJECT_NAME}/backend-url" "https://${BACKEND_CF_DOMAIN}"
-    create_or_update_secret "${PROJECT_NAME}/frontend-url" "https://${FRONTEND_CF_DOMAIN}"
-    
-    # CORS Allowed Origins (include localhost for development)
-    create_or_update_secret "${PROJECT_NAME}/allowed-origins" "http://localhost:5173,http://localhost:3000,https://${FRONTEND_CF_DOMAIN}"
+echo "🔐 Setting up GitHub Secrets for hotelx deployment..."
+echo ""
 
+# Get database password
+if [ -f ".documentdb-password" ]; then
+    DB_PASSWORD=$(cat .documentdb-password)
+    echo "✓ Using DocumentDB password from .documentdb-password file"
+else
+    read -p "Enter your DocumentDB password: " DB_PASSWORD
+fi
 
-    print_success "Secrets created/updated in Secrets Manager"
-    print_warning "Remember to update placeholder secrets with real values!"
+# Set database URI
+GHSECRET
+
+    echo "DATABASE_URI=\"mongodb://hotelxadmin:\${DB_PASSWORD}@${DOCDB_ENDPOINT}:27017/?tls=true&tlsAllowInvalidCertificates=true&retryWrites=false&authSource=admin\"" >> github-secrets-setup.sh
+    echo "JWT_SECRET=\"${JWT_SECRET}\"" >> github-secrets-setup.sh
+
+    cat >> github-secrets-setup.sh <<GHSECRET
+
+# Core secrets
+gh secret set DATABASE_URI --body "\$DATABASE_URI"
+gh secret set JWT_SECRET --body "\$JWT_SECRET"
+gh secret set JWT_EXPIRATION --body "86400000"
+
+# Optional integration secrets (placeholders)
+gh secret set STRIPE_API_KEY --body "sk_test_placeholder"
+gh secret set STRIPE_WEBHOOK_SECRET --body "whsec_placeholder"
+gh secret set GOOGLE_CLIENT_ID --body "google_placeholder"
+gh secret set GOOGLE_CLIENT_SECRET --body "google_secret_placeholder"
+gh secret set OKTA_CLIENT_ID --body "okta_placeholder"
+gh secret set OKTA_CLIENT_SECRET --body "okta_secret_placeholder"
+gh secret set OKTA_ISSUER_URI --body "https://placeholder.okta.com/oauth2/default"
+
+# Frontend API URL
+gh secret set VITE_API_URL --body "https://${BACKEND_CF_DOMAIN}"
+gh secret set BACKEND_API_URL --body "https://${BACKEND_CF_DOMAIN}"
+
+echo ""
+echo "✅ GitHub Secrets configured successfully!"
+echo ""
+echo "📝 To update any secret later:"
+echo "   gh secret set SECRET_NAME --body 'new_value'"
+GHSECRET
+
+    chmod +x github-secrets-setup.sh
+
+    print_success "GitHub secrets setup script created: github-secrets-setup.sh"
+    print_warning "Run './github-secrets-setup.sh' to configure GitHub secrets with your DocumentDB password"
 }
 
 # Function to create ECS Task Role (for enable-execute-command)
