@@ -3,6 +3,9 @@ import type {
   Reservation,
   CreateReservationRequest,
   UpdateReservationRequest,
+  CancellationRequest,
+  CancellationResponse,
+  RefundCalculation,
 } from '../../types';
 
 export const reservationsApi = apiSlice.injectEndpoints({
@@ -60,6 +63,21 @@ export const reservationsApi = apiSlice.injectEndpoints({
         'Room',
       ],
     }),
+    getCancellationPreview: builder.query<RefundCalculation, string>({
+      query: (id) => `/reservations/${id}/cancellation-preview`,
+    }),
+    cancelWithRefund: builder.mutation<CancellationResponse, { id: string; request: CancellationRequest }>({
+      query: ({ id, request }) => ({
+        url: `/reservations/${id}/cancel-with-refund`,
+        method: 'POST',
+        body: request,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Reservation', id },
+        { type: 'Reservation', id: 'LIST' },
+        'Room',
+      ],
+    }),
   }),
 });
 
@@ -70,4 +88,6 @@ export const {
   useCreateReservationMutation,
   useUpdateReservationMutation,
   useCancelReservationMutation,
+  useGetCancellationPreviewQuery,
+  useCancelWithRefundMutation,
 } = reservationsApi;

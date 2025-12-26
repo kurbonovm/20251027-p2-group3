@@ -1,16 +1,25 @@
 package com.hotel.reservation.controller;
 
+import com.hotel.reservation.dto.ManagerBookingRequest;
+import com.hotel.reservation.dto.ManagerBookingResponse;
+import com.hotel.reservation.dto.TokenBookingRequest;
 import com.hotel.reservation.dto.UserDto;
+import com.hotel.reservation.model.Payment;
 import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.model.Room;
 import com.hotel.reservation.model.User;
 import com.hotel.reservation.repository.ReservationRepository;
 import com.hotel.reservation.repository.RoomRepository;
 import com.hotel.reservation.repository.UserRepository;
+import com.hotel.reservation.service.PaymentService;
+import com.hotel.reservation.service.ReservationService;
+import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -22,12 +31,14 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AdminController {
 
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final ReservationRepository reservationRepository;
+    private final ReservationService reservationService;
+    private final PaymentService paymentService;
+    private final PasswordEncoder passwordEncoder;
 
     // Dashboard Overview
     @GetMapping("/dashboard")
@@ -41,15 +52,20 @@ public class AdminController {
                 .mapToLong(Room::getTotalRooms)
                 .sum();
 
-        // Calculate active reservations
-        long activeReservations = reservationRepository.countByStatus(Reservation.ReservationStatus.CONFIRMED) +
-                                 reservationRepository.countByStatus(Reservation.ReservationStatus.CHECKED_IN);
-
-        // Calculate occupied rooms by counting active reservations
+        // Calculate active reservations (currently ongoing)
+        LocalDate today = LocalDate.now();
         List<Reservation> activeReservationsList = reservationRepository.findByStatus(Reservation.ReservationStatus.CONFIRMED);
         activeReservationsList.addAll(reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN));
 
-        long occupiedRooms = activeReservationsList.size();
+        // Filter to only include reservations active today (check-in <= today < check-out)
+        activeReservationsList = activeReservationsList.stream()
+                .filter(r -> !r.getCheckInDate().isAfter(today) && r.getCheckOutDate().isAfter(today))
+                .collect(Collectors.toList());
+
+        long activeReservations = activeReservationsList.size();
+
+        // Calculate occupied rooms by counting active reservations for today
+        long occupiedRooms = activeReservations;
 
         long availableRooms = totalRooms - occupiedRooms;
         double occupancyRate = totalRooms > 0 ? ((double)occupiedRooms / totalRooms) * 100 : 0;
@@ -145,9 +161,15 @@ public class AdminController {
                 .mapToLong(Room::getTotalRooms)
                 .sum();
 
-        // Calculate occupied rooms based on active reservations count
+        // Calculate occupied rooms based on active reservations for today
+        LocalDate today = LocalDate.now();
         List<Reservation> activeReservationsList = reservationRepository.findByStatus(Reservation.ReservationStatus.CONFIRMED);
         activeReservationsList.addAll(reservationRepository.findByStatus(Reservation.ReservationStatus.CHECKED_IN));
+
+        // Filter to only include reservations active today (check-in <= today < check-out)
+        activeReservationsList = activeReservationsList.stream()
+                .filter(r -> !r.getCheckInDate().isAfter(today) && r.getCheckOutDate().isAfter(today))
+                .collect(Collectors.toList());
 
         long occupiedRooms = activeReservationsList.size();
 
@@ -241,6 +263,257 @@ public class AdminController {
         statistics.put("totalRevenue", totalRevenue);
 
         return ResponseEntity.ok(statistics);
+    }
+
+    // Manager-Assisted Booking (Token-Based - SECURE)
+    /**
+     * Create a booking on behalf of a customer using a Stripe payment method token.
+     * This is the SECURE, PCI-compliant way - card data is tokenized client-side.
+     *
+     * @param request booking request with customer details and payment method token
+     * @return booking response with reservation and payment details
+     */
+    @PostMapping("/bookings/assisted-token")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> createAssistedBookingWithToken(@jakarta.validation.Valid @RequestBody TokenBookingRequest request) {
+        log.info("Manager creating token-based assisted booking for customer: {}", request.getCustomerEmail());
+
+        // Business logic validation
+        LocalDate today = LocalDate.now();
+
+        // Validate dates
+        if (request.getCheckInDate().isBefore(today)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Check-in date cannot be in the past"
+                    ));
+        }
+
+        if (request.getCheckOutDate().isBefore(request.getCheckInDate()) ||
+            request.getCheckOutDate().isEqual(request.getCheckInDate())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Check-out date must be after check-in date"
+                    ));
+        }
+
+        if (request.getCheckInDate().isAfter(today.plusYears(2))) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Check-in date cannot be more than 2 years in the future"
+                    ));
+        }
+
+        // Validate special requests length
+        if (request.getSpecialRequests() != null && request.getSpecialRequests().length() > 500) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Special requests cannot exceed 500 characters"
+                    ));
+        }
+
+        try {
+            // Find or create customer user
+            User customer = userRepository.findByEmail(request.getCustomerEmail())
+                    .orElseGet(() -> {
+                        log.info("Creating new customer account for: {}", request.getCustomerEmail());
+                        User newUser = new User();
+                        newUser.setEmail(request.getCustomerEmail());
+                        newUser.setFirstName(request.getCustomerFirstName());
+                        newUser.setLastName(request.getCustomerLastName());
+                        newUser.setPhoneNumber(request.getCustomerPhoneNumber());
+                        newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Random password
+                        newUser.setRoles(Set.of(User.Role.GUEST));
+                        newUser.setProvider("local");
+                        newUser.setEnabled(true);
+                        return userRepository.save(newUser);
+                    });
+
+            // Create reservation
+            Reservation reservation = reservationService.createReservation(
+                    customer,
+                    request.getRoomId(),
+                    request.getCheckInDate(),
+                    request.getCheckOutDate(),
+                    request.getNumberOfGuests(),
+                    request.getSpecialRequests()
+            );
+
+            // Process payment with token (SECURE - card data never touched server)
+            Payment payment = paymentService.processTokenPayment(
+                    reservation,
+                    request.getPaymentMethodId()
+            );
+
+            // Build response
+            ManagerBookingResponse response = new ManagerBookingResponse();
+            response.setReservation(reservation);
+            response.setPayment(payment);
+            response.setCustomerId(customer.getId());
+            response.setMessage("Booking created successfully and payment processed securely");
+
+            log.info("Token-based assisted booking completed successfully. Reservation ID: {}, Payment ID: {}",
+                    reservation.getId(), payment.getId());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (StripeException e) {
+            log.error("Payment processing failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                    .body(Map.of(
+                            "error", "Payment failed",
+                            "message", e.getMessage()
+                    ));
+        } catch (RuntimeException e) {
+            log.error("Booking creation failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Booking failed",
+                            "message", e.getMessage()
+                    ));
+        }
+    }
+
+    // Manager-Assisted Booking (Legacy - Direct Card Data)
+    /**
+     * Create a booking on behalf of a customer and charge their card.
+     * This endpoint allows managers to book rooms for customers and process payment
+     * using the customer's card details.
+     *
+     * @deprecated Use {@link #createAssistedBookingWithToken(TokenBookingRequest)} instead.
+     *             This method handles raw card data which requires PCI-DSS Level 1 compliance.
+     *
+     * @param request booking request with customer and payment details
+     * @return booking response with reservation and payment details
+     */
+    @Deprecated
+    @PostMapping("/bookings/assisted")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> createAssistedBooking(@jakarta.validation.Valid @RequestBody ManagerBookingRequest request) {
+        log.info("Manager creating assisted booking for customer: {}", request.getCustomerEmail());
+
+        // Additional business logic validation
+        LocalDate today = LocalDate.now();
+
+        // Validate dates
+        if (request.getCheckInDate().isBefore(today)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Check-in date cannot be in the past"
+                    ));
+        }
+
+        if (request.getCheckOutDate().isBefore(request.getCheckInDate()) ||
+            request.getCheckOutDate().isEqual(request.getCheckInDate())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Check-out date must be after check-in date"
+                    ));
+        }
+
+        if (request.getCheckInDate().isAfter(today.plusYears(2))) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Check-in date cannot be more than 2 years in the future"
+                    ));
+        }
+
+        // Validate card expiry date is not in the past
+        LocalDate cardExpiry = LocalDate.of(request.getCardExpiryYear(), request.getCardExpiryMonth(), 1);
+        LocalDate firstOfCurrentMonth = LocalDate.of(today.getYear(), today.getMonth(), 1);
+        if (cardExpiry.isBefore(firstOfCurrentMonth)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Card expiry date cannot be in the past"
+                    ));
+        }
+
+        // Sanitize and validate inputs
+        if (request.getSpecialRequests() != null && request.getSpecialRequests().length() > 500) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Validation failed",
+                            "message", "Special requests cannot exceed 500 characters"
+                    ));
+        }
+
+        try {
+            // Find or create customer user
+            User customer = userRepository.findByEmail(request.getCustomerEmail())
+                    .orElseGet(() -> {
+                        log.info("Creating new customer account for: {}", request.getCustomerEmail());
+                        User newUser = new User();
+                        newUser.setEmail(request.getCustomerEmail());
+                        newUser.setFirstName(request.getCustomerFirstName());
+                        newUser.setLastName(request.getCustomerLastName());
+                        newUser.setPhoneNumber(request.getCustomerPhoneNumber());
+                        newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Random password
+                        newUser.setRoles(Set.of(User.Role.GUEST));
+                        newUser.setProvider("local");
+                        newUser.setEnabled(true);
+                        return userRepository.save(newUser);
+                    });
+
+            // Create reservation
+            Reservation reservation = reservationService.createReservation(
+                    customer,
+                    request.getRoomId(),
+                    request.getCheckInDate(),
+                    request.getCheckOutDate(),
+                    request.getNumberOfGuests(),
+                    request.getSpecialRequests()
+            );
+
+            // Process payment with card details
+            Payment payment = paymentService.processDirectCardPayment(
+                    reservation,
+                    request.getCardNumber(),
+                    request.getCardExpiryMonth(),
+                    request.getCardExpiryYear(),
+                    request.getCardCvc(),
+                    request.getCardholderName(),
+                    request.getBillingAddressLine1(),
+                    request.getBillingCity(),
+                    request.getBillingState(),
+                    request.getBillingPostalCode(),
+                    request.getBillingCountry()
+            );
+
+            // Build response
+            ManagerBookingResponse response = new ManagerBookingResponse();
+            response.setReservation(reservation);
+            response.setPayment(payment);
+            response.setCustomerId(customer.getId());
+            response.setMessage("Booking created successfully and payment processed");
+
+            log.info("Assisted booking completed successfully. Reservation ID: {}, Payment ID: {}",
+                    reservation.getId(), payment.getId());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (StripeException e) {
+            log.error("Payment processing failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                    .body(Map.of(
+                            "error", "Payment failed",
+                            "message", e.getMessage()
+                    ));
+        } catch (RuntimeException e) {
+            log.error("Booking creation failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "error", "Booking failed",
+                            "message", e.getMessage()
+                    ));
+        }
     }
 
     // Helper method to convert User to UserDto

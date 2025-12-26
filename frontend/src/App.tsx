@@ -16,6 +16,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsers from './pages/admin/Users';
 import AdminRooms from './pages/admin/Rooms';
 import AdminReservations from './pages/admin/Reservations';
+import AdminAssistedBooking from './pages/admin/AssistedBooking';
 import AdminTransactions from './pages/admin/Transactions';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
@@ -97,6 +98,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
                   <AdminReservations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/assisted-booking"
+              element={
+                <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
+                  <AdminAssistedBooking />
                 </ProtectedRoute>
               }
             />

@@ -17,6 +17,7 @@ import {
   Divider,
   Tabs,
   Tab,
+  useTheme,
 } from '@mui/material';
 import {
   Cancel,
@@ -28,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useGetUserReservationsQuery, useCancelReservationMutation } from '../features/reservations/reservationsApi';
 import { Reservation, ReservationStatus } from '../types';
+import CancellationDialog from '../components/CancellationDialog';
 
 /**
  * Helper function to parse date string without timezone conversion
@@ -42,6 +44,8 @@ const parseDate = (dateStr: string): Date => {
  * Reservations page component to view user's reservations
  */
 const Reservations: React.FC = () => {
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const { data: reservations, isLoading, error } = useGetUserReservationsQuery();
   const [cancelReservation, { isLoading: isCancelling }] = useCancelReservationMutation();
   const [cancelError, setCancelError] = useState<string>('');
@@ -49,6 +53,8 @@ const Reservations: React.FC = () => {
   const [openDialog, setOpenDialog] = useState<boolean>(false);
   const [selectedReservationId, setSelectedReservationId] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState<number>(0);
+  const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   // Auto-dismiss success message after 3 seconds
   useEffect(() => {
@@ -194,10 +200,26 @@ const Reservations: React.FC = () => {
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 3, mt: 1 }}>
         {reservationList.map((reservation) => (
             <Box key={reservation.id}>
-              <Card>
+              <Card
+                sx={{
+                  bgcolor: isDarkMode ? 'rgba(26,26,26,0.95)' : 'background.paper',
+                  border: '1px solid',
+                  borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider',
+                }}
+              >
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2, flexWrap: 'wrap' }}>
-                    <Typography variant="h5" component="h2" sx={{ wordBreak: 'break-all', flexShrink: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="h5"
+                      component="h2"
+                      sx={{
+                        wordBreak: 'break-all',
+                        flexShrink: 1,
+                        minWidth: 0,
+                        color: isDarkMode ? '#FFD700' : 'primary.main',
+                        fontWeight: 600,
+                      }}
+                    >
                       Reservation #{reservation.id}
                     </Typography>
                     <Chip
@@ -210,36 +232,36 @@ const Reservations: React.FC = () => {
 
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
                     <Box>
-                      <Typography variant="body1" color="text.secondary">
+                      <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
                         <strong>Room:</strong> {reservation.room?.name}
                       </Typography>
-                      <Typography variant="body1" color="text.secondary">
+                      <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
                         <strong>Room Type:</strong> {reservation.room?.type}
                       </Typography>
-                      <Typography variant="body1" color="text.secondary">
+                      <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
                         <strong>Check-in:</strong>{' '}
                         {parseDate(reservation.checkInDate).toLocaleDateString()}
                       </Typography>
-                      <Typography variant="body1" color="text.secondary">
+                      <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
                         <strong>Check-out:</strong>{' '}
                         {parseDate(reservation.checkOutDate).toLocaleDateString()}
                       </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="body1" color="text.secondary">
+                      <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
                         <strong>Guests:</strong> {reservation.numberOfGuests}
                       </Typography>
-                      <Typography variant="body1" color="text.secondary">
+                      <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
                         <strong>Total Amount:</strong> ${reservation.totalAmount}
                       </Typography>
-                      <Typography variant="body1" color="text.secondary">
+                      <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
                         <strong>Booked on:</strong>{' '}
                         {new Date(reservation.createdAt).toLocaleDateString()}
                       </Typography>
                     </Box>
                   </Box>
 
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 2, borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider' }} />
 
                   {reservation.status?.toLowerCase() === 'confirmed' && (
                     <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
@@ -248,13 +270,18 @@ const Reservations: React.FC = () => {
                         color="error"
                         size="medium"
                         startIcon={<Close />}
-                        onClick={() => handleOpenDialog(reservation.id)}
+                        onClick={() => {
+                          setSelectedReservation(reservation);
+                          setCancellationDialogOpen(true);
+                        }}
                         sx={{
                           borderWidth: 2,
+                          color: '#ff6b6b',
+                          borderColor: 'rgba(211,47,47,0.5)',
                           '&:hover': {
                             borderWidth: 2,
-                            backgroundColor: 'error.light',
-                            color: 'white',
+                            backgroundColor: isDarkMode ? 'rgba(211,47,47,0.2)' : 'rgba(211,47,47,0.1)',
+                            borderColor: '#ff6b6b',
                           },
                         }}
                       >
@@ -265,7 +292,16 @@ const Reservations: React.FC = () => {
 
                   {reservation.status?.toLowerCase() === 'pending' && (
                     <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                      <Alert severity="info" sx={{ flex: 1 }}>
+                      <Alert
+                        severity="info"
+                        sx={{
+                          flex: 1,
+                          backgroundColor: isDarkMode ? 'rgba(33,150,243,0.1)' : 'rgba(33,150,243,0.05)',
+                          color: isDarkMode ? '#64b5f6' : '#1976d2',
+                          border: '1px solid',
+                          borderColor: isDarkMode ? 'rgba(33,150,243,0.3)' : 'rgba(33,150,243,0.2)',
+                        }}
+                      >
                         Payment is being processed. Your reservation will be confirmed once payment is complete.
                       </Alert>
                     </Box>
@@ -273,8 +309,32 @@ const Reservations: React.FC = () => {
 
                   {reservation.status?.toLowerCase() === 'cancelled' && (
                     <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                      <Alert severity="error" sx={{ flex: 1 }}>
-                        This reservation has been cancelled.
+                      <Alert
+                        severity="error"
+                        sx={{
+                          flex: 1,
+                          backgroundColor: 'rgba(211,47,47,0.1)',
+                          color: '#ff6b6b',
+                          border: '1px solid rgba(211,47,47,0.3)',
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          This reservation has been cancelled
+                        </Typography>
+                        {reservation.cancelledAt && (
+                          <Typography variant="caption" sx={{ display: 'block', opacity: 0.9 }}>
+                            Cancelled on {new Date(reservation.cancelledAt).toLocaleDateString()} at{' '}
+                            {new Date(reservation.cancelledAt).toLocaleTimeString()}
+                          </Typography>
+                        )}
+                        {reservation.cancellationReason && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, opacity: 0.9 }}>
+                            Reason: {reservation.cancellationReason}
+                          </Typography>
+                        )}
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                          Refund processed in 5-10 business days
+                        </Typography>
                       </Alert>
                     </Box>
                   )}
@@ -288,18 +348,48 @@ const Reservations: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      <Typography variant="h3" component="h1" gutterBottom sx={{ mb: 3 }}>
+      <Typography
+        variant="h3"
+        component="h1"
+        gutterBottom
+        sx={{
+          mb: 3,
+          background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          backgroundClip: 'text',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: 700,
+        }}
+      >
         My Reservations
       </Typography>
 
       {cancelError && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setCancelError('')}>
+        <Alert
+          severity="error"
+          sx={{
+            mb: 2,
+            backgroundColor: 'rgba(211,47,47,0.1)',
+            color: '#ff6b6b',
+            border: '1px solid rgba(211,47,47,0.3)',
+          }}
+          onClose={() => setCancelError('')}
+        >
           {cancelError}
         </Alert>
       )}
 
       {cancelSuccess && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setCancelSuccess('')}>
+        <Alert
+          severity="success"
+          sx={{
+            mb: 2,
+            backgroundColor: 'rgba(46,125,50,0.1)',
+            color: '#66bb6a',
+            border: '1px solid rgba(46,125,50,0.3)',
+          }}
+          onClose={() => setCancelSuccess('')}
+        >
           {cancelSuccess}
         </Alert>
       )}
@@ -308,8 +398,23 @@ const Reservations: React.FC = () => {
         <Alert severity="info">You don't have any reservations yet.</Alert>
       ) : (
         <>
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="reservation tabs">
+          <Box sx={{ borderBottom: 1, borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider', mb: 3 }}>
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              aria-label="reservation tabs"
+              sx={{
+                '& .MuiTab-root': {
+                  color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
+                  '&.Mui-selected': {
+                    color: isDarkMode ? '#FFD700' : 'primary.main',
+                  },
+                },
+                '& .MuiTabs-indicator': {
+                  backgroundColor: isDarkMode ? '#FFD700' : 'primary.main',
+                },
+              }}
+            >
               <Tab
                 icon={<EventAvailable />}
                 iconPosition="start"
@@ -342,13 +447,32 @@ const Reservations: React.FC = () => {
         aria-describedby="cancel-dialog-description"
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: isDarkMode ? 'rgba(26,26,26,0.95)' : 'background.paper',
+            border: '1px solid',
+            borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider',
+          },
+        }}
       >
-        <DialogTitle id="cancel-dialog-title" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Cancel color="error" />
+        <DialogTitle
+          id="cancel-dialog-title"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            color: isDarkMode ? '#FFD700' : 'primary.main',
+            fontWeight: 600,
+          }}
+        >
+          <Cancel sx={{ color: '#ff6b6b' }} />
           Cancel Reservation
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="cancel-dialog-description">
+          <DialogContentText
+            id="cancel-dialog-description"
+            sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary' }}
+          >
             Are you sure you want to cancel this reservation? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
@@ -359,22 +483,49 @@ const Reservations: React.FC = () => {
             variant="outlined"
             size="large"
             startIcon={<EventAvailable />}
+            sx={{
+              color: isDarkMode ? '#FFD700' : 'primary.main',
+              borderColor: isDarkMode ? 'rgba(255,215,0,0.3)' : 'divider',
+              '&:hover': {
+                borderColor: isDarkMode ? '#FFD700' : 'primary.main',
+                backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.05)',
+              },
+            }}
           >
             Keep Reservation
           </Button>
           <Button
             onClick={handleConfirmCancel}
-            color="error"
             variant="contained"
             disabled={isCancelling}
             size="large"
             startIcon={isCancelling ? <CircularProgress size={20} color="inherit" /> : <Close />}
             autoFocus
+            sx={{
+              background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+              color: '#fff',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
+              },
+            }}
           >
             {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* New Cancellation Dialog with Refund Policy */}
+      <CancellationDialog
+        open={cancellationDialogOpen}
+        onClose={() => {
+          setCancellationDialogOpen(false);
+          setSelectedReservation(null);
+        }}
+        reservation={selectedReservation}
+        onSuccess={() => {
+          setCancelSuccess('Reservation cancelled successfully!');
+        }}
+      />
     </Container>
   );
 };

@@ -96,6 +96,17 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle illegal argument exception (400 Bad Request).
+     *
+     * @param ex illegal argument exception
+     * @return error response
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    /**
      * Handle generic runtime exceptions.
      *
      * @param ex runtime exception
@@ -103,7 +114,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        // Log full error for debugging but don't expose to client
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+            .error("Runtime exception occurred", ex);
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+            "An error occurred while processing your request. Please try again later.");
     }
 
     /**
@@ -114,8 +129,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        // Log full error for debugging but don't expose to client
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+            .error("Unexpected exception occurred", ex);
         return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred: " + ex.getMessage());
+                "An unexpected error occurred. Please contact support if this persists.");
     }
 
     /**

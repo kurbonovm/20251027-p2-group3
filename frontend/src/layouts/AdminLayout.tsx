@@ -15,6 +15,7 @@ import {
   Hotel as HotelIcon,
   CalendarMonth as CalendarIcon,
   Receipt as ReceiptIcon,
+  AddBusiness as AddBusinessIcon,
 } from '@mui/icons-material';
 import { Role } from '../types';
 
@@ -42,6 +43,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { label: 'Users', path: '/admin/users', icon: <PeopleIcon />, roles: ['ADMIN'] },
     { label: 'Rooms', path: '/admin/rooms', icon: <HotelIcon />, roles: ['ADMIN', 'MANAGER'] },
     { label: 'Reservations', path: '/admin/reservations', icon: <CalendarIcon />, roles: ['ADMIN', 'MANAGER'] },
+    { label: 'Assisted Booking', path: '/admin/assisted-booking', icon: <AddBusinessIcon />, roles: ['ADMIN', 'MANAGER'] },
     { label: 'Transactions', path: '/admin/transactions', icon: <ReceiptIcon />, roles: ['ADMIN', 'MANAGER'] },
   ];
 

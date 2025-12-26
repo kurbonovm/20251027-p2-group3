@@ -60,12 +60,14 @@ const RoomDetails: React.FC = () => {
     };
 
     if (!isAuthenticated) {
+      // Store booking data in sessionStorage to preserve it across login
+      sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
+      console.log('Saved pending booking to sessionStorage:', bookingState);
+
       // Redirect to login with the current page as the return destination
       navigate('/login', {
         state: { from: location },
       });
-      // Store booking data in sessionStorage to preserve it across login
-      sessionStorage.setItem('pendingBooking', JSON.stringify(bookingState));
       return;
     }
 

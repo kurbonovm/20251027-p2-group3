@@ -55,7 +55,16 @@ const Register: React.FC = () => {
     try {
       const result = await register(formData).unwrap();
       dispatch(setCredentials(result));
-      navigate('/');
+
+      // Check if there's a pending booking after registration
+      const pendingBooking = sessionStorage.getItem('pendingBooking');
+      if (pendingBooking) {
+        // User was trying to book a room - redirect to booking page
+        // The Booking page will retrieve the data from sessionStorage
+        navigate('/booking', { replace: true });
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err.data?.message || 'Failed to register. Please try again.');
     }
@@ -81,7 +90,7 @@ const Register: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: isDarkMode ? 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)' : 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,240,240,0.95) 100%)',
+          background: isDarkMode ? 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)' : 'linear-gradient(135deg, rgba(230,240,255,0.85) 0%, rgba(200,220,240,0.9) 100%)',
         },
       }}
     >
@@ -231,21 +240,21 @@ const Register: React.FC = () => {
                 sx={{
                   mb: 2,
                   '& .MuiOutlinedInput-root': {
-                    color: '#fff',
+                    color: isDarkMode ? '#fff' : 'text.primary',
                     '& fieldset': {
-                      borderColor: 'rgba(255,215,0,0.3)',
+                      borderColor: isDarkMode ? 'rgba(255,215,0,0.3)' : 'rgba(0,0,0,0.23)',
                     },
                     '&:hover fieldset': {
-                      borderColor: 'rgba(255,215,0,0.5)',
+                      borderColor: isDarkMode ? 'rgba(255,215,0,0.5)' : 'rgba(0,0,0,0.87)',
                     },
                     '&.Mui-focused fieldset': {
-                      borderColor: '#FFD700',
+                      borderColor: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   },
                   '& .MuiInputLabel-root': {
-                    color: 'rgba(255,255,255,0.7)',
+                    color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
                     '&.Mui-focused': {
-                      color: '#FFD700',
+                      color: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   },
                 }}
@@ -263,21 +272,21 @@ const Register: React.FC = () => {
                 sx={{
                   mb: 2,
                   '& .MuiOutlinedInput-root': {
-                    color: '#fff',
+                    color: isDarkMode ? '#fff' : 'text.primary',
                     '& fieldset': {
-                      borderColor: 'rgba(255,215,0,0.3)',
+                      borderColor: isDarkMode ? 'rgba(255,215,0,0.3)' : 'rgba(0,0,0,0.23)',
                     },
                     '&:hover fieldset': {
-                      borderColor: 'rgba(255,215,0,0.5)',
+                      borderColor: isDarkMode ? 'rgba(255,215,0,0.5)' : 'rgba(0,0,0,0.87)',
                     },
                     '&.Mui-focused fieldset': {
-                      borderColor: '#FFD700',
+                      borderColor: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   },
                   '& .MuiInputLabel-root': {
-                    color: 'rgba(255,255,255,0.7)',
+                    color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
                     '&.Mui-focused': {
-                      color: '#FFD700',
+                      color: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   },
                 }}
@@ -297,21 +306,21 @@ const Register: React.FC = () => {
                 sx={{
                   mb: 3,
                   '& .MuiOutlinedInput-root': {
-                    color: '#fff',
+                    color: isDarkMode ? '#fff' : 'text.primary',
                     '& fieldset': {
-                      borderColor: 'rgba(255,215,0,0.3)',
+                      borderColor: isDarkMode ? 'rgba(255,215,0,0.3)' : 'rgba(0,0,0,0.23)',
                     },
                     '&:hover fieldset': {
-                      borderColor: 'rgba(255,215,0,0.5)',
+                      borderColor: isDarkMode ? 'rgba(255,215,0,0.5)' : 'rgba(0,0,0,0.87)',
                     },
                     '&.Mui-focused fieldset': {
-                      borderColor: '#FFD700',
+                      borderColor: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   },
                   '& .MuiInputLabel-root': {
-                    color: 'rgba(255,255,255,0.7)',
+                    color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
                     '&.Mui-focused': {
-                      color: '#FFD700',
+                      color: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   },
                   '& .MuiFormHelperText-root': {

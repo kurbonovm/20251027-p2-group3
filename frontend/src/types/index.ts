@@ -66,6 +66,8 @@ export interface Reservation {
   totalAmount: number;
   status: ReservationStatus;
   paymentIntentId?: string;
+  cancellationReason?: string;
+  cancelledAt?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -76,6 +78,38 @@ export type ReservationStatus =
   | 'CHECKED_IN'
   | 'CHECKED_OUT'
   | 'CANCELLED';
+
+// Cancellation Types
+export interface CancellationRequest {
+  reason: string;
+  acknowledgePolicy: boolean;
+}
+
+export interface RefundCalculation {
+  originalAmount: number;
+  refundAmount: number;
+  cancellationFee: number;
+  refundPercentage: number;
+  daysUntilCheckIn: number;
+  policyDescription: string;
+  isFullRefund: boolean;
+  isNoRefund: boolean;
+  explanation: string;
+}
+
+export interface CancellationResponse {
+  reservationId: string;
+  status: string;
+  originalAmount: number;
+  refundAmount: number;
+  cancellationFee: number;
+  refundPercentage: number;
+  daysBeforeCheckIn: number;
+  refundStatus: string;
+  estimatedRefundTime: string;
+  cancelledAt: string;
+  message: string;
+}
 
 // Transaction/Payment Types
 export interface Transaction {

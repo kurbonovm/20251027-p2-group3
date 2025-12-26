@@ -20,6 +20,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  useTheme,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -48,6 +49,8 @@ const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const user = useSelector(selectCurrentUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const { mode, toggleTheme } = useThemeMode();
@@ -105,7 +108,7 @@ const MainLayout: React.FC = () => {
     <Box
       sx={{
         width: 250,
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)',
+        background: isDarkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
         height: '100%',
       }}
       role="presentation"
@@ -119,12 +122,12 @@ const MainLayout: React.FC = () => {
               onClick={() => navigate(item.path)}
               sx={{
                 '&:hover': {
-                  backgroundColor: 'rgba(255,215,0,0.1)',
+                  backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
                 },
               }}
             >
-              <ListItemIcon sx={{ color: '#FFD700' }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} sx={{ color: '#fff' }} />
+              <ListItemIcon sx={{ color: isDarkMode ? '#FFD700' : 'primary.main' }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} sx={{ color: isDarkMode ? '#fff' : 'text.primary' }} />
             </ListItemButton>
           </ListItem>
         ))}
@@ -137,8 +140,8 @@ const MainLayout: React.FC = () => {
       <AppBar
         position="static"
         sx={{
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)',
-          borderBottom: '1px solid rgba(255,215,0,0.2)',
+          background: isDarkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
+          borderBottom: isDarkMode ? '1px solid rgba(255,215,0,0.2)' : '1px solid rgba(25,118,210,0.2)',
         }}
       >
         <Toolbar sx={{ px: { xs: 2, sm: 3 } }}>
@@ -149,14 +152,14 @@ const MainLayout: React.FC = () => {
               sx={{
                 mr: 2,
                 display: { xs: 'flex', md: 'none' },
-                color: '#FFD700',
+                color: isDarkMode ? '#FFD700' : 'primary.main',
               }}
               onClick={toggleDrawer(true)}
             >
               <MenuIcon />
             </IconButton>
 
-            <HotelIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, color: '#FFD700' }} />
+            <HotelIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, color: isDarkMode ? '#FFD700' : 'primary.main' }} />
             <Typography
               variant="h6"
               noWrap
@@ -166,7 +169,7 @@ const MainLayout: React.FC = () => {
                 display: { xs: 'none', md: 'flex' },
                 fontWeight: 700,
                 cursor: 'pointer',
-                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -185,7 +188,7 @@ const MainLayout: React.FC = () => {
                 display: { xs: 'flex', md: 'none' },
                 fontWeight: 700,
                 cursor: 'pointer',
-                background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -201,10 +204,10 @@ const MainLayout: React.FC = () => {
                   key={item.text}
                   onClick={() => navigate(item.path)}
                   sx={{
-                    color: '#fff',
+                    color: isDarkMode ? '#fff' : 'text.primary',
                     '&:hover': {
-                      backgroundColor: 'rgba(255,215,0,0.1)',
-                      color: '#FFD700',
+                      backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
+                      color: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   }}
                 >
@@ -218,9 +221,9 @@ const MainLayout: React.FC = () => {
                 onClick={toggleTheme}
                 sx={{
                   ml: 1,
-                  color: '#FFD700',
+                  color: isDarkMode ? '#FFD700' : 'primary.main',
                   '&:hover': {
-                    backgroundColor: 'rgba(255,215,0,0.1)',
+                    backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
                   },
                 }}
               >
@@ -235,9 +238,9 @@ const MainLayout: React.FC = () => {
                     onClick={handleOpenUserMenu}
                     sx={{
                       p: 0,
-                      border: '2px solid rgba(255,215,0,0.3)',
+                      border: isDarkMode ? '2px solid rgba(255,215,0,0.3)' : '2px solid rgba(25,118,210,0.3)',
                       '&:hover': {
-                        borderColor: '#FFD700',
+                        borderColor: isDarkMode ? '#FFD700' : 'primary.main',
                       },
                     }}
                   >
@@ -245,7 +248,7 @@ const MainLayout: React.FC = () => {
                       alt={user?.firstName || 'User'}
                       src={user?.avatar}
                       sx={{
-                        background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                        background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                       }}
                     />
                   </IconButton>
@@ -254,8 +257,8 @@ const MainLayout: React.FC = () => {
                   sx={{
                     mt: '45px',
                     '& .MuiPaper-root': {
-                      background: 'rgba(26,26,26,0.98)',
-                      border: '1px solid rgba(255,215,0,0.2)',
+                      background: isDarkMode ? 'rgba(26,26,26,0.98)' : 'rgba(255,255,255,0.98)',
+                      border: isDarkMode ? '1px solid rgba(255,215,0,0.2)' : '1px solid rgba(25,118,210,0.2)',
                     },
                   }}
                   id="menu-appbar"
@@ -276,28 +279,28 @@ const MainLayout: React.FC = () => {
                     onClick={() => { navigate('/profile'); handleCloseUserMenu(); }}
                     sx={{
                       '&:hover': {
-                        backgroundColor: 'rgba(255,215,0,0.1)',
+                        backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
                       },
                     }}
                   >
                     <ListItemIcon>
-                      <AccountCircleIcon fontSize="small" sx={{ color: '#FFD700' }} />
+                      <AccountCircleIcon fontSize="small" sx={{ color: isDarkMode ? '#FFD700' : 'primary.main' }} />
                     </ListItemIcon>
-                    <Typography sx={{ color: '#fff' }}>Profile</Typography>
+                    <Typography sx={{ color: isDarkMode ? '#fff' : 'text.primary' }}>Profile</Typography>
                   </MenuItem>
-                  <Divider sx={{ borderColor: 'rgba(255,215,0,0.2)' }} />
+                  <Divider sx={{ borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'rgba(25,118,210,0.2)' }} />
                   <MenuItem
                     onClick={handleLogout}
                     sx={{
                       '&:hover': {
-                        backgroundColor: 'rgba(255,215,0,0.1)',
+                        backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
                       },
                     }}
                   >
                     <ListItemIcon>
-                      <LogoutIcon fontSize="small" sx={{ color: '#FFD700' }} />
+                      <LogoutIcon fontSize="small" sx={{ color: isDarkMode ? '#FFD700' : 'primary.main' }} />
                     </ListItemIcon>
-                    <Typography sx={{ color: '#fff' }}>Logout</Typography>
+                    <Typography sx={{ color: isDarkMode ? '#fff' : 'text.primary' }}>Logout</Typography>
                   </MenuItem>
                 </Menu>
               </Box>
@@ -306,12 +309,12 @@ const MainLayout: React.FC = () => {
                 <Button
                   onClick={() => navigate('/login')}
                   sx={{
-                    color: '#fff',
-                    borderColor: 'rgba(255,215,0,0.3)',
+                    color: isDarkMode ? '#fff' : 'text.primary',
+                    borderColor: isDarkMode ? 'rgba(255,215,0,0.3)' : 'rgba(25,118,210,0.3)',
                     '&:hover': {
-                      borderColor: '#FFD700',
-                      backgroundColor: 'rgba(255,215,0,0.1)',
-                      color: '#FFD700',
+                      borderColor: isDarkMode ? '#FFD700' : 'primary.main',
+                      backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
+                      color: isDarkMode ? '#FFD700' : 'primary.main',
                     },
                   }}
                 >
@@ -320,11 +323,11 @@ const MainLayout: React.FC = () => {
                 <Button
                   onClick={() => navigate('/register')}
                   sx={{
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                    color: '#000',
+                    background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                    color: isDarkMode ? '#000' : '#fff',
                     fontWeight: 600,
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #FFA500 0%, #FFD700 100%)',
+                      background: isDarkMode ? 'linear-gradient(135deg, #FFA500 0%, #FFD700 100%)' : 'linear-gradient(135deg, #42a5f5 0%, #1976d2 100%)',
                     },
                   }}
                 >
@@ -349,12 +352,12 @@ const MainLayout: React.FC = () => {
           py: 3,
           px: 2,
           mt: 'auto',
-          background: 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)',
-          borderTop: '1px solid rgba(255,215,0,0.2)',
+          background: isDarkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)',
+          borderTop: isDarkMode ? '1px solid rgba(255,215,0,0.2)' : '1px solid rgba(25,118,210,0.2)',
         }}
       >
         <Container maxWidth="xl">
-          <Typography variant="body2" align="center" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          <Typography variant="body2" align="center" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }}>
             © 2025 HotelX. All rights reserved.
           </Typography>
         </Container>

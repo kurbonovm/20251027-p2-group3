@@ -1,9 +1,13 @@
 package com.hotel.reservation.controller;
 
+import com.hotel.reservation.dto.CancellationRequest;
+import com.hotel.reservation.dto.CancellationResponse;
+import com.hotel.reservation.dto.RefundCalculation;
 import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.model.User;
 import com.hotel.reservation.repository.UserRepository;
 import com.hotel.reservation.security.UserPrincipal;
+import com.hotel.reservation.service.CancellationService;
 import com.hotel.reservation.service.ReservationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -31,6 +35,7 @@ public class ReservationController {
 
     private final ReservationService reservationService;
     private final UserRepository userRepository;
+    private final CancellationService cancellationService;
 
     /**
      * Get all reservations (Admin/Manager only).
@@ -109,11 +114,35 @@ public class ReservationController {
         User user = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Input validation
         String roomId = (String) reservationData.get("roomId");
+        if (roomId == null || roomId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Room ID is required");
+        }
+
         LocalDate checkInDate = LocalDate.parse((String) reservationData.get("checkInDate"));
         LocalDate checkOutDate = LocalDate.parse((String) reservationData.get("checkOutDate"));
+
+        // Validate dates
+        if (checkInDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Check-in date cannot be in the past");
+        }
+        if (checkOutDate.isBefore(checkInDate) || checkOutDate.isEqual(checkInDate)) {
+            throw new IllegalArgumentException("Check-out date must be after check-in date");
+        }
+        if (checkInDate.isAfter(LocalDate.now().plusYears(2))) {
+            throw new IllegalArgumentException("Check-in date cannot be more than 2 years in the future");
+        }
+
         int numberOfGuests = (int) reservationData.get("numberOfGuests");
+        if (numberOfGuests < 1 || numberOfGuests > 10) {
+            throw new IllegalArgumentException("Number of guests must be between 1 and 10");
+        }
+
         String specialRequests = (String) reservationData.getOrDefault("specialRequests", "");
+        if (specialRequests.length() > 500) {
+            throw new IllegalArgumentException("Special requests cannot exceed 500 characters");
+        }
 
         Reservation reservation = reservationService.createReservation(
                 user, roomId, checkInDate, checkOutDate, numberOfGuests, specialRequests);
@@ -181,6 +210,62 @@ public class ReservationController {
 
         Reservation cancelled = reservationService.cancelReservation(id, reason);
         return ResponseEntity.ok(cancelled);
+    }
+
+    /**
+     * Calculate refund for a reservation (shows what user will get if they cancel).
+     * This endpoint allows users to preview cancellation costs before confirming.
+     *
+     * @param id reservation ID
+     * @param userPrincipal authenticated user
+     * @return refund calculation details
+     */
+    @GetMapping("/{id}/cancellation-preview")
+    public ResponseEntity<RefundCalculation> getCancellationPreview(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
+        Reservation existing = reservationService.getReservationById(id);
+
+        // Authorization check
+        if (!existing.getUser().getId().equals(userPrincipal.getId()) &&
+                !userPrincipal.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") ||
+                                a.getAuthority().equals("ROLE_MANAGER"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        RefundCalculation calculation = cancellationService.calculateRefund(id);
+        return ResponseEntity.ok(calculation);
+    }
+
+    /**
+     * Process cancellation with policy-based refund.
+     * Requires user to acknowledge the cancellation policy.
+     *
+     * @param id reservation ID
+     * @param userPrincipal authenticated user
+     * @param request cancellation request with reason and policy acknowledgement
+     * @return cancellation response with refund details
+     */
+    @PostMapping("/{id}/cancel-with-refund")
+    public ResponseEntity<CancellationResponse> cancelWithRefund(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestBody CancellationRequest request) {
+
+        Reservation existing = reservationService.getReservationById(id);
+
+        // Authorization check
+        if (!existing.getUser().getId().equals(userPrincipal.getId()) &&
+                !userPrincipal.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") ||
+                                a.getAuthority().equals("ROLE_MANAGER"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        CancellationResponse response = cancellationService.processCancellation(id, request);
+        return ResponseEntity.ok(response);
     }
 
     /**

@@ -170,6 +170,23 @@ public class PaymentController {
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String signature) {
 
-        return ResponseEntity.ok("Webhook received");
+        try {
+            // Verify webhook signature to prevent tampering
+            com.stripe.model.Event event = paymentService.verifyWebhook(payload, signature);
+
+            // Process verified webhook event
+            paymentService.handleWebhookEvent(event);
+
+            return ResponseEntity.ok("Webhook processed successfully");
+        } catch (com.stripe.exception.SignatureVerificationException e) {
+            // Invalid signature - reject the webhook
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Invalid signature");
+        } catch (Exception e) {
+            // Log error but return 200 to prevent Stripe retries
+            org.slf4j.LoggerFactory.getLogger(PaymentController.class)
+                .error("Error processing webhook", e);
+            return ResponseEntity.ok("Webhook received");
+        }
     }
 }

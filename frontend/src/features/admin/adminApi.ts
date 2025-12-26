@@ -24,6 +24,54 @@ interface DateRangeRequest {
   endDate: string;
 }
 
+export interface TokenBookingRequest {
+  customerEmail: string;
+  customerFirstName: string;
+  customerLastName: string;
+  customerPhoneNumber?: string;
+  roomId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
+  specialRequests?: string;
+  paymentMethodId: string; // Stripe payment method token
+}
+
+export interface ManagerBookingRequest {
+  customerEmail: string;
+  customerFirstName: string;
+  customerLastName: string;
+  customerPhoneNumber?: string;
+  roomId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
+  specialRequests?: string;
+  cardNumber: string;
+  cardExpiryMonth: number;
+  cardExpiryYear: number;
+  cardCvc: string;
+  cardholderName: string;
+  billingAddressLine1: string;
+  billingCity: string;
+  billingState: string;
+  billingPostalCode: string;
+  billingCountry: string;
+}
+
+export interface ManagerBookingResponse {
+  reservation: Reservation;
+  payment: {
+    id: string;
+    amount: number;
+    status: string;
+    cardBrand: string;
+    cardLast4: string;
+  };
+  customerId: string;
+  message: string;
+}
+
 export const adminApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Dashboard
@@ -95,6 +143,26 @@ export const adminApi = apiSlice.injectEndpoints({
       query: () => '/admin/reservations/statistics',
       providesTags: ['Reservation'],
     }),
+
+    // Manager-Assisted Booking (Token-Based - SECURE)
+    createAssistedBookingToken: builder.mutation<ManagerBookingResponse, TokenBookingRequest>({
+      query: (bookingData) => ({
+        url: '/admin/bookings/assisted-token',
+        method: 'POST',
+        body: bookingData,
+      }),
+      invalidatesTags: ['Reservation', 'Room', 'Admin'],
+    }),
+
+    // Manager-Assisted Booking (Legacy - Raw Card Data)
+    createAssistedBooking: builder.mutation<ManagerBookingResponse, ManagerBookingRequest>({
+      query: (bookingData) => ({
+        url: '/admin/bookings/assisted',
+        method: 'POST',
+        body: bookingData,
+      }),
+      invalidatesTags: ['Reservation', 'Room', 'Admin'],
+    }),
   }),
 });
 
@@ -110,4 +178,6 @@ export const {
   useGetReservationsByDateRangeQuery,
   useUpdateReservationStatusMutation,
   useGetReservationStatisticsQuery,
+  useCreateAssistedBookingTokenMutation,
+  useCreateAssistedBookingMutation,
 } = adminApi;

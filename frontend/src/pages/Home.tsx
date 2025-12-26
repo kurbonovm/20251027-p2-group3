@@ -248,7 +248,7 @@ const Home: React.FC = () => {
       </Box>
 
       {/* Stats Section */}
-      <Box sx={{ bgcolor: '#1a1a1a', color: 'white', py: 6 }}>
+      <Box sx={{ bgcolor: isDarkMode ? '#1a1a1a' : '#f5f5f5', color: isDarkMode ? 'white' : '#1a1a1a', py: 6 }}>
         <Container maxWidth="lg">
           <Box
             sx={{
@@ -273,7 +273,7 @@ const Home: React.FC = () => {
                   sx={{
                     fontWeight: 900,
                     fontSize: { xs: '2.5rem', md: '3.5rem' },
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
@@ -282,7 +282,7 @@ const Home: React.FC = () => {
                 >
                   {stat.value}
                 </Typography>
-                <Typography variant="body1" sx={{ color: '#999', fontWeight: 500 }}>
+                <Typography variant="body1" sx={{ color: isDarkMode ? '#999' : '#666', fontWeight: 500 }}>
                   {stat.label}
                 </Typography>
               </Box>
@@ -317,7 +317,7 @@ const Home: React.FC = () => {
             <Typography
               variant="overline"
               sx={{
-                color: '#FFA500',
+                color: isDarkMode ? '#FFA500' : '#1976d2',
                 fontWeight: 700,
                 fontSize: '1rem',
                 letterSpacing: 2,
@@ -381,14 +381,14 @@ const Home: React.FC = () => {
                   left: 0,
                   right: 0,
                   height: '4px',
-                  background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                  background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                   transform: 'scaleX(0)',
                   transition: 'transform 0.4s ease',
                 },
                 '&:hover': {
                   transform: { xs: 'translateY(-8px)', md: 'translateY(-15px)' },
                   boxShadow: isDarkMode ? '0 25px 50px rgba(255,215,0,0.2)' : '0 25px 50px rgba(0,0,0,0.1)',
-                  borderColor: '#FFD700',
+                  borderColor: isDarkMode ? '#FFD700' : '#1976d2',
                   '&::before': {
                     transform: 'scaleX(1)',
                   },
@@ -407,13 +407,13 @@ const Home: React.FC = () => {
                     width: { xs: 70, sm: 80, md: 90 },
                     height: { xs: 70, sm: 80, md: 90 },
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+                    background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: { xs: '0 auto 16px', md: '0 auto 24px' },
                     color: 'white',
-                    boxShadow: '0 15px 35px rgba(255, 215, 0, 0.3)',
+                    boxShadow: isDarkMode ? '0 15px 35px rgba(255, 215, 0, 0.3)' : '0 15px 35px rgba(25, 118, 210, 0.3)',
                     '& svg': {
                       fontSize: { xs: 40, sm: 45, md: 50 },
                     },
@@ -451,7 +451,7 @@ const Home: React.FC = () => {
       </Box>
 
       {/* Gallery Section */}
-      <Box sx={{ bgcolor: '#f8f9fa', py: { xs: 8, md: 12 } }}>
+      <Box sx={{ bgcolor: isDarkMode ? '#0a0a0a' : '#f8f9fa', py: { xs: 8, md: 12 } }}>
         <Container maxWidth="lg">
           <Typography
             variant="h2"
@@ -460,7 +460,7 @@ const Home: React.FC = () => {
               fontWeight: 900,
               fontSize: { xs: '2.5rem', md: '4rem' },
               mb: { xs: 4, md: 8 },
-              color: '#1a1a1a',
+              color: isDarkMode ? '#fff' : '#1a1a1a',
             }}
           >
             Our Spaces

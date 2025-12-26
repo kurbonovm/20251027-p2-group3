@@ -227,7 +227,6 @@ const AdminTransactions: React.FC = () => {
               <TableCell><strong>User</strong></TableCell>
               <TableCell><strong>Amount</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Payment Method</strong></TableCell>
               <TableCell><strong>Date</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
@@ -235,7 +234,7 @@ const AdminTransactions: React.FC = () => {
           <TableBody>
             {filteredPayments && filteredPayments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={6} align="center">
                   <Alert severity="info">No transactions found.</Alert>
                 </TableCell>
               </TableRow>
@@ -258,16 +257,6 @@ const AdminTransactions: React.FC = () => {
                       color={getStatusColor(payment.status)}
                       size="small"
                     />
-                  </TableCell>
-                  <TableCell>
-                    {payment.cardBrand && payment.cardLast4 ? (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                        <CreditCard fontSize="small" />
-                        {payment.cardBrand} ••{payment.cardLast4}
-                      </Box>
-                    ) : (
-                      'N/A'
-                    )}
                   </TableCell>
                   <TableCell>
                     <Box>

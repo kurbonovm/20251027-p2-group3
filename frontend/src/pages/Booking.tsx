@@ -61,23 +61,30 @@ const Booking: React.FC = () => {
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
-  // Try to get booking data from location state first, then from sessionStorage
-  const getBookingData = (): BookingLocationState | null => {
+  // Initialize booking data once using useState
+  const [bookingData] = useState<BookingLocationState | null>(() => {
+    console.log('Getting booking data, location.state:', location.state);
+
     if (location.state) {
+      console.log('Using booking data from location state');
       return location.state as BookingLocationState;
     }
 
     // Check sessionStorage for pending booking after login
     const pendingBooking = sessionStorage.getItem('pendingBooking');
+    console.log('Pending booking from sessionStorage:', pendingBooking);
+
     if (pendingBooking) {
       sessionStorage.removeItem('pendingBooking'); // Clear it after retrieving
-      return JSON.parse(pendingBooking);
+      const data = JSON.parse(pendingBooking);
+      console.log('Using booking data from sessionStorage:', data);
+      return data;
     }
 
+    console.log('No booking data found');
     return null;
-  };
+  });
 
-  const bookingData = getBookingData();
   const { room, checkInDate, checkOutDate, guests } = bookingData || {};
 
   const [createReservation, { isLoading: isCreatingReservation }] = useCreateReservationMutation();
@@ -93,9 +100,36 @@ const Booking: React.FC = () => {
   const steps = ['Review Booking', 'Payment'];
 
   // Redirect if no booking data
+  useEffect(() => {
+    if (!room || !checkInDate || !checkOutDate) {
+      navigate('/rooms');
+    }
+  }, [room, checkInDate, checkOutDate, navigate]);
+
+  // Show nothing while redirecting
   if (!room || !checkInDate || !checkOutDate) {
-    navigate('/rooms');
-    return null;
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          py: { xs: 4, md: 6 },
+        }}
+      >
+        <Container maxWidth="lg">
+          <Alert
+            severity="warning"
+            sx={{
+              backgroundColor: 'rgba(237,108,2,0.1)',
+              color: '#ff9800',
+              border: '1px solid rgba(237,108,2,0.3)',
+            }}
+          >
+            No booking data found. Redirecting to rooms...
+          </Alert>
+        </Container>
+      </Box>
+    );
   }
 
   // Calculate number of nights

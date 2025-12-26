@@ -69,11 +69,22 @@ const Login: React.FC = () => {
       const result = await login(formData).unwrap();
       dispatch(setCredentials(result));
 
-      // Redirect to the page user was trying to access, or home
-      const state = location.state as LocationState;
-      const from = state?.from;
-      const redirectTo = from ? `${from.pathname}${from.search || ''}${from.hash || ''}` : '/';
-      navigate(redirectTo, { replace: true });
+      // Check if there's a pending booking after login
+      const pendingBooking = sessionStorage.getItem('pendingBooking');
+      console.log('Checking for pending booking after login:', pendingBooking);
+
+      if (pendingBooking) {
+        // User was trying to book a room - redirect to booking page
+        // The Booking page will retrieve the data from sessionStorage
+        console.log('Redirecting to booking page with pending booking');
+        navigate('/booking', { replace: true });
+      } else {
+        // Redirect to the page user was trying to access, or home
+        const state = location.state as LocationState;
+        const from = state?.from;
+        const redirectTo = from ? `${from.pathname}${from.search || ''}${from.hash || ''}` : '/';
+        navigate(redirectTo, { replace: true });
+      }
     } catch (err: any) {
       setError(err.data?.message || 'Failed to login. Please check your credentials.');
     }
@@ -111,7 +122,7 @@ const Login: React.FC = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: isDarkMode ? 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)' : 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,240,240,0.95) 100%)',
+          background: isDarkMode ? 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(26,26,26,0.8) 100%)' : 'linear-gradient(135deg, rgba(230,240,255,0.85) 0%, rgba(200,220,240,0.9) 100%)',
         },
       }}
     >
