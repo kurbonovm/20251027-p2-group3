@@ -43,6 +43,12 @@ spring:
 # Server Configuration
 server:
   port: 8080
+  forward-headers-strategy: framework
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+      protocol-header-https-value: https
 
 # JWT Configuration
 jwt:
