@@ -42,17 +42,27 @@ jobs:
           sed -i "s/\${AWS_ACCOUNT_ID}/${{ secrets.AWS_ACCOUNT_ID }}/g" aws/task-definition-no-secrets.json
 
       - name: Inject Secrets into Task Definition
+        env:
+          DATABASE_URI: ${{ secrets.DATABASE_URI }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          OKTA_CLIENT_ID: ${{ secrets.OKTA_CLIENT_ID }}
+          OKTA_CLIENT_SECRET: ${{ secrets.OKTA_CLIENT_SECRET }}
+          OKTA_ISSUER_URI: ${{ secrets.OKTA_ISSUER_URI }}
         run: |
-          # Replace all placeholder values with actual secrets from GitHub
-          sed -i "s|REPLACE_WITH_MONGODB_URI|${{ secrets.DATABASE_URI }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_JWT_SECRET|${{ secrets.JWT_SECRET }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_STRIPE_KEY|${{ secrets.STRIPE_API_KEY }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_WEBHOOK_SECRET|${{ secrets.STRIPE_WEBHOOK_SECRET }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_GOOGLE_CLIENT_ID|${{ secrets.GOOGLE_CLIENT_ID }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_GOOGLE_CLIENT_SECRET|${{ secrets.GOOGLE_CLIENT_SECRET }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_OKTA_CLIENT_ID|${{ secrets.OKTA_CLIENT_ID }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_OKTA_CLIENT_SECRET|${{ secrets.OKTA_CLIENT_SECRET }}|g" aws/task-definition-no-secrets.json
-          sed -i "s|REPLACE_WITH_OKTA_ISSUER|${{ secrets.OKTA_ISSUER_URI }}|g" aws/task-definition-no-secrets.json
+          # Use perl instead of sed to avoid & character issues
+          perl -i -pe 's|REPLACE_WITH_MONGODB_URI|$ENV{DATABASE_URI}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_JWT_SECRET|$ENV{JWT_SECRET}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_STRIPE_KEY|$ENV{STRIPE_API_KEY}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_WEBHOOK_SECRET|$ENV{STRIPE_WEBHOOK_SECRET}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_GOOGLE_CLIENT_ID|$ENV{GOOGLE_CLIENT_ID}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_GOOGLE_CLIENT_SECRET|$ENV{GOOGLE_CLIENT_SECRET}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_OKTA_CLIENT_ID|$ENV{OKTA_CLIENT_ID}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_OKTA_CLIENT_SECRET|$ENV{OKTA_CLIENT_SECRET}|g' aws/task-definition-no-secrets.json
+          perl -i -pe 's|REPLACE_WITH_OKTA_ISSUER|$ENV{OKTA_ISSUER_URI}|g' aws/task-definition-no-secrets.json
 
       - name: Build and Push Image
         id: build-image
