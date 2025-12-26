@@ -60,7 +60,46 @@ jobs:
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
 
+      - name: Check if ECS service exists
+        id: check-service
+        run: |
+          if aws ecs describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.ECS_SERVICE }} --region ${{ env.AWS_REGION }} | grep -q "ACTIVE\|DRAINING"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create ECS service if not exists
+        if: steps.check-service.outputs.exists == 'false'
+        run: |
+          # Get infrastructure details
+          PRIVATE_SUBNET_1=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=hotelx-private-subnet-1" --query 'Subnets[0].SubnetId' --output text --region ${{ env.AWS_REGION }})
+          PRIVATE_SUBNET_2=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=hotelx-private-subnet-2" --query 'Subnets[0].SubnetId' --output text --region ${{ env.AWS_REGION }})
+          ECS_SG=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=hotelx-prod-ecs-sg" --query 'SecurityGroups[0].GroupId' --output text --region ${{ env.AWS_REGION }})
+          TARGET_GROUP=$(aws elbv2 describe-target-groups --names hotelx-backend-tg --query 'TargetGroups[0].TargetGroupArn' --output text --region ${{ env.AWS_REGION }})
+
+          # Register task definition first
+          TASK_DEF_ARN=$(aws ecs register-task-definition --cli-input-json file://${{ steps.task-def.outputs.task-definition }} --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          # Create the service
+          aws ecs create-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service-name ${{ env.ECS_SERVICE }} \
+            --task-definition $TASK_DEF_ARN \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --platform-version LATEST \
+            --network-configuration "awsvpcConfiguration={subnets=[$PRIVATE_SUBNET_1,$PRIVATE_SUBNET_2],securityGroups=[$ECS_SG],assignPublicIp=DISABLED}" \
+            --load-balancers "targetGroupArn=$TARGET_GROUP,containerName=${{ env.CONTAINER_NAME }},containerPort=8080" \
+            --health-check-grace-period-seconds 60 \
+            --deployment-configuration "maximumPercent=200,minimumHealthyPercent=100,deploymentCircuitBreaker={enable=true,rollback=true}" \
+            --enable-execute-command \
+            --region ${{ env.AWS_REGION }}
+
+          echo "ECS service created successfully!"
+
       - name: Deploy Amazon ECS task definition
+        if: steps.check-service.outputs.exists == 'true'
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
