@@ -1,5 +1,6 @@
 package com.hotel.reservation.controller;
 
+import com.hotel.reservation.dto.ConfirmPaymentRequest;
 import com.hotel.reservation.model.Payment;
 import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.security.UserPrincipal;
@@ -63,15 +64,57 @@ public class PaymentController {
     }
 
     /**
+     * Create a payment intent for a reservation using payment link token (public endpoint).
+     * This endpoint does not require authentication and is used for payment link flows.
+     *
+     * @param paymentData payment details containing reservationId
+     * @return payment entity with client secret
+     * @throws StripeException if Stripe API fails
+     */
+    @PostMapping("/create-intent-public")
+    public ResponseEntity<Map<String, Object>> createPaymentIntentPublic(
+            @RequestBody Map<String, String> paymentData) throws StripeException {
+
+        String reservationId = paymentData.get("reservationId");
+        Reservation reservation = reservationService.getReservationById(reservationId);
+
+        // Verify reservation is pending and has a payment link token (created via payment link flow)
+        if (reservation.getStatus() != Reservation.ReservationStatus.PENDING) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Reservation is not pending payment"));
+        }
+
+        if (reservation.getPaymentLinkToken() == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "This reservation requires authentication"));
+        }
+
+        // Check if payment link has expired
+        if (reservation.getExpiresAt() != null &&
+                reservation.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            return ResponseEntity.status(HttpStatus.GONE)
+                    .body(Map.of("error", "Payment link has expired"));
+        }
+
+        Payment payment = paymentService.createPaymentIntent(reservation);
+
+        // Return payment details including client secret for Stripe Elements
+        return ResponseEntity.ok(Map.of(
+                "paymentId", payment.getId(),
+                "paymentIntentId", payment.getStripePaymentIntentId(),
+                "clientSecret", payment.getStripeClientSecret()
+        ));
+    }
+
+    /**
      * Confirm a payment after successful Stripe processing.
      *
-     * @param paymentData payment confirmation details
+     * @param request payment confirmation details
      * @return confirmed payment
      */
     @PostMapping("/confirm")
-    public ResponseEntity<Payment> confirmPayment(@RequestBody Map<String, String> paymentData) {
-        String paymentIntentId = paymentData.get("paymentIntentId");
-        Payment payment = paymentService.confirmPayment(paymentIntentId);
+    public ResponseEntity<Payment> confirmPayment(@RequestBody ConfirmPaymentRequest request) {
+        Payment payment = paymentService.confirmPayment(request.getPaymentIntentId());
         return ResponseEntity.ok(payment);
     }
 

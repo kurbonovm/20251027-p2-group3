@@ -93,6 +93,31 @@ public class Room {
     private int size;
 
     /**
+     * Bed type (King, Queen, Double, Twin, Single)
+     */
+    private String bedType;
+
+    /**
+     * Room view type (Ocean, City, Garden, Mountain, Pool, Courtyard)
+     */
+    private String viewType;
+
+    /**
+     * Whether the room is wheelchair accessible
+     */
+    private boolean wheelchairAccessible = false;
+
+    /**
+     * Whether the room has hearing accessibility features
+     */
+    private boolean hearingAccessible = false;
+
+    /**
+     * Whether the room has visual accessibility features
+     */
+    private boolean visualAccessible = false;
+
+    /**
      * Room creation timestamp
      */
     @CreatedDate

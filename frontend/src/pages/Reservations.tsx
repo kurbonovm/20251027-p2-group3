@@ -30,6 +30,7 @@ import {
 import { useGetUserReservationsQuery, useCancelReservationMutation } from '../features/reservations/reservationsApi';
 import { Reservation, ReservationStatus } from '../types';
 import CancellationDialog from '../components/CancellationDialog';
+import { CountdownTimer } from '../components/CountdownTimer';
 
 /**
  * Helper function to parse date string without timezone conversion
@@ -291,19 +292,59 @@ const Reservations: React.FC = () => {
                   )}
 
                   {reservation.status?.toLowerCase() === 'pending' && (
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Box>
                       <Alert
-                        severity="info"
+                        severity="warning"
                         sx={{
-                          flex: 1,
-                          backgroundColor: isDarkMode ? 'rgba(33,150,243,0.1)' : 'rgba(33,150,243,0.05)',
-                          color: isDarkMode ? '#64b5f6' : '#1976d2',
+                          mb: 2,
+                          backgroundColor: isDarkMode ? 'rgba(255,152,0,0.1)' : 'rgba(255,152,0,0.05)',
+                          color: isDarkMode ? '#ffb74d' : '#f57c00',
                           border: '1px solid',
-                          borderColor: isDarkMode ? 'rgba(33,150,243,0.3)' : 'rgba(33,150,243,0.2)',
+                          borderColor: isDarkMode ? 'rgba(255,152,0,0.3)' : 'rgba(255,152,0,0.2)',
                         }}
                       >
-                        Payment is being processed. Your reservation will be confirmed once payment is complete.
+                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                          Payment Incomplete
+                        </Typography>
+                        <Typography variant="caption">
+                          Complete your payment to confirm this reservation, or cancel it to free up the room.
+                        </Typography>
+                        {reservation.expiresAt && (
+                          <Box sx={{ mt: 1 }}>
+                            <CountdownTimer
+                              expiresAt={reservation.expiresAt}
+                              onExpired={() => {
+                                // Optionally trigger a refetch when expired
+                                window.location.reload();
+                              }}
+                            />
+                          </Box>
+                        )}
                       </Alert>
+                      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="medium"
+                          startIcon={<Close />}
+                          onClick={() => {
+                            setSelectedReservation(reservation);
+                            setCancellationDialogOpen(true);
+                          }}
+                          sx={{
+                            borderWidth: 2,
+                            color: '#ff6b6b',
+                            borderColor: 'rgba(211,47,47,0.5)',
+                            '&:hover': {
+                              borderWidth: 2,
+                              backgroundColor: isDarkMode ? 'rgba(211,47,47,0.2)' : 'rgba(211,47,47,0.1)',
+                              borderColor: '#ff6b6b',
+                            },
+                          }}
+                        >
+                          Cancel Reservation
+                        </Button>
+                      </Box>
                     </Box>
                   )}
 

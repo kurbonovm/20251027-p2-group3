@@ -16,8 +16,10 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsers from './pages/admin/Users';
 import AdminRooms from './pages/admin/Rooms';
 import AdminReservations from './pages/admin/Reservations';
-import AdminAssistedBooking from './pages/admin/AssistedBooking';
+import AdminAssistedBookingPaymentLink from './pages/admin/AssistedBookingPaymentLink';
 import AdminTransactions from './pages/admin/Transactions';
+import PublicPayment from './pages/PublicPayment';
+import PaymentSuccess from './pages/PaymentSuccess';
 import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import OAuth2Callback from './pages/OAuth2Callback';
@@ -33,6 +35,8 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/oauth2/callback" element={<OAuth2Callback />} />
+            <Route path="/payment/:token" element={<PublicPayment />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/rooms" element={<Rooms />} />
             <Route path="/rooms/:id" element={<RoomDetails />} />
             <Route
@@ -102,10 +106,10 @@ const App: React.FC = () => {
               }
             />
             <Route
-              path="/admin/assisted-booking"
+              path="/admin/assisted-booking-link"
               element={
                 <ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
-                  <AdminAssistedBooking />
+                  <AdminAssistedBookingPaymentLink />
                 </ProtectedRoute>
               }
             />

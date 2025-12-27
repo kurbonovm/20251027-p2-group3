@@ -47,6 +47,11 @@ export interface Room {
   available: boolean;
   floorNumber: number;
   size: number;
+  bedType?: string;
+  viewType?: string;
+  wheelchairAccessible?: boolean;
+  hearingAccessible?: boolean;
+  visualAccessible?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -66,8 +71,10 @@ export interface Reservation {
   totalAmount: number;
   status: ReservationStatus;
   paymentIntentId?: string;
+  paymentLinkToken?: string;
   cancellationReason?: string;
   cancelledAt?: string;
+  expiresAt?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -196,6 +203,7 @@ export interface CreateReservationRequest {
   checkOutDate: string;
   checkOutTime?: string;
   numberOfGuests: number;
+  specialRequests?: string;
 }
 
 export interface UpdateReservationRequest extends Partial<CreateReservationRequest> {
@@ -221,3 +229,55 @@ export interface RefundRequest {
   paymentId: string;
   amount?: number;
 }
+
+// User Preferences Types
+export interface UserPreferences {
+  id?: string;
+  userId?: string;
+
+  // Notification Preferences
+  emailNotificationsEnabled: boolean;
+  smsNotificationsEnabled: boolean;
+  bookingConfirmationEmails: boolean;
+  promotionalEmails: boolean;
+  bookingReminderEmails: boolean;
+
+  // Room Preferences
+  preferredBedType?: string;
+  preferredFloorLevel?: string;
+  preferredRoomView?: string;
+  preferredRoomType?: string;
+  preferQuietRoom: boolean;
+  preferredCheckInTime?: string;
+  preferredCheckOutTime?: string;
+
+  // Accessibility Preferences
+  wheelchairAccessible: boolean;
+  hearingAccessible: boolean;
+  visualAccessible: boolean;
+  otherAccessibilityNeeds?: string;
+
+  // Dietary & Special Requests
+  dietaryRestrictions: string[];
+  allergies: string[];
+  defaultSpecialRequests?: string;
+
+  // Language & Regional Preferences
+  preferredLanguage: string;
+  preferredCurrency: string;
+  preferredDateFormat: string;
+  preferredTimeFormat: string;
+
+  // UI/UX Preferences
+  themeMode: string;
+
+  // Timestamps
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type BedType = 'KING' | 'QUEEN' | 'DOUBLE' | 'TWIN' | 'SINGLE';
+export type FloorLevel = 'HIGH' | 'MIDDLE' | 'LOW' | 'GROUND';
+export type RoomView = 'OCEAN' | 'CITY' | 'GARDEN' | 'MOUNTAIN' | 'POOL' | 'COURTYARD';
+
+export interface UpdatePreferencesRequest extends Partial<UserPreferences> {}

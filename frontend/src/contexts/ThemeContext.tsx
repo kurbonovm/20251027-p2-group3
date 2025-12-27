@@ -1,14 +1,16 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode, useEffect } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme, PaletteMode } from '@mui/material';
 
 interface ThemeContextType {
   mode: PaletteMode;
   toggleTheme: () => void;
+  setThemeMode: (mode: PaletteMode) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   mode: 'dark',
   toggleTheme: () => {},
+  setThemeMode: () => {},
 });
 
 export const useThemeMode = () => useContext(ThemeContext);
@@ -30,6 +32,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       return newMode;
     });
   };
+
+  const setThemeMode = (newMode: PaletteMode) => {
+    setMode(newMode);
+    localStorage.setItem('themeMode', newMode);
+  };
+
+  // Listen for storage changes (when preferences are updated)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'themeMode' && e.newValue) {
+        setMode(e.newValue as PaletteMode);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const theme = useMemo(
     () =>
@@ -83,7 +101,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   );
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme }}>
+    <ThemeContext.Provider value={{ mode, toggleTheme, setThemeMode }}>
       <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>
     </ThemeContext.Provider>
   );

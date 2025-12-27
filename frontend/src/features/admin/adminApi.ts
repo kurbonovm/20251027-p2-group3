@@ -37,28 +37,6 @@ export interface TokenBookingRequest {
   paymentMethodId: string; // Stripe payment method token
 }
 
-export interface ManagerBookingRequest {
-  customerEmail: string;
-  customerFirstName: string;
-  customerLastName: string;
-  customerPhoneNumber?: string;
-  roomId: string;
-  checkInDate: string;
-  checkOutDate: string;
-  numberOfGuests: number;
-  specialRequests?: string;
-  cardNumber: string;
-  cardExpiryMonth: number;
-  cardExpiryYear: number;
-  cardCvc: string;
-  cardholderName: string;
-  billingAddressLine1: string;
-  billingCity: string;
-  billingState: string;
-  billingPostalCode: string;
-  billingCountry: string;
-}
-
 export interface ManagerBookingResponse {
   reservation: Reservation;
   payment: {
@@ -69,6 +47,24 @@ export interface ManagerBookingResponse {
     cardLast4: string;
   };
   customerId: string;
+  message: string;
+}
+
+export interface PaymentLinkBookingRequest {
+  customerEmail: string;
+  customerFirstName: string;
+  customerLastName: string;
+  customerPhoneNumber?: string;
+  roomId: string;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
+  specialRequests?: string;
+}
+
+export interface PaymentLinkBookingResponse {
+  reservation: Reservation;
+  paymentLink: string;
   message: string;
 }
 
@@ -154,10 +150,10 @@ export const adminApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Reservation', 'Room', 'Admin'],
     }),
 
-    // Manager-Assisted Booking (Legacy - Raw Card Data)
-    createAssistedBooking: builder.mutation<ManagerBookingResponse, ManagerBookingRequest>({
+    // Manager-Assisted Booking with Payment Link (PCI Compliant)
+    createReservationWithPaymentLink: builder.mutation<PaymentLinkBookingResponse, PaymentLinkBookingRequest>({
       query: (bookingData) => ({
-        url: '/admin/bookings/assisted',
+        url: '/admin/reservations/create-with-payment-link',
         method: 'POST',
         body: bookingData,
       }),
@@ -179,5 +175,5 @@ export const {
   useUpdateReservationStatusMutation,
   useGetReservationStatisticsQuery,
   useCreateAssistedBookingTokenMutation,
-  useCreateAssistedBookingMutation,
+  useCreateReservationWithPaymentLinkMutation,
 } = adminApi;
