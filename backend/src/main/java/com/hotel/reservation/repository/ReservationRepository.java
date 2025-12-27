@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository interface for Reservation entity.
@@ -109,4 +110,13 @@ public interface ReservationRepository extends MongoRepository<Reservation, Stri
      * @return list of reservations created within the date range
      */
     List<Reservation> findByCreatedAtBetween(java.time.LocalDateTime startDateTime, java.time.LocalDateTime endDateTime);
+
+    /**
+     * Find a reservation by payment link token.
+     * Used for manager-assisted bookings where customers pay via a secure link.
+     *
+     * @param paymentLinkToken the unique payment link token
+     * @return optional reservation matching the token
+     */
+    Optional<Reservation> findByPaymentLinkToken(String paymentLinkToken);
 }

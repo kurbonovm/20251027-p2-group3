@@ -10,8 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -119,6 +121,12 @@ public class ReservationService {
         reservation.setTotalAmount(totalAmount);
         reservation.setSpecialRequests(specialRequests);
         reservation.setStatus(Reservation.ReservationStatus.PENDING);
+
+        // Set expiry time: 30 minutes from now for pending reservations
+        reservation.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+
+        // Generate secure payment link token for manager-assisted bookings
+        reservation.setPaymentLinkToken(UUID.randomUUID().toString());
 
         return reservationRepository.save(reservation);
     }
@@ -235,5 +243,16 @@ public class ReservationService {
      */
     public List<Reservation> getReservationsByDateRange(LocalDate startDate, LocalDate endDate) {
         return reservationRepository.findByDateRange(startDate, endDate);
+    }
+
+    /**
+     * Get reservation by payment link token.
+     * Used for manager-assisted bookings where customers pay via a secure link.
+     *
+     * @param token the unique payment link token
+     * @return reservation entity or null if not found
+     */
+    public Reservation getReservationByPaymentToken(String token) {
+        return reservationRepository.findByPaymentLinkToken(token).orElse(null);
     }
 }

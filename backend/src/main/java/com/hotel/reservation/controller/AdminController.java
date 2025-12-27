@@ -1,6 +1,5 @@
 package com.hotel.reservation.controller;
 
-import com.hotel.reservation.dto.ManagerBookingRequest;
 import com.hotel.reservation.dto.ManagerBookingResponse;
 import com.hotel.reservation.dto.TokenBookingRequest;
 import com.hotel.reservation.dto.UserDto;
@@ -16,6 +15,7 @@ import com.hotel.reservation.service.ReservationService;
 import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,6 +39,9 @@ public class AdminController {
     private final ReservationService reservationService;
     private final PaymentService paymentService;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     // Dashboard Overview
     @GetMapping("/dashboard")
@@ -378,145 +381,79 @@ public class AdminController {
         }
     }
 
-    // Manager-Assisted Booking (Legacy - Direct Card Data)
+    // Helper method to convert User to UserDto
     /**
-     * Create a booking on behalf of a customer and charge their card.
-     * This endpoint allows managers to book rooms for customers and process payment
-     * using the customer's card details.
+     * Create a reservation for a customer with payment link (PCI Compliant).
+     * Manager creates the reservation and customer pays via secure link.
      *
-     * @deprecated Use {@link #createAssistedBookingWithToken(TokenBookingRequest)} instead.
-     *             This method handles raw card data which requires PCI-DSS Level 1 compliance.
-     *
-     * @param request booking request with customer and payment details
-     * @return booking response with reservation and payment details
+     * @param request booking request with customer and reservation details
+     * @return reservation with payment link token
      */
-    @Deprecated
-    @PostMapping("/bookings/assisted")
+    @PostMapping("/reservations/create-with-payment-link")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> createAssistedBooking(@jakarta.validation.Valid @RequestBody ManagerBookingRequest request) {
-        log.info("Manager creating assisted booking for customer: {}", request.getCustomerEmail());
-
-        // Additional business logic validation
-        LocalDate today = LocalDate.now();
-
-        // Validate dates
-        if (request.getCheckInDate().isBefore(today)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                            "error", "Validation failed",
-                            "message", "Check-in date cannot be in the past"
-                    ));
-        }
-
-        if (request.getCheckOutDate().isBefore(request.getCheckInDate()) ||
-            request.getCheckOutDate().isEqual(request.getCheckInDate())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                            "error", "Validation failed",
-                            "message", "Check-out date must be after check-in date"
-                    ));
-        }
-
-        if (request.getCheckInDate().isAfter(today.plusYears(2))) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                            "error", "Validation failed",
-                            "message", "Check-in date cannot be more than 2 years in the future"
-                    ));
-        }
-
-        // Validate card expiry date is not in the past
-        LocalDate cardExpiry = LocalDate.of(request.getCardExpiryYear(), request.getCardExpiryMonth(), 1);
-        LocalDate firstOfCurrentMonth = LocalDate.of(today.getYear(), today.getMonth(), 1);
-        if (cardExpiry.isBefore(firstOfCurrentMonth)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                            "error", "Validation failed",
-                            "message", "Card expiry date cannot be in the past"
-                    ));
-        }
-
-        // Sanitize and validate inputs
-        if (request.getSpecialRequests() != null && request.getSpecialRequests().length() > 500) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                            "error", "Validation failed",
-                            "message", "Special requests cannot exceed 500 characters"
-                    ));
-        }
-
+    public ResponseEntity<?> createReservationWithPaymentLink(@RequestBody Map<String, Object> request) {
         try {
-            // Find or create customer user
-            User customer = userRepository.findByEmail(request.getCustomerEmail())
-                    .orElseGet(() -> {
-                        log.info("Creating new customer account for: {}", request.getCustomerEmail());
-                        User newUser = new User();
-                        newUser.setEmail(request.getCustomerEmail());
-                        newUser.setFirstName(request.getCustomerFirstName());
-                        newUser.setLastName(request.getCustomerLastName());
-                        newUser.setPhoneNumber(request.getCustomerPhoneNumber());
-                        newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Random password
-                        newUser.setRoles(Set.of(User.Role.GUEST));
-                        newUser.setProvider("local");
-                        newUser.setEnabled(true);
-                        return userRepository.save(newUser);
-                    });
+            String customerEmail = (String) request.get("customerEmail");
+            String customerFirstName = (String) request.get("customerFirstName");
+            String customerLastName = (String) request.get("customerLastName");
+            String customerPhoneNumber = (String) request.get("customerPhoneNumber");
+            String roomId = (String) request.get("roomId");
+            String checkInDate = (String) request.get("checkInDate");
+            String checkOutDate = (String) request.get("checkOutDate");
+
+            // Safely convert numberOfGuests to Integer
+            Integer numberOfGuests;
+            Object guestsObj = request.get("numberOfGuests");
+            if (guestsObj instanceof Integer) {
+                numberOfGuests = (Integer) guestsObj;
+            } else if (guestsObj instanceof String) {
+                numberOfGuests = Integer.parseInt((String) guestsObj);
+            } else {
+                numberOfGuests = ((Number) guestsObj).intValue();
+            }
+
+            String specialRequests = (String) request.get("specialRequests");
+
+            // Find or create user
+            User user = userRepository.findByEmail(customerEmail).orElseGet(() -> {
+                User newUser = new User();
+                newUser.setEmail(customerEmail);
+                newUser.setFirstName(customerFirstName);
+                newUser.setLastName(customerLastName);
+                newUser.setPhoneNumber(customerPhoneNumber);
+                newUser.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString())); // Random password
+                newUser.setRoles(new HashSet<>(java.util.Arrays.asList(com.hotel.reservation.model.User.Role.GUEST)));
+                newUser.setEnabled(true);
+                newUser.setProvider("LOCAL");
+                return userRepository.save(newUser);
+            });
 
             // Create reservation
             Reservation reservation = reservationService.createReservation(
-                    customer,
-                    request.getRoomId(),
-                    request.getCheckInDate(),
-                    request.getCheckOutDate(),
-                    request.getNumberOfGuests(),
-                    request.getSpecialRequests()
+                user,
+                roomId,
+                LocalDate.parse(checkInDate),
+                LocalDate.parse(checkOutDate),
+                numberOfGuests,
+                specialRequests != null ? specialRequests : ""
             );
 
-            // Process payment with card details
-            Payment payment = paymentService.processDirectCardPayment(
-                    reservation,
-                    request.getCardNumber(),
-                    request.getCardExpiryMonth(),
-                    request.getCardExpiryYear(),
-                    request.getCardCvc(),
-                    request.getCardholderName(),
-                    request.getBillingAddressLine1(),
-                    request.getBillingCity(),
-                    request.getBillingState(),
-                    request.getBillingPostalCode(),
-                    request.getBillingCountry()
-            );
+            // Generate payment link URL
+            String paymentLink = frontendUrl + "/payment/" + reservation.getPaymentLinkToken();
 
-            // Build response
-            ManagerBookingResponse response = new ManagerBookingResponse();
-            response.setReservation(reservation);
-            response.setPayment(payment);
-            response.setCustomerId(customer.getId());
-            response.setMessage("Booking created successfully and payment processed");
+            return ResponseEntity.ok(Map.of(
+                "reservation", reservation,
+                "paymentLink", paymentLink,
+                "message", "Reservation created successfully. Send payment link to customer."
+            ));
 
-            log.info("Assisted booking completed successfully. Reservation ID: {}, Payment ID: {}",
-                    reservation.getId(), payment.getId());
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
-        } catch (StripeException e) {
-            log.error("Payment processing failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
-                    .body(Map.of(
-                            "error", "Payment failed",
-                            "message", e.getMessage()
-                    ));
-        } catch (RuntimeException e) {
-            log.error("Booking creation failed: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(
-                            "error", "Booking failed",
-                            "message", e.getMessage()
-                    ));
+        } catch (Exception e) {
+            log.error("Error creating reservation with payment link", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
         }
     }
 
-    // Helper method to convert User to UserDto
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());

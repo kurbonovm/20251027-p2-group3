@@ -182,6 +182,7 @@ const Booking: React.FC = () => {
       // Confirm payment on backend
       await confirmPayment({
         paymentIntentId: paymentIntentId!,
+        reservationId: reservationId!,
       }).unwrap();
 
       setSuccess('Payment processed successfully! Redirecting...');

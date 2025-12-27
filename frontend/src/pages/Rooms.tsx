@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Box,
@@ -15,12 +15,21 @@ import {
   Chip,
   Stack,
   useTheme,
+  Popover,
+  IconButton,
 } from '@mui/material';
-import { Hotel as HotelIcon, People as PeopleIcon } from '@mui/icons-material';
+import { Hotel as HotelIcon, People as PeopleIcon, Recommend as RecommendIcon, CalendarMonth as CalendarIcon, Close as CloseIcon } from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { useGetRoomsQuery } from '../features/rooms/roomsApi';
+import { useGetRoomsQuery, useGetAvailableRoomsQuery } from '../features/rooms/roomsApi';
 import { useGetAllReservationsAdminQuery } from '../features/admin/adminApi';
+import { useGetMyPreferencesQuery } from '../features/preferences/preferencesApi';
 import { Room, RoomType } from '../types';
+import { useSelector } from 'react-redux';
+import { selectIsAuthenticated } from '../features/auth/authSlice';
 
 /**
  * Rooms page component to browse available rooms
@@ -29,15 +38,75 @@ const Rooms: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+
+  // Fetch user preferences if authenticated
+  const { data: preferences } = useGetMyPreferencesQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  // Initialize filters from sessionStorage or defaults
   const [filters, setFilters] = useState<{
     type?: string;
     minPrice?: string;
     maxPrice?: string;
-  }>({
-    type: '',
-    minPrice: '',
-    maxPrice: '',
+  }>(() => {
+    const saved = sessionStorage.getItem('roomFilters');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return { type: '', minPrice: '', maxPrice: '' };
+      }
+    }
+    return { type: '', minPrice: '', maxPrice: '' };
   });
+
+  // Initialize date range from sessionStorage or defaults
+  const [dateRange, setDateRange] = useState<{
+    checkIn: Date | null;
+    checkOut: Date | null;
+  }>(() => {
+    const saved = sessionStorage.getItem('roomDateRange');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          checkIn: parsed.checkIn ? new Date(parsed.checkIn) : null,
+          checkOut: parsed.checkOut ? new Date(parsed.checkOut) : null,
+        };
+      } catch {
+        return { checkIn: null, checkOut: null };
+      }
+    }
+    return { checkIn: null, checkOut: null };
+  });
+  const [datePickerAnchor, setDatePickerAnchor] = useState<HTMLButtonElement | null>(null);
+  const [selectingCheckIn, setSelectingCheckIn] = useState(true);
+
+  // Save filters to sessionStorage whenever they change
+  useEffect(() => {
+    sessionStorage.setItem('roomFilters', JSON.stringify(filters));
+  }, [filters]);
+
+  // Save date range to sessionStorage whenever it changes
+  useEffect(() => {
+    const dateRangeToSave = {
+      checkIn: dateRange.checkIn?.toISOString() || null,
+      checkOut: dateRange.checkOut?.toISOString() || null,
+    };
+    sessionStorage.setItem('roomDateRange', JSON.stringify(dateRangeToSave));
+  }, [dateRange]);
+
+  // Pre-fill preferred room type from user preferences
+  useEffect(() => {
+    if (preferences?.preferredRoomType && !filters.type) {
+      const preferredType = preferences.preferredRoomType.toUpperCase();
+      if (['STANDARD', 'DELUXE', 'SUITE', 'PRESIDENTIAL'].includes(preferredType)) {
+        setFilters(prev => ({ ...prev, type: preferredType }));
+      }
+    }
+  }, [preferences]);
 
   // Build query params, converting strings to numbers and filtering out empty values
   const queryParams = {
@@ -46,9 +115,27 @@ const Rooms: React.FC = () => {
     ...(filters.maxPrice && { maxPrice: parseFloat(filters.maxPrice) }),
   };
 
-  const { data: rooms, isLoading, error } = useGetRoomsQuery(
-    Object.keys(queryParams).length > 0 ? queryParams : undefined
+  // Use available rooms endpoint if dates are selected, otherwise use regular rooms endpoint
+  const hasDateRange = dateRange.checkIn && dateRange.checkOut;
+
+  const { data: allRooms, isLoading: allRoomsLoading, error: allRoomsError } = useGetRoomsQuery(
+    Object.keys(queryParams).length > 0 ? queryParams : undefined,
+    { skip: hasDateRange }
   );
+
+  const { data: availableRooms, isLoading: availableRoomsLoading, error: availableRoomsError } = useGetAvailableRoomsQuery(
+    {
+      startDate: dateRange.checkIn ? format(dateRange.checkIn, 'yyyy-MM-dd') : '',
+      endDate: dateRange.checkOut ? format(dateRange.checkOut, 'yyyy-MM-dd') : '',
+      guests: 1, // Default to 1 guest, could add a guest selector in the future
+    },
+    { skip: !hasDateRange }
+  );
+
+  // Use the appropriate data source based on whether dates are selected
+  const rooms = hasDateRange ? availableRooms : allRooms;
+  const isLoading = hasDateRange ? availableRoomsLoading : allRoomsLoading;
+  const error = hasDateRange ? availableRoomsError : allRoomsError;
 
   const { data: reservations } = useGetAllReservationsAdminQuery();
 
@@ -61,11 +148,139 @@ const Rooms: React.FC = () => {
       roomOccupancyCount.set(r.room.id, count + 1);
     });
 
+  // Calculate preference match score for each room
+  const calculatePreferenceScore = (room: Room): number => {
+    if (!preferences) return 0;
+
+    let score = 0;
+
+    // Room type match (highest weight)
+    if (preferences.preferredRoomType && room.type.toLowerCase() === preferences.preferredRoomType.toLowerCase()) {
+      score += 5;
+    }
+
+    // Bed type match
+    if (preferences.preferredBedType && room.bedType === preferences.preferredBedType) {
+      score += 3;
+    }
+
+    // View match
+    if (preferences.preferredRoomView && room.viewType === preferences.preferredRoomView) {
+      score += 2;
+    }
+
+    // Accessibility preferences
+    if (preferences.wheelchairAccessible && room.wheelchairAccessible) {
+      score += 4;
+    }
+    if (preferences.hearingAccessible && room.hearingAccessible) {
+      score += 3;
+    }
+    if (preferences.visualAccessible && room.visualAccessible) {
+      score += 3;
+    }
+
+    return score;
+  };
+
+  // Filter and sort rooms by preference match
+  const processedRooms = React.useMemo(() => {
+    if (!rooms) return [];
+
+    let filtered = [...rooms];
+
+    // Apply filters when using available rooms endpoint (which doesn't have built-in filters)
+    if (hasDateRange) {
+      if (filters.type) {
+        filtered = filtered.filter(r => r.type === filters.type);
+      }
+      if (filters.minPrice) {
+        filtered = filtered.filter(r => r.pricePerNight >= parseFloat(filters.minPrice));
+      }
+      if (filters.maxPrice) {
+        filtered = filtered.filter(r => r.pricePerNight <= parseFloat(filters.maxPrice));
+      }
+    }
+
+    // Filter by accessibility requirements if user has them
+    if (preferences?.wheelchairAccessible) {
+      filtered = filtered.filter(r => r.wheelchairAccessible);
+    }
+
+    // Add score and sort
+    const roomsWithScores = filtered.map(room => ({
+      ...room,
+      preferenceScore: calculatePreferenceScore(room),
+    }));
+
+    // Sort by preference score (highest first), then by price
+    return roomsWithScores.sort((a, b) => {
+      if (b.preferenceScore !== a.preferenceScore) {
+        return b.preferenceScore - a.preferenceScore;
+      }
+      return a.pricePerNight - b.pricePerNight;
+    });
+  }, [rooms, preferences, hasDateRange, filters]);
+
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({
       ...filters,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleDatePickerOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setDatePickerAnchor(event.currentTarget);
+    setSelectingCheckIn(true);
+  };
+
+  const handleDatePickerClose = () => {
+    setDatePickerAnchor(null);
+    setSelectingCheckIn(true);
+  };
+
+  const handleDateSelect = (date: Date | null) => {
+    if (selectingCheckIn) {
+      setDateRange({ checkIn: date, checkOut: null });
+      setSelectingCheckIn(false);
+    } else {
+      if (date && dateRange.checkIn && date < dateRange.checkIn) {
+        // If check-out is before check-in, swap them
+        setDateRange({ checkIn: date, checkOut: dateRange.checkIn });
+      } else {
+        setDateRange({ ...dateRange, checkOut: date });
+      }
+      // Close the picker after selecting checkout date
+      setTimeout(() => handleDatePickerClose(), 300);
+    }
+  };
+
+  const clearDates = () => {
+    setDateRange({ checkIn: null, checkOut: null });
+  };
+
+  const clearAllFilters = () => {
+    setFilters({ type: '', minPrice: '', maxPrice: '' });
+    setDateRange({ checkIn: null, checkOut: null });
+    sessionStorage.removeItem('roomFilters');
+    sessionStorage.removeItem('roomDateRange');
+  };
+
+  const hasActiveFilters = !!(
+    filters.type ||
+    filters.minPrice ||
+    filters.maxPrice ||
+    dateRange.checkIn ||
+    dateRange.checkOut
+  );
+
+  const getDateRangeLabel = () => {
+    if (dateRange.checkIn && dateRange.checkOut) {
+      return `${format(dateRange.checkIn, 'MMM dd')} - ${format(dateRange.checkOut, 'MMM dd, yyyy')}`;
+    } else if (dateRange.checkIn) {
+      return `${format(dateRange.checkIn, 'MMM dd, yyyy')} - Select checkout`;
+    }
+    return 'Select dates';
   };
 
   const roomTypes: { value: string; label: string }[] = [
@@ -148,6 +363,20 @@ const Rooms: React.FC = () => {
           </Typography>
         </Box>
 
+        {hasDateRange && (
+          <Alert
+            severity="info"
+            sx={{
+              mb: 3,
+              backgroundColor: isDarkMode ? 'rgba(2,136,209,0.1)' : 'rgba(2,136,209,0.1)',
+              color: isDarkMode ? '#4fc3f7' : '#0288d1',
+              border: isDarkMode ? '1px solid rgba(2,136,209,0.3)' : '1px solid rgba(2,136,209,0.3)',
+            }}
+          >
+            Showing rooms available from {format(dateRange.checkIn!, 'MMM dd')} to {format(dateRange.checkOut!, 'MMM dd, yyyy')}
+          </Alert>
+        )}
+
         <Box
           sx={{
             mb: { xs: 4, md: 6 },
@@ -161,6 +390,36 @@ const Rooms: React.FC = () => {
           }}
         >
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleDatePickerOpen}
+              startIcon={<CalendarIcon />}
+              endIcon={dateRange.checkIn && dateRange.checkOut ? (
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearDates();
+                  }}
+                  sx={{ ml: 1, p: 0.5 }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              ) : null}
+              sx={{
+                justifyContent: 'flex-start',
+                textTransform: 'none',
+                color: isDarkMode ? (dateRange.checkIn || dateRange.checkOut ? '#FFD700' : 'rgba(255,255,255,0.7)') : 'text.primary',
+                borderColor: isDarkMode ? 'rgba(255,215,0,0.3)' : 'divider',
+                '&:hover': {
+                  borderColor: isDarkMode ? 'rgba(255,215,0,0.5)' : 'primary.main',
+                  bgcolor: isDarkMode ? 'rgba(255,215,0,0.05)' : 'action.hover',
+                },
+              }}
+            >
+              {getDateRangeLabel()}
+            </Button>
             <TextField
               fullWidth
               select
@@ -227,6 +486,102 @@ const Rooms: React.FC = () => {
               onChange={handleFilterChange}
             />
           </Stack>
+
+          {/* Clear Filters Button */}
+          {hasActiveFilters && (
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={clearAllFilters}
+                sx={{
+                  color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary',
+                  borderColor: isDarkMode ? 'rgba(255,215,0,0.3)' : 'divider',
+                  '&:hover': {
+                    borderColor: isDarkMode ? 'rgba(255,215,0,0.5)' : 'primary.main',
+                    bgcolor: isDarkMode ? 'rgba(255,215,0,0.05)' : 'action.hover',
+                  },
+                }}
+              >
+                Clear All Filters
+              </Button>
+            </Box>
+          )}
+
+          {/* Date Range Picker Popover */}
+          <Popover
+            open={Boolean(datePickerAnchor)}
+            anchorEl={datePickerAnchor}
+            onClose={handleDatePickerClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'left',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'left',
+            }}
+            slotProps={{
+              paper: {
+                sx: {
+                  bgcolor: isDarkMode ? '#1a1a1a' : 'background.paper',
+                  border: isDarkMode ? '1px solid rgba(255,215,0,0.2)' : 'none',
+                  borderRadius: 2,
+                  mt: 1,
+                  boxShadow: isDarkMode ? '0 8px 32px rgba(0,0,0,0.5)' : 3,
+                },
+              },
+            }}
+          >
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <Box sx={{ p: 2 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    mb: 2,
+                    color: isDarkMode ? '#FFD700' : 'primary.main',
+                    fontWeight: 600,
+                  }}
+                >
+                  {selectingCheckIn ? 'Select Check-In Date' : 'Select Check-Out Date'}
+                </Typography>
+                <DateCalendar
+                  value={selectingCheckIn ? dateRange.checkIn : dateRange.checkOut}
+                  onChange={handleDateSelect}
+                  disablePast
+                  minDate={selectingCheckIn ? new Date() : dateRange.checkIn || new Date()}
+                  sx={{
+                    '& .MuiPickersDay-root': {
+                      color: isDarkMode ? '#fff' : 'text.primary',
+                      '&:hover': {
+                        bgcolor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'action.hover',
+                      },
+                      '&.Mui-selected': {
+                        bgcolor: isDarkMode ? '#FFD700 !important' : 'primary.main !important',
+                        color: isDarkMode ? '#000 !important' : '#fff !important',
+                      },
+                    },
+                    '& .MuiPickersCalendarHeader-label': {
+                      color: isDarkMode ? '#FFD700' : 'primary.main',
+                    },
+                    '& .MuiPickersArrowSwitcher-button': {
+                      color: isDarkMode ? '#FFD700' : 'primary.main',
+                    },
+                    '& .MuiDayCalendar-weekDayLabel': {
+                      color: isDarkMode ? 'rgba(255,255,255,0.6)' : 'text.secondary',
+                    },
+                  }}
+                />
+                {dateRange.checkIn && dateRange.checkOut && (
+                  <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary' }}>
+                      Selected: {format(dateRange.checkIn, 'MMM dd')} - {format(dateRange.checkOut, 'MMM dd, yyyy')}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </LocalizationProvider>
+          </Popover>
         </Box>
 
         {rooms && rooms.filter(room => room.available).length === 0 ? (
@@ -252,10 +607,12 @@ const Rooms: React.FC = () => {
               gap: { xs: 2, sm: 2.5, md: 3 },
             }}
           >
-            {rooms?.filter(room => room.available).map((room: Room) => {
+            {processedRooms?.filter(room => room.available).map((room: Room & { preferenceScore?: number }) => {
               const occupiedCount = roomOccupancyCount.get(room.id) || 0;
               const availableCount = (room.totalRooms || 1) - occupiedCount;
               const isFullyOccupied = availableCount <= 0;
+              const isRecommended = !!(room.preferenceScore && room.preferenceScore >= 3);
+
               return (
                 <Card
                   key={room.id}
@@ -265,10 +622,13 @@ const Rooms: React.FC = () => {
                     flexDirection: 'column',
                     bgcolor: isDarkMode ? 'rgba(26,26,26,0.95)' : 'background.paper',
                     border: '1px solid',
-                    borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider',
+                    borderColor: isRecommended
+                      ? (isDarkMode ? 'rgba(255,215,0,0.5)' : 'primary.main')
+                      : (isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider'),
                     borderRadius: 2,
                     transition: 'all 0.3s ease',
                     cursor: 'pointer',
+                    position: 'relative',
                     '&:hover': {
                       transform: { xs: 'translateY(-4px)', md: 'translateY(-8px)' },
                       boxShadow: isDarkMode ? '0 12px 40px rgba(255,215,0,0.3)' : '0 12px 40px rgba(25,118,210,0.3)',
@@ -277,6 +637,25 @@ const Rooms: React.FC = () => {
                   }}
                   onClick={() => navigate(`/rooms/${room.id}`)}
                 >
+                  {isRecommended && (
+                    <Chip
+                      icon={<RecommendIcon />}
+                      label="Recommended for You"
+                      size="small"
+                      sx={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 8,
+                        zIndex: 1,
+                        bgcolor: isDarkMode ? '#FFD700' : 'primary.main',
+                        color: isDarkMode ? '#000' : '#fff',
+                        fontWeight: 600,
+                        '& .MuiChip-icon': {
+                          color: isDarkMode ? '#000' : '#fff',
+                        },
+                      }}
+                    />
+                  )}
                   <CardMedia
                     component="img"
                     height="140"

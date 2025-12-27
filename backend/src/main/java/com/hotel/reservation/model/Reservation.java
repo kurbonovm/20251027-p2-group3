@@ -107,6 +107,18 @@ public class Reservation {
     private LocalDateTime cancelledAt;
 
     /**
+     * Expiry timestamp for pending reservations (auto-cancellation)
+     * Pending reservations expire after 30 minutes if payment is not completed
+     */
+    private LocalDateTime expiresAt;
+
+    /**
+     * Secure payment link token for manager-assisted bookings
+     * Used to generate a unique payment URL that customers can access
+     */
+    private String paymentLinkToken;
+
+    /**
      * Reservation status enumeration
      */
     public enum ReservationStatus {
