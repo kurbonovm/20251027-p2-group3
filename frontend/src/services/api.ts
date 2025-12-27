@@ -10,6 +10,7 @@ interface ImportMeta {
   env: ImportMetaEnv;
 }
 
+// Build timestamp: 2025-12-27T03:20:00Z
 const baseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
   prepareHeaders: (headers, { getState }) => {
