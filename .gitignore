@@ -41,5 +41,3 @@ target/
 node_modules/
 
 # Ingore specific files
-.github/
-aws/
