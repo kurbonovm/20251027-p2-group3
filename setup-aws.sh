@@ -1548,7 +1548,6 @@ main() {
     create_vpc
     create_internet_gateway
     create_subnets
-    # Skipping NAT Gateways due to EIP limit - using public subnets for all resources
     # create_nat_gateways
     create_route_tables
     create_security_groups
