@@ -36,8 +36,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          # Use .env.production file instead of secrets for API URL
-          # VITE_API_URL: ${{ secrets.BACKEND_API_URL }}
+          VITE_API_URL: ${{ secrets.BACKEND_API_URL }}
           VITE_STRIPE_PUBLIC_KEY: ${{ secrets.STRIPE_PUBLIC_KEY }}
         run: npm run build
 
