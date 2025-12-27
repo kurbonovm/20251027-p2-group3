@@ -9,12 +9,15 @@ import {
   Avatar,
   Alert,
   useTheme,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { Person, Edit, Save } from '@mui/icons-material';
+import { Person, Edit, Save, Settings } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../features/auth/authSlice';
 import { useUpdateProfileMutation } from '../features/auth/authApi';
 import { UpdateProfileRequest } from '../types';
+import UserPreferencesSettings from '../components/UserPreferencesSettings';
 
 /**
  * User profile page component
@@ -25,6 +28,7 @@ const Profile: React.FC = () => {
   const isDarkMode = theme.palette.mode === 'dark';
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
+  const [tabValue, setTabValue] = useState<number>(0);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formData, setFormData] = useState<UpdateProfileRequest>({
     firstName: user?.firstName || '',
@@ -134,10 +138,34 @@ const Profile: React.FC = () => {
             </Alert>
           )}
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Typography variant="h5" sx={{ color: isDarkMode ? '#FFD700' : 'primary.main', fontWeight: 600 }}>
-              Profile Information
-            </Typography>
+          <Tabs
+            value={tabValue}
+            onChange={(e, newValue) => setTabValue(newValue)}
+            sx={{
+              mb: 3,
+              borderBottom: 1,
+              borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider',
+              '& .MuiTab-root': {
+                color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'text.secondary',
+                '&.Mui-selected': {
+                  color: isDarkMode ? '#FFD700' : 'primary.main',
+                },
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: isDarkMode ? '#FFD700' : 'primary.main',
+              },
+            }}
+          >
+            <Tab icon={<Person />} label="Profile Information" iconPosition="start" />
+            <Tab icon={<Settings />} label="Preferences" iconPosition="start" />
+          </Tabs>
+
+          {tabValue === 0 && (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="h5" sx={{ color: isDarkMode ? '#FFD700' : 'primary.main', fontWeight: 600 }}>
+                  Profile Information
+                </Typography>
             {!isEditing ? (
               <Button
                 variant="outlined"
@@ -333,6 +361,10 @@ const Profile: React.FC = () => {
               </Button>
             )}
           </Box>
+            </>
+          )}
+
+          {tabValue === 1 && <UserPreferencesSettings />}
         </Paper>
       </Container>
     </Box>

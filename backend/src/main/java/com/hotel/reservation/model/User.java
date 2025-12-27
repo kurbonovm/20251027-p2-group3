@@ -96,6 +96,12 @@ public class User {
     private LocalDateTime updatedAt;
 
     /**
+     * Reference to user preferences ID
+     * This is a soft reference - preferences are stored in a separate collection
+     */
+    private String preferencesId;
+
+    /**
      * User roles enum
      */
     public enum Role {

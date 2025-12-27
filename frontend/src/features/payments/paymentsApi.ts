@@ -16,6 +16,13 @@ export const paymentsApi = apiSlice.injectEndpoints({
         body: paymentData,
       }),
     }),
+    createPaymentIntentPublic: builder.mutation<PaymentIntentResponse, CreatePaymentIntentRequest>({
+      query: (paymentData) => ({
+        url: '/payments/create-intent-public',
+        method: 'POST',
+        body: paymentData,
+      }),
+    }),
     confirmPayment: builder.mutation<Transaction, ConfirmPaymentRequest>({
       query: (paymentData) => ({
         url: '/payments/confirm',
@@ -49,6 +56,7 @@ export const paymentsApi = apiSlice.injectEndpoints({
 
 export const {
   useCreatePaymentIntentMutation,
+  useCreatePaymentIntentPublicMutation,
   useConfirmPaymentMutation,
   useGetPaymentHistoryQuery,
   useGetAllPaymentsQuery,

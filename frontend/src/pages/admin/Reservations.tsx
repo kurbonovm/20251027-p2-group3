@@ -23,8 +23,10 @@ import {
   TextField,
   InputAdornment,
   SelectChangeEvent,
+  Grid,
+  Divider,
 } from '@mui/material';
-import { Search, FilterList } from '@mui/icons-material';
+import { Search, FilterList, Info } from '@mui/icons-material';
 import {
   useGetAllReservationsAdminQuery,
   useGetReservationStatisticsQuery,
@@ -50,6 +52,7 @@ const AdminReservations: React.FC = () => {
 
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [statusDialogOpen, setStatusDialogOpen] = useState<boolean>(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState<boolean>(false);
   const [newStatus, setNewStatus] = useState<ReservationStatus>('PENDING');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -186,7 +189,15 @@ const AdminReservations: React.FC = () => {
           </TableHead>
           <TableBody>
             {filteredReservations?.map((reservation: Reservation) => (
-              <TableRow key={reservation.id}>
+              <TableRow
+                key={reservation.id}
+                hover
+                sx={{ cursor: 'pointer' }}
+                onClick={() => {
+                  setSelectedReservation(reservation);
+                  setDetailsDialogOpen(true);
+                }}
+              >
                 <TableCell>
                   {reservation.user?.firstName} {reservation.user?.lastName}
                 </TableCell>
@@ -220,7 +231,7 @@ const AdminReservations: React.FC = () => {
                     size="small"
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <Button
                     size="small"
                     onClick={() => {
@@ -238,6 +249,227 @@ const AdminReservations: React.FC = () => {
         </Table>
       </TableContainer>
 
+      {/* Reservation Details Dialog */}
+      <Dialog
+        open={detailsDialogOpen}
+        onClose={() => setDetailsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">Reservation Details</Typography>
+            {selectedReservation && (
+              <Chip
+                label={selectedReservation.status}
+                color={getStatusColor(selectedReservation.status)}
+                size="small"
+              />
+            )}
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {selectedReservation && (
+            <Box>
+              {/* Reservation Info */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Reservation Information
+                </Typography>
+                <Divider sx={{ mb: 3 }} />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Reservation ID
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      {selectedReservation.id}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Created At
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      {new Date(selectedReservation.createdAt).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Guest Info */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Guest Information
+                </Typography>
+                <Divider sx={{ mb: 3 }} />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Name
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      {selectedReservation.user?.firstName} {selectedReservation.user?.lastName}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Email
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      {selectedReservation.user?.email}
+                    </Typography>
+                  </Box>
+                  {selectedReservation.user?.phoneNumber && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Phone Number
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                        {selectedReservation.user.phoneNumber}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Room Info */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Room Information
+                </Typography>
+                <Divider sx={{ mb: 3 }} />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Room Name
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      {selectedReservation.room?.name}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Room Type
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      {selectedReservation.room?.type}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Price Per Night
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      ${selectedReservation.room?.pricePerNight?.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Stay Info */}
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Stay Information
+                </Typography>
+                <Divider sx={{ mb: 3 }} />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Check-in
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ mb: 0.75, lineHeight: 1.8 }}>
+                      {parseDate(selectedReservation.checkInDate).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      {selectedReservation.checkInTime || '3:00 PM'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Check-out
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ mb: 0.75, lineHeight: 1.8 }}>
+                      {parseDate(selectedReservation.checkOutDate).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                      {selectedReservation.checkOutTime || '11:00 AM'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Number of Guests
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                      {selectedReservation.numberOfGuests}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Total Amount
+                    </Typography>
+                    <Typography variant="h6" color="primary" fontWeight="bold" sx={{ lineHeight: 1.8 }}>
+                      ${selectedReservation.totalAmount?.toFixed(2)}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* Special Requests */}
+              {selectedReservation.specialRequests && (
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                    Special Requests
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  <Paper sx={{ p: 2.5, bgcolor: 'grey.50' }}>
+                    <Typography variant="body2" sx={{ lineHeight: 1.8 }}>
+                      {selectedReservation.specialRequests}
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+
+              {/* Payment Info */}
+              {selectedReservation.expiresAt && (
+                <Box sx={{ mb: 4 }}>
+                  <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                    Payment Information
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Payment Link Expires At
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium" sx={{ lineHeight: 1.8 }}>
+                        {new Date(selectedReservation.expiresAt).toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailsDialogOpen(false)}>Close</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (selectedReservation) {
+                setNewStatus(selectedReservation.status);
+                setDetailsDialogOpen(false);
+                setStatusDialogOpen(true);
+              }
+            }}
+          >
+            Update Status
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Update Status Dialog */}
       <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)}>
         <DialogTitle>Update Reservation Status</DialogTitle>
         <DialogContent>

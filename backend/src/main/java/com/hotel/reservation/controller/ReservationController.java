@@ -123,8 +123,10 @@ public class ReservationController {
         LocalDate checkInDate = LocalDate.parse((String) reservationData.get("checkInDate"));
         LocalDate checkOutDate = LocalDate.parse((String) reservationData.get("checkOutDate"));
 
-        // Validate dates
-        if (checkInDate.isBefore(LocalDate.now())) {
+        // Validate dates - allow bookings from today onwards
+        // Use minusDays(1) to be lenient with timezone differences between client and server
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        if (checkInDate.isBefore(yesterday)) {
             throw new IllegalArgumentException("Check-in date cannot be in the past");
         }
         if (checkOutDate.isBefore(checkInDate) || checkOutDate.isEqual(checkInDate)) {
@@ -283,5 +285,38 @@ public class ReservationController {
 
         List<Reservation> reservations = reservationService.getReservationsByDateRange(startDate, endDate);
         return ResponseEntity.ok(reservations);
+    }
+
+    /**
+     * Get reservation by payment link token (Public endpoint for customer payment).
+     * This endpoint is used for manager-assisted bookings where customers
+     * receive a secure payment link via email or other communication.
+     *
+     * @param token the unique payment link token
+     * @return reservation details if token is valid and not expired
+     */
+    @GetMapping("/payment-link/{token}")
+    public ResponseEntity<?> getReservationByPaymentLink(@PathVariable String token) {
+        Reservation reservation = reservationService.getReservationByPaymentToken(token);
+
+        if (reservation == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Invalid or expired payment link"));
+        }
+
+        // Check if reservation is still pending
+        if (reservation.getStatus() != Reservation.ReservationStatus.PENDING) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "This reservation has already been processed"));
+        }
+
+        // Check if payment link has expired
+        if (reservation.getExpiresAt() != null &&
+            reservation.getExpiresAt().isBefore(java.time.LocalDateTime.now())) {
+            return ResponseEntity.status(HttpStatus.GONE)
+                    .body(Map.of("error", "Payment link has expired"));
+        }
+
+        return ResponseEntity.ok(reservation);
     }
 }
