@@ -206,17 +206,23 @@ public class ReservationService {
         reservation.setCancellationReason(reason);
         reservation.setCancelledAt(java.time.LocalDateTime.now());
 
-        // Refund payment on Stripe if exists
-        paymentRepository.findByReservationId(id).ifPresent(payment -> {
-            if (payment.getStatus() == com.hotel.reservation.model.Payment.PaymentStatus.SUCCEEDED) {
-                try {
-                    paymentService.processRefund(payment.getId(), payment.getAmount(), reason);
-                } catch (com.stripe.exception.StripeException e) {
-                    // Log error, but do not block cancellation
-                    System.err.println("Stripe refund failed: " + e.getMessage());
+        // Refund payment on Stripe if exists and succeeded
+        // Skip refund logic for pending/unpaid reservations
+        try {
+            paymentRepository.findByReservationId(id).ifPresent(payment -> {
+                if (payment.getStatus() == com.hotel.reservation.model.Payment.PaymentStatus.SUCCEEDED) {
+                    try {
+                        paymentService.processRefund(payment.getId(), payment.getAmount(), reason);
+                    } catch (com.stripe.exception.StripeException e) {
+                        // Log error, but do not block cancellation
+                        System.err.println("Stripe refund failed: " + e.getMessage());
+                    }
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            // Log error but don't fail the cancellation
+            System.err.println("Error processing refund: " + e.getMessage());
+        }
 
         return reservationRepository.save(reservation);
     }
