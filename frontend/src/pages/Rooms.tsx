@@ -24,10 +24,9 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { useGetRoomsQuery, useGetAvailableRoomsQuery } from '../features/rooms/roomsApi';
-import { useGetAllReservationsAdminQuery } from '../features/admin/adminApi';
+import { useGetRoomsWithAvailabilityQuery } from '../features/rooms/roomsApi';
 import { useGetMyPreferencesQuery } from '../features/preferences/preferencesApi';
-import { Room, RoomType } from '../types';
+import { Room, RoomType, RoomAvailabilityDTO, AvailabilityStatus } from '../types';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../features/auth/authSlice';
 
@@ -108,45 +107,18 @@ const Rooms: React.FC = () => {
     }
   }, [preferences]);
 
-  // Build query params, converting strings to numbers and filtering out empty values
-  const queryParams = {
-    ...(filters.type && { type: filters.type as RoomType }),
-    ...(filters.minPrice && { minPrice: parseFloat(filters.minPrice) }),
-    ...(filters.maxPrice && { maxPrice: parseFloat(filters.maxPrice) }),
-  };
-
-  // Use available rooms endpoint if dates are selected, otherwise use regular rooms endpoint
+  // Build query params for availability endpoint
   const hasDateRange = dateRange.checkIn && dateRange.checkOut;
+  const availabilityParams = hasDateRange
+    ? {
+        checkInDate: format(dateRange.checkIn!, 'yyyy-MM-dd'),
+        checkOutDate: format(dateRange.checkOut!, 'yyyy-MM-dd'),
+        guests: 1, // Default to 1 guest, could add a guest selector in the future
+      }
+    : undefined;
 
-  const { data: allRooms, isLoading: allRoomsLoading, error: allRoomsError } = useGetRoomsQuery(
-    Object.keys(queryParams).length > 0 ? queryParams : undefined,
-    { skip: hasDateRange }
-  );
-
-  const { data: availableRooms, isLoading: availableRoomsLoading, error: availableRoomsError } = useGetAvailableRoomsQuery(
-    {
-      startDate: dateRange.checkIn ? format(dateRange.checkIn, 'yyyy-MM-dd') : '',
-      endDate: dateRange.checkOut ? format(dateRange.checkOut, 'yyyy-MM-dd') : '',
-      guests: 1, // Default to 1 guest, could add a guest selector in the future
-    },
-    { skip: !hasDateRange }
-  );
-
-  // Use the appropriate data source based on whether dates are selected
-  const rooms = hasDateRange ? availableRooms : allRooms;
-  const isLoading = hasDateRange ? availableRoomsLoading : allRoomsLoading;
-  const error = hasDateRange ? availableRoomsError : allRoomsError;
-
-  const { data: reservations } = useGetAllReservationsAdminQuery();
-
-  // Count how many reservations exist for each room type
-  const roomOccupancyCount = new Map<string, number>();
-  reservations
-    ?.filter(r => r.status === 'CONFIRMED' || r.status === 'CHECKED_IN')
-    .forEach(r => {
-      const count = roomOccupancyCount.get(r.room.id) || 0;
-      roomOccupancyCount.set(r.room.id, count + 1);
-    });
+  // Use the new availability endpoint that shows ALL rooms with status
+  const { data: roomsWithAvailability, isLoading, error } = useGetRoomsWithAvailabilityQuery(availabilityParams);
 
   // Calculate preference match score for each room
   const calculatePreferenceScore = (room: Room): number => {
@@ -185,32 +157,30 @@ const Rooms: React.FC = () => {
 
   // Filter and sort rooms by preference match
   const processedRooms = React.useMemo(() => {
-    if (!rooms) return [];
+    if (!roomsWithAvailability) return [];
 
-    let filtered = [...rooms];
+    let filtered = [...roomsWithAvailability];
 
-    // Apply filters when using available rooms endpoint (which doesn't have built-in filters)
-    if (hasDateRange) {
-      if (filters.type) {
-        filtered = filtered.filter(r => r.type === filters.type);
-      }
-      if (filters.minPrice) {
-        filtered = filtered.filter(r => r.pricePerNight >= parseFloat(filters.minPrice));
-      }
-      if (filters.maxPrice) {
-        filtered = filtered.filter(r => r.pricePerNight <= parseFloat(filters.maxPrice));
-      }
+    // Apply filters to room data
+    if (filters.type) {
+      filtered = filtered.filter(dto => dto.room.type === filters.type);
+    }
+    if (filters.minPrice) {
+      filtered = filtered.filter(dto => dto.room.pricePerNight >= parseFloat(filters.minPrice));
+    }
+    if (filters.maxPrice) {
+      filtered = filtered.filter(dto => dto.room.pricePerNight <= parseFloat(filters.maxPrice));
     }
 
     // Filter by accessibility requirements if user has them
     if (preferences?.wheelchairAccessible) {
-      filtered = filtered.filter(r => r.wheelchairAccessible);
+      filtered = filtered.filter(dto => dto.room.wheelchairAccessible);
     }
 
-    // Add score and sort
-    const roomsWithScores = filtered.map(room => ({
-      ...room,
-      preferenceScore: calculatePreferenceScore(room),
+    // Add preference score and sort
+    const roomsWithScores = filtered.map(dto => ({
+      ...dto,
+      preferenceScore: calculatePreferenceScore(dto.room),
     }));
 
     // Sort by preference score (highest first), then by price
@@ -218,9 +188,9 @@ const Rooms: React.FC = () => {
       if (b.preferenceScore !== a.preferenceScore) {
         return b.preferenceScore - a.preferenceScore;
       }
-      return a.pricePerNight - b.pricePerNight;
+      return a.room.pricePerNight - b.room.pricePerNight;
     });
-  }, [rooms, preferences, hasDateRange, filters]);
+  }, [roomsWithAvailability, preferences, filters]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({
@@ -584,7 +554,7 @@ const Rooms: React.FC = () => {
           </Popover>
         </Box>
 
-        {rooms && rooms.filter(room => room.available).length === 0 ? (
+        {processedRooms.length === 0 ? (
           <Alert
             severity="info"
             sx={{
@@ -593,7 +563,7 @@ const Rooms: React.FC = () => {
               border: '1px solid rgba(2,136,209,0.3)',
             }}
           >
-            No available rooms found matching your criteria.
+            No rooms found matching your criteria.
           </Alert>
         ) : (
           <Box
@@ -607,11 +577,16 @@ const Rooms: React.FC = () => {
               gap: { xs: 2, sm: 2.5, md: 3 },
             }}
           >
-            {processedRooms?.filter(room => room.available).map((room: Room & { preferenceScore?: number }) => {
-              const occupiedCount = roomOccupancyCount.get(room.id) || 0;
-              const availableCount = (room.totalRooms || 1) - occupiedCount;
-              const isFullyOccupied = availableCount <= 0;
-              const isRecommended = !!(room.preferenceScore && room.preferenceScore >= 3);
+            {processedRooms?.map((dto: RoomAvailabilityDTO & { preferenceScore?: number }) => {
+              const { room, status, availabilityMessage, availabilityIcon } = dto;
+              const isRecommended = !!(dto.preferenceScore && dto.preferenceScore >= 3);
+
+              // Helper function to get chip color based on status
+              const getAvailabilityColor = (): 'error' | 'warning' | 'success' => {
+                if (status === 'FULLY_BOOKED') return 'error';
+                if (status === 'LIMITED') return 'warning';
+                return 'success';
+              };
 
               return (
                 <Card
@@ -629,6 +604,7 @@ const Rooms: React.FC = () => {
                     transition: 'all 0.3s ease',
                     cursor: 'pointer',
                     position: 'relative',
+                    opacity: status === 'FULLY_BOOKED' ? 0.7 : 1,
                     '&:hover': {
                       transform: { xs: 'translateY(-4px)', md: 'translateY(-8px)' },
                       boxShadow: isDarkMode ? '0 12px 40px rgba(255,215,0,0.3)' : '0 12px 40px rgba(25,118,210,0.3)',
@@ -725,21 +701,38 @@ const Rooms: React.FC = () => {
                         }}
                         size="small"
                       />
-                      <Chip
-                        label={isFullyOccupied ? 'Fully Occupied' : `${availableCount} Available`}
-                        color={isFullyOccupied ? 'error' : 'success'}
-                        sx={{
-                          borderRadius: '16px',
-                          height: '28px',
-                          fontSize: '0.8125rem',
-                          fontWeight: 500,
-                          '& .MuiChip-label': {
-                            px: 1.5,
-                          },
-                        }}
-                        size="small"
-                      />
                     </Stack>
+                    {/* Show availability message when dates are selected */}
+                    {hasDateRange && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: status === 'FULLY_BOOKED'
+                            ? (isDarkMode ? '#ff6b6b' : '#d32f2f')
+                            : status === 'LIMITED'
+                            ? (isDarkMode ? '#ffa726' : '#ed6c02')
+                            : (isDarkMode ? '#66bb6a' : '#2e7d32'),
+                          display: 'block',
+                          mb: 1,
+                          fontWeight: 600
+                        }}
+                      >
+                        {availabilityMessage}
+                      </Typography>
+                    )}
+                    {!hasDateRange && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: isDarkMode ? 'rgba(255,255,255,0.5)' : 'text.secondary',
+                          display: 'block',
+                          mb: 1,
+                          fontStyle: 'italic'
+                        }}
+                      >
+                        Select dates above to check availability
+                      </Typography>
+                    )}
                     <Typography
                       variant="h6"
                       sx={{

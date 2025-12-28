@@ -12,6 +12,7 @@ import type {
   AvailableRoomsQuery,
   CreateRoomRequest,
   UpdateRoomRequest,
+  RoomAvailabilityDTO,
 } from '../../types';
 
 /**
@@ -54,6 +55,25 @@ export const roomsApi = apiSlice.injectEndpoints({
       query: ({ startDate, endDate, guests }) => ({
         url: '/rooms/available',
         params: { checkInDate: startDate, checkOutDate: endDate, guests },
+      }),
+      providesTags: ['Room'],
+    }),
+
+    /**
+     * Fetches all rooms with availability status.
+     * Shows ALL rooms with their availability status for the requested dates.
+     * If no dates provided, shows rooms with general occupancy status.
+     *
+     * @param query - Optional date range and guest count parameters
+     * @returns Array of rooms with availability information
+     */
+    getRoomsWithAvailability: builder.query<
+      RoomAvailabilityDTO[],
+      { checkInDate?: string; checkOutDate?: string; guests?: number } | void
+    >({
+      query: (params) => ({
+        url: '/rooms/with-availability',
+        params,
       }),
       providesTags: ['Room'],
     }),
@@ -110,6 +130,7 @@ export const {
   useGetRoomsQuery,
   useGetRoomByIdQuery,
   useGetAvailableRoomsQuery,
+  useGetRoomsWithAvailabilityQuery,
   useCreateRoomMutation,
   useUpdateRoomMutation,
   useDeleteRoomMutation,

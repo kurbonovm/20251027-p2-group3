@@ -1,5 +1,6 @@
 package com.hotel.reservation.controller;
 
+import com.hotel.reservation.dto.RoomAvailabilityDTO;
 import com.hotel.reservation.model.Room;
 import com.hotel.reservation.service.RoomService;
 import lombok.RequiredArgsConstructor;
@@ -78,6 +79,26 @@ public class RoomController {
             @RequestParam int guests) {
 
         List<Room> rooms = roomService.getAvailableRooms(checkInDate, checkOutDate, guests);
+        return ResponseEntity.ok(rooms);
+    }
+
+    /**
+     * Get all rooms with availability status.
+     * Shows ALL rooms with their availability status for the requested dates.
+     * If no dates provided, shows rooms with general occupancy status.
+     *
+     * @param checkInDate check-in date (optional)
+     * @param checkOutDate check-out date (optional)
+     * @param guests number of guests (optional)
+     * @return list of rooms with availability information
+     */
+    @GetMapping("/with-availability")
+    public ResponseEntity<List<RoomAvailabilityDTO>> getRoomsWithAvailability(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate,
+            @RequestParam(required = false) Integer guests) {
+
+        List<RoomAvailabilityDTO> rooms = roomService.getAllRoomsWithAvailability(checkInDate, checkOutDate, guests);
         return ResponseEntity.ok(rooms);
     }
 
