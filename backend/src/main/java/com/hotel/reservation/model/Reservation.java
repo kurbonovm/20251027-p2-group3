@@ -108,7 +108,7 @@ public class Reservation {
 
     /**
      * Expiry timestamp for pending reservations (auto-cancellation)
-     * Pending reservations expire after 30 minutes if payment is not completed
+     * Pending reservations expire after 5 minutes if payment is not completed
      */
     private LocalDateTime expiresAt;
 

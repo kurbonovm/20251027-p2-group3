@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Scheduled service to automatically cancel expired pending reservations.
  * Runs every minute to check for and cancel reservations that have exceeded
- * their 30-minute payment window.
+ * their 5-minute payment window.
  *
  * @author Hotel Reservation Team
  * @version 1.0
@@ -31,7 +31,7 @@ public class ReservationExpiryScheduler {
      * Runs every minute (60000 milliseconds).
      *
      * This ensures that pending reservations without payment are automatically
-     * cancelled after 30 minutes, freeing up rooms for other guests.
+     * cancelled after 5 minutes, freeing up rooms for other guests.
      */
     @Scheduled(fixedRate = 60000) // Run every 60 seconds
     @Transactional
@@ -51,7 +51,7 @@ public class ReservationExpiryScheduler {
 
             for (Reservation reservation : expiredReservations) {
                 reservation.setStatus(Reservation.ReservationStatus.CANCELLED);
-                reservation.setCancellationReason("Reservation expired - payment not completed within 30 minutes");
+                reservation.setCancellationReason("Reservation expired - payment not completed within 5 minutes");
                 reservation.setCancelledAt(now);
                 reservationRepository.save(reservation);
 
