@@ -33,6 +33,7 @@ import {
   Logout as LogoutIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  Phone as PhoneIcon,
 } from '@mui/icons-material';
 import { selectCurrentUser, selectIsAuthenticated, logout } from '../features/auth/authSlice';
 import { useThemeMode } from '../contexts/ThemeContext';
@@ -177,12 +178,14 @@ const MainLayout: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar
         position="static"
+        elevation={0}
         sx={{
-          background: isDarkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #000 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-          borderBottom: isDarkMode ? '1px solid rgba(255,215,0,0.2)' : '1px solid rgba(25,118,210,0.2)',
+          background: isDarkMode ? '#000000' : '#ffffff',
+          borderBottom: isDarkMode ? '1px solid rgba(255,215,0,0.1)' : '1px solid rgba(0,0,0,0.08)',
+          boxShadow: isDarkMode ? 'none' : '0 1px 3px rgba(0,0,0,0.05)',
         }}
       >
-        <Toolbar sx={{ px: { xs: 2, sm: 3 } }}>
+        <Toolbar sx={{ px: { xs: 2, sm: 3, md: 4 }, py: { xs: 2, md: 2.5 }, minHeight: { xs: 64, md: 72 } }}>
             <IconButton
               size="large"
               edge="start"
@@ -197,20 +200,23 @@ const MainLayout: React.FC = () => {
               <MenuIcon />
             </IconButton>
 
-            <HotelIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, color: isDarkMode ? '#FFD700' : 'primary.main' }} />
+            <HotelIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1.5, fontSize: 32, color: isDarkMode ? '#FFD700' : '#1976d2' }} />
             <Typography
-              variant="h6"
+              variant="h5"
               noWrap
               component="div"
               sx={{
-                mr: 2,
+                mr: 4,
                 display: { xs: 'none', md: 'flex' },
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
-                background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                fontSize: '1.5rem',
+                letterSpacing: '-0.5px',
+                color: isDarkMode ? '#fff' : '#000',
+                transition: 'color 0.2s ease',
+                '&:hover': {
+                  color: isDarkMode ? '#FFD700' : '#1976d2',
+                },
               }}
               onClick={() => navigate('/')}
             >
@@ -224,17 +230,29 @@ const MainLayout: React.FC = () => {
               sx={{
                 flexGrow: 1,
                 display: { xs: 'flex', md: 'none' },
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
-                background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                fontSize: '1.25rem',
+                letterSpacing: '-0.5px',
+                color: isDarkMode ? '#fff' : '#000',
               }}
               onClick={() => navigate('/')}
             >
               HotelX
             </Typography>
+
+            <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center', ml: 3, mr: 2 }}>
+              <PhoneIcon sx={{ fontSize: 18, color: isDarkMode ? '#FFD700' : 'primary.main', mr: 0.5 }} />
+              <Typography
+                variant="body2"
+                sx={{
+                  color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.primary',
+                  fontWeight: 500,
+                }}
+              >
+                (972) 555-0123
+              </Typography>
+            </Box>
 
             <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, ml: 2 }}>
               {navigationItems.map((item) => {

@@ -13,7 +13,12 @@ import {
   Wifi,
   LocalParking,
   FitnessCenter,
-  Restaurant
+  Restaurant,
+  LocationOn,
+  Phone,
+  Email,
+  Pool,
+  RoomService
 } from '@mui/icons-material';
 import { selectIsAuthenticated } from '../features/auth/authSlice';
 
@@ -61,7 +66,7 @@ const Home: React.FC = () => {
   const amenities: Amenity[] = [
     { icon: <Wifi />, title: 'Free WiFi' },
     { icon: <LocalParking />, title: 'Free Parking' },
-    { icon: <FitnessCenter />, title: 'Fitness Center' },
+    { icon: <Pool />, title: 'Swimming Pool' },
     { icon: <Restaurant />, title: 'Fine Dining' },
   ];
 
@@ -101,25 +106,12 @@ const Home: React.FC = () => {
           }}
         >
           <Box sx={{ maxWidth: '650px', color: 'white' }}>
-            <Chip
-              icon={<Star sx={{ color: '#ffc107 !important' }} />}
-              label="5-Star Luxury Experience"
-              sx={{
-                bgcolor: alpha('#fff', 0.15),
-                backdropFilter: 'blur(10px)',
-                color: 'white',
-                fontWeight: 600,
-                mb: 3,
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}
-            />
-
             <Typography
               variant="h1"
               sx={{
                 fontWeight: 900,
                 fontSize: { xs: '3rem', sm: '4rem', md: '5.5rem' },
-                mb: 3,
+                mb: 4,
                 lineHeight: 1.1,
                 textShadow: '0 4px 30px rgba(0,0,0,0.5)',
                 letterSpacing: '-0.02em',
@@ -143,7 +135,7 @@ const Home: React.FC = () => {
             <Typography
               variant="h5"
               sx={{
-                mb: 5,
+                mb: 6,
                 lineHeight: 1.6,
                 fontWeight: 300,
                 textShadow: '0 2px 20px rgba(0,0,0,0.5)',
@@ -236,8 +228,10 @@ const Home: React.FC = () => {
                     border: '1px solid rgba(255,255,255,0.2)',
                   }}
                 >
-                  {amenity.icon}
-                  <Typography sx={{ fontWeight: 500, fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
+                  <Box sx={{ fontSize: 18, display: 'flex', alignItems: 'center' }}>
+                    {amenity.icon}
+                  </Box>
+                  <Typography sx={{ fontWeight: 500, fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
                     {amenity.title}
                   </Typography>
                 </Box>
@@ -262,9 +256,9 @@ const Home: React.FC = () => {
             }}
           >
             {[
-              { value: '15K+', label: 'Happy Guests' },
-              { value: '800+', label: 'Premium Rooms' },
-              { value: '95+', label: 'Global Cities' },
+              { value: '2K+', label: 'Happy Guests' },
+              { value: '100+', label: 'Premium Rooms' },
+              { value: '1', label: 'Location' },
               { value: '4.9/5', label: 'Guest Rating' },
             ].map((stat, index) => (
               <Box key={index}>
@@ -644,6 +638,119 @@ const Home: React.FC = () => {
               Book Your Room Now
             </Button>
           </Stack>
+        </Container>
+      </Box>
+
+      {/* Contact Information Section */}
+      <Box sx={{ bgcolor: isDarkMode ? '#0a0a0a' : '#f5f5f5', py: 8 }}>
+        <Container maxWidth="lg">
+          <Typography
+            variant="h2"
+            textAlign="center"
+            sx={{
+              fontWeight: 900,
+              fontSize: { xs: '2.5rem', md: '3.5rem' },
+              mb: 6,
+              color: isDarkMode ? '#fff' : '#1a1a1a',
+            }}
+          >
+            Get in Touch
+          </Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: 'repeat(3, 1fr)',
+              },
+              gap: 4,
+              textAlign: 'center',
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  width: 70,
+                  height: 70,
+                  borderRadius: '50%',
+                  background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                }}
+              >
+                <LocationOn sx={{ fontSize: 35 }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: isDarkMode ? '#FFD700' : '#1976d2' }}>
+                  Our Location
+                </Typography>
+                <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#666' }}>
+                  123 Luxury Boulevard
+                </Typography>
+                <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#666' }}>
+                  Richardson, TX 75080
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  width: 70,
+                  height: 70,
+                  borderRadius: '50%',
+                  background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                }}
+              >
+                <Phone sx={{ fontSize: 35 }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: isDarkMode ? '#FFD700' : '#1976d2' }}>
+                  Call Us
+                </Typography>
+                <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#666' }}>
+                  (972) 555-0123
+                </Typography>
+                <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#666' }}>
+                  (972) 555-0124
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  width: 70,
+                  height: 70,
+                  borderRadius: '50%',
+                  background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                }}
+              >
+                <Email sx={{ fontSize: 35 }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: isDarkMode ? '#FFD700' : '#1976d2' }}>
+                  Email Us
+                </Typography>
+                <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#666' }}>
+                  reservations@hotelx.com
+                </Typography>
+                <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.7)' : '#666' }}>
+                  info@hotelx.com
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         </Container>
       </Box>
     </Box>

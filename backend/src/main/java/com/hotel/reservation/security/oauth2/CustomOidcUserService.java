@@ -7,14 +7,45 @@ import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
+/**
+ * Custom OIDC user service for processing OpenID Connect user information.
+ * <p>
+ * This service extends Spring Security's OidcUserService to handle OIDC-compliant
+ * OAuth2 providers (like Okta). It loads user information from the OIDC provider,
+ * creates or updates the user in the database, and ensures the user's profile
+ * is synchronized with the provider's data.
+ * </p>
+ *
+ * @author Hotel Reservation Team
+ * @version 1.0
+ */
 @Service
 public class CustomOidcUserService extends OidcUserService {
+    /**
+     * User repository for storing and retrieving user data
+     */
     private final UserRepository userRepository;
 
+    /**
+     * Constructs a new CustomOidcUserService with the specified user repository.
+     *
+     * @param userRepository the user repository for database operations
+     */
     public CustomOidcUserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Loads and processes OIDC user information from the OAuth2 provider.
+     * <p>
+     * This method retrieves user attributes from the OIDC provider (like Okta),
+     * checks if the user exists in the database, and either creates a new user
+     * or updates the existing user's profile. All users are assigned the GUEST role by default.
+     * </p>
+     *
+     * @param userRequest the OIDC user request containing provider information
+     * @return the OIDC user object with claims and attributes
+     */
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) {
         System.out.println("=== CustomOidcUserService.loadUser called ===");

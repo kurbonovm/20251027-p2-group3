@@ -7,14 +7,48 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+/**
+ * Custom OAuth2 user service for processing standard OAuth2 user information.
+ * <p>
+ * This service extends Spring Security's DefaultOAuth2UserService to handle
+ * OAuth2 providers (like Google and Okta). It loads user information from the
+ * OAuth2 provider, maps provider-specific attributes to the User model, and
+ * creates or updates the user in the database. The service handles different
+ * attribute mappings for various OAuth2 providers.
+ * </p>
+ *
+ * @author Hotel Reservation Team
+ * @version 1.0
+ */
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+    /**
+     * User repository for storing and retrieving user data
+     */
     private final UserRepository userRepository;
 
+    /**
+     * Constructs a new CustomOAuth2UserService with the specified user repository.
+     *
+     * @param userRepository the user repository for database operations
+     */
     public CustomOAuth2UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Loads and processes OAuth2 user information from the OAuth2 provider.
+     * <p>
+     * This method retrieves user attributes from OAuth2 providers (Google, Okta),
+     * maps provider-specific attributes to our User model, and either creates a new
+     * user or updates an existing user's profile. Provider-specific attribute mappings
+     * are applied (e.g., Google uses "given_name"/"family_name", Okta uses "name").
+     * All users are assigned the GUEST role by default.
+     * </p>
+     *
+     * @param userRequest the OAuth2 user request containing provider information
+     * @return the OAuth2 user object with authorities and attributes
+     */
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) {
         System.out.println("=== CustomOAuth2UserService.loadUser called ===");
