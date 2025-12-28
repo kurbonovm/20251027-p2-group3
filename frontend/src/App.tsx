@@ -1,3 +1,10 @@
+/**
+ * Main application component.
+ * Configures routing, theme provider, and defines all application routes.
+ *
+ * @module App
+ */
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -25,6 +32,18 @@ import Unauthorized from './pages/Unauthorized';
 import NotFound from './pages/NotFound';
 import OAuth2Callback from './pages/OAuth2Callback';
 
+/**
+ * Root application component with routing configuration.
+ * Defines public routes, protected routes, and role-based admin routes.
+ *
+ * Route Structure:
+ * - Public: Home, Login, Register, Rooms, Public Payment
+ * - Protected: Booking, Reservations, Profile, Payment History
+ * - Admin (ADMIN/MANAGER): Dashboard, Reservations, Rooms, Transactions, Assisted Booking
+ * - Admin (ADMIN only): User Management
+ *
+ * @returns Configured application with routing
+ */
 const App: React.FC = () => {
   return (
     <ThemeProvider>

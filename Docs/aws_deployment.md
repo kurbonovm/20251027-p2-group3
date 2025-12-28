@@ -17,8 +17,8 @@ Complete AWS infrastructure deployment guide and current production status.
 ## Current Production Infrastructure
 
 ### Production URLs
-- **Frontend (HTTPS)**: https://d32joxegsl0xnf.cloudfront.net
-- **Backend API (HTTPS)**: https://d1otlwpcr6195.cloudfront.net/api
+- **Frontend (HTTPS)**: https://d23blvz40tx4d1.cloudfront.net/
+- **Backend API (HTTPS)**: https://dnsdww33lkh3u.cloudfront.net/api
 - **Backend ALB**: http://hotelx-alb-1402628275.us-east-1.elb.amazonaws.com/api
 
 ### Infrastructure Status
@@ -49,7 +49,7 @@ Complete AWS infrastructure deployment guide and current production status.
     ┌───▼──────────────┐      ┌──────────▼─────────┐
     │  CloudFront      │      │  CloudFront        │
     │  (Frontend)      │      │  (Backend API)     │
-    │  d32joxegsl...   │      │  d1otlwpcr6195...  │
+    │  d23blvz40tx4d1..│      │  dnsdww33lkh3u...  │
     └───┬──────────────┘      └──────────┬─────────┘
         │                                 │
     ┌───▼──────────────┐      ┌──────────▼─────────┐
@@ -151,7 +151,7 @@ Complete AWS infrastructure deployment guide and current production status.
 
 **Environment Variables:**
 - `SPRING_PROFILES_ACTIVE=prod`
-- `FRONTEND_URL=https://d32joxegsl0xnf.cloudfront.net`
+- `FRONTEND_URL=https://d23blvz40tx4d1.cloudfront.net`
 
 **Secrets (from AWS Secrets Manager):**
 - MONGODB_URI
@@ -207,8 +207,8 @@ Complete AWS infrastructure deployment guide and current production status.
 ### 6. CloudFront Distributions
 
 **Frontend Distribution:**
-- ID: E3AEFUC8QLUDD9
-- Domain: `d32joxegsl0xnf.cloudfront.net`
+- ID: E5S6V7PJZIMNG
+- Domain: `d23blvz40tx4d1.cloudfront.net`
 - Origin: S3 bucket (hotelx-frontend-us-east-1)
 - Status: Deployed
 - SSL Certificate: Default CloudFront certificate
@@ -216,7 +216,7 @@ Complete AWS infrastructure deployment guide and current production status.
 
 **Backend Distribution:**
 - ID: E1IN2SZ3C0Y2LC
-- Domain: `d1otlwpcr6195.cloudfront.net`
+- Domain: `dnsdww33lkh3u.cloudfront.net`
 - Origin: Application Load Balancer
 - Status: Deployed
 - SSL Certificate: Default CloudFront certificate
@@ -277,8 +277,8 @@ Complete AWS infrastructure deployment guide and current production status.
 | `AWS_ACCESS_KEY_ID` | AWS authentication | (configured) |
 | `AWS_SECRET_ACCESS_KEY` | AWS authentication | (configured) |
 | `AWS_ACCOUNT_ID` | AWS account number | 837271986183 |
-| `BACKEND_API_URL` | Backend CloudFront URL | https://d1otlwpcr6195.cloudfront.net |
-| `CLOUDFRONT_DISTRIBUTION_ID` | Frontend distribution | E3AEFUC8QLUDD9 |
+| `BACKEND_API_URL` | Backend CloudFront URL | https://dnsdww33lkh3u.cloudfront.net |
+| `CLOUDFRONT_DISTRIBUTION_ID` | Frontend distribution | E5S6V7PJZIMNG |
 | `STRIPE_PUBLIC_KEY` | Stripe publishable key | (configured) |
 
 ### Automated Workflows
@@ -398,7 +398,7 @@ aws logs tail /ecs/hotelx-backend --since 1h --region us-east-1
 **Backend Health:**
 ```bash
 # Via CloudFront (HTTPS)
-curl https://d1otlwpcr6195.cloudfront.net/actuator/health
+curl https://dnsdww33lkh3u.cloudfront.net/actuator/health
 
 # Via ALB
 curl http://hotelx-alb-1402628275.us-east-1.elb.amazonaws.com/actuator/health
@@ -408,7 +408,7 @@ curl http://hotelx-alb-1402628275.us-east-1.elb.amazonaws.com/actuator/health
 ```
 
 **Frontend Health:**
-- URL: https://d32joxegsl0xnf.cloudfront.net
+- URL: https://d23blvz40tx4d1.cloudfront.net
 - Check: Page loads, no console errors
 
 ### Backup and Recovery
@@ -517,7 +517,7 @@ aws docdb create-db-cluster-snapshot \
    gh secret set AWS_ACCESS_KEY_ID
    gh secret set AWS_SECRET_ACCESS_KEY
    gh secret set AWS_ACCOUNT_ID -b "837271986183"
-   gh secret set BACKEND_API_URL -b "https://d1otlwpcr6195.cloudfront.net"
+   gh secret set BACKEND_API_URL -b "https://dnsdww33lkh3u.cloudfront.net"
    ```
 
 ### Detailed Manual Steps
@@ -605,7 +605,7 @@ aws s3 ls s3://hotelx-frontend-us-east-1/
 
 # Create CloudFront invalidation
 aws cloudfront create-invalidation \
-  --distribution-id E3AEFUC8QLUDD9 \
+  --distribution-id E5S6V7PJZIMNG \
   --paths "/*" \
   --region us-east-1
 ```
@@ -640,7 +640,7 @@ gh run view [RUN_ID] --log
 
 **Solution:**
 - Backend must be served over HTTPS
-- Use CloudFront distribution: https://d1otlwpcr6195.cloudfront.net
+- Use CloudFront distribution: https://dnsdww33lkh3u.cloudfront.net
 - Update CORS configuration in backend
 
 ### OAuth2 Not Working
@@ -652,10 +652,10 @@ gh run view [RUN_ID] --log
    - `hotelx/google-client-id`
    - `hotelx/google-client-secret`
 2. Authorized redirect URIs in Google Console:
-   - `https://d1otlwpcr6195.cloudfront.net/login/oauth2/code/google`
+   - `https://dnsdww33lkh3u.cloudfront.net/login/oauth2/code/google`
    - `http://localhost:8080/login/oauth2/code/google` (for local dev)
 3. Authorized JavaScript origins:
-   - `https://d32joxegsl0xnf.cloudfront.net` (frontend)
+   - `https://d23blvz40tx4d1.cloudfront.net` (frontend)
    - `http://localhost:5173` (for local dev)
 4. Backend URL configured correctly in secrets
 
@@ -665,13 +665,13 @@ gh run view [RUN_ID] --log
    - `hotelx/okta-client-secret`
    - `hotelx/okta-issuer-uri`
 2. Sign-in redirect URIs in Okta Console:
-   - `https://d1otlwpcr6195.cloudfront.net/login/oauth2/code/okta`
+   - `https://dnsdww33lkh3u.cloudfront.net/login/oauth2/code/okta`
    - `http://localhost:8080/login/oauth2/code/okta` (for local dev)
 3. Sign-out redirect URIs:
-   - `https://d32joxegsl0xnf.cloudfront.net`
+   - `https://d23blvz40tx4d1.cloudfront.net`
    - `http://localhost:5173` (for local dev)
 4. Trusted Origins configured for CORS:
-   - `https://d32joxegsl0xnf.cloudfront.net`
+   - `https://d23blvz40tx4d1.cloudfront.net`
    - `http://localhost:5173` (for local dev)
 
 ---
@@ -830,7 +830,7 @@ aws ecs update-service \
 - Instance: `arn:aws:rds:us-east-1:837271986183:db:hotelx-prod-docdb-instance`
 
 ### CloudFront
-- Frontend: `arn:aws:cloudfront::837271986183:distribution/E3AEFUC8QLUDD9`
+- Frontend: `arn:aws:cloudfront::837271986183:distribution/E5S6V7PJZIMNG`
 - Backend: `arn:aws:cloudfront::837271986183:distribution/E1IN2SZ3C0Y2LC`
 
 ### S3

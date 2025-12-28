@@ -1,10 +1,17 @@
 # HotelX
 
-A modern, full-stack hotel reservation platform built with Spring Boot, MongoDB, React, Redux, and Stripe for secure payment processing.
+A modern, full-stack hotel reservation platform for a luxury hotel in Richardson, TX with over 100 premium rooms. Built with Spring Boot, MongoDB, React, Redux, and Stripe for secure payment processing.
 
 ## Project Overview
 
-This system simplifies the booking process for guests and provides hotel administrators with robust tools for managing room availability, reservations, and amenities. The solution is designed for deployment to AWS.
+HotelX is a comprehensive hotel management system located at 123 Luxury Boulevard, Richardson, TX 75080. The platform simplifies the booking process for guests and provides hotel administrators with robust tools for managing room availability, reservations, and amenities. The solution is designed for deployment to AWS.
+
+**Contact Information:**
+- **Location**: 123 Luxury Boulevard, Richardson, TX 75080
+- **Phone**: (972) 555-0123 / (972) 555-0124
+- **Email**: reservations@hotelx.com, info@hotelx.com
+- **Capacity**: 100+ premium rooms
+- **Rating**: 4.9/5 guest satisfaction
 
 ## Tech Stack
 
@@ -12,7 +19,7 @@ This system simplifies the booking process for guests and provides hotel adminis
 - **Java 17** with **Spring Boot 3.2.0**
 - **MongoDB** - NoSQL database
 - **Spring Security** - Authentication & Authorization
-- **OAuth2** - Social login (Google)
+- **OAuth2** - Social login (Google, Okta)
 - **JWT** - Token-based authentication
 - **Stripe** - Payment processing
 - **Maven** - Build tool
@@ -26,24 +33,27 @@ This system simplifies the booking process for guests and provides hotel adminis
 - **Stripe.js**
 
 ### Deployment
-- **Backend**: AWS EC2, Lambda, or EKS
-- **Database**: AWS DocumentDB
+- **Backend**: AWS ECS (Fargate) with ECR for container registry
+- **Database**: AWS DocumentDB (MongoDB-compatible)
 - **Frontend**: AWS S3 + CloudFront
-- **Authentication**: AWS Cognito (optional)
+- **CI/CD**: GitHub Actions with secrets stored in GitHub Secrets
 
 ## Features
 
 ### User Management
 - Email/password registration and login
-- OAuth2 social login (Google)
+- OAuth2 social login (Google, Okta)
 - Role-based access control (GUEST, MANAGER, ADMIN)
 - User profile management
+- Automatic user provisioning via OAuth2 providers
 
 ### Room Management
-- CRUD operations for rooms
+- CRUD operations for 100+ premium rooms
 - Real-time availability checking
 - Advanced search and filtering
 - Capacity and amenity management
+- Room types: Standard, Deluxe, Suite, Presidential
+- Amenities: Free WiFi, Free Parking, Swimming Pool, Fine Dining
 
 ### Reservation Management
 - Create, update, and cancel reservations
@@ -58,11 +68,12 @@ This system simplifies the booking process for guests and provides hotel adminis
 - Transaction history
 
 ### Security
-- JWT authentication
-- BCrypt password hashing
-- CORS configuration
-- Method-level authorization
-- Input validation
+- JWT authentication with 24-hour token expiration
+- BCrypt password hashing (10 rounds)
+- OAuth2 integration with Google and Okta
+- CORS configuration with origin whitelisting
+- Method-level authorization with role-based access control
+- Input validation and sanitization
 
 ## Project Structure
 
@@ -135,9 +146,31 @@ stripe:
 
 3. Set environment variables:
 ```bash
+# Database Configuration
+export DATABASE_URI=mongodb://localhost:27017
+export DATABASE_NAME=hotel_reservation
+
+# JWT Configuration
+export JWT_SECRET=your-256-bit-secret-key
+export JWT_EXPIRATION=86400000
+
+# OAuth2 - Google
 export GOOGLE_CLIENT_ID=your-google-client-id
 export GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# OAuth2 - Okta
+export OKTA_CLIENT_ID=your-okta-client-id
+export OKTA_CLIENT_SECRET=your-okta-client-secret
+export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
+
+# Stripe Configuration
 export STRIPE_API_KEY=your-stripe-api-key
+export STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
+
+# Application URLs
+export BACKEND_URL=http://localhost:8080
+export FRONTEND_URL=http://localhost:5173
+export CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
 
 4. Start MongoDB:
@@ -186,9 +219,12 @@ Frontend will be available at `http://localhost:5173`
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/profile` - Update profile
+- `POST /api/auth/login` - User login with email/password
+- `GET /api/auth/me` - Get current user profile
+- `PUT /api/auth/profile` - Update user profile
+- `GET /oauth2/authorization/google` - Initiate Google OAuth2 login
+- `GET /oauth2/authorization/okta` - Initiate Okta OAuth2 login
+- `GET /login/oauth2/code/{provider}` - OAuth2 callback endpoint
 
 ### Rooms
 - `GET /api/rooms` - Get all rooms
@@ -220,10 +256,15 @@ The system prevents double-booking using:
 - Atomic database operations
 
 ### Security
-- JWT tokens with 24-hour expiration
-- BCrypt password hashing (10 rounds)
-- OAuth2 ready for social login
-- Role-based access control
+- **JWT Authentication**: 24-hour token expiration with secure token generation
+- **Password Security**: BCrypt hashing with 10 rounds
+- **OAuth2 Integration**:
+  - Google OAuth2 for social login
+  - Okta OIDC for enterprise authentication
+  - Custom user service for automatic user provisioning
+  - Secure token exchange and validation
+- **Role-Based Access Control**: Three-tier permission system (GUEST, MANAGER, ADMIN)
+- **Session Management**: Stateless authentication with JWT tokens
 
 ### Payment Security
 - Stripe handles sensitive card data
@@ -262,12 +303,35 @@ npm run build
 
 ## Deployment
 
-### AWS Deployment
+### AWS Architecture
 
-1. **Backend**: Deploy JAR to EC2 or containerize for EKS
-2. **Frontend**: Upload build to S3, serve via CloudFront
-3. **Database**: Use AWS DocumentDB
-4. **Authentication**: Optionally integrate AWS Cognito
+The application is deployed on AWS using a containerized microservices architecture:
+
+#### Backend Deployment (ECS Fargate)
+1. **Docker Containerization**: Spring Boot application containerized with Dockerfile
+2. **AWS ECR**: Docker images stored in Elastic Container Registry
+3. **AWS ECS**: Container orchestration with Fargate (serverless)
+4. **Load Balancer**: Application Load Balancer for traffic distribution
+5. **Auto-scaling**: Fargate tasks scale based on CPU/memory metrics
+
+#### Frontend Deployment (S3 + CloudFront)
+1. **AWS S3**: Static React build hosted in S3 bucket
+2. **AWS CloudFront**: CDN for global content delivery
+3. **HTTPS**: SSL/TLS certificates via AWS Certificate Manager
+
+#### Database
+- **AWS DocumentDB**: MongoDB-compatible managed database service
+- **VPC**: Secured within private subnet
+- **Backup**: Automated daily snapshots
+
+#### CI/CD Pipeline (GitHub Actions)
+1. **Automated Testing**: Run tests on every push/PR
+2. **Docker Build**: Build and tag Docker images
+3. **ECR Push**: Push images to AWS ECR
+4. **ECS Deployment**: Update ECS service with new task definition
+5. **S3 Sync**: Deploy frontend build to S3
+6. **CloudFront Invalidation**: Clear CDN cache
+7. **Secrets Management**: All credentials stored in GitHub Secrets
 
 See individual README files in `backend/` and `frontend/` for detailed deployment instructions.
 
@@ -283,7 +347,9 @@ This project is developed as part of the HotelX requirements.
 
 ## Contributors
 
-Hotel Reservation Team
+- **Liam Heaney**
+- **Arnold B. Epanda**
+- **Muhiddin Kurbonov**
 
 ## Support
 

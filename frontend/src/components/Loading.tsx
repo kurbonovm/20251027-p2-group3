@@ -1,9 +1,31 @@
+/**
+ * Loading component displaying a centered spinner with optional message.
+ *
+ * @module components/Loading
+ */
+
 import { Box, CircularProgress, Typography } from '@mui/material';
 
+/**
+ * Props for Loading component.
+ */
 interface LoadingProps {
+  /** Optional loading message to display */
   message?: string;
 }
 
+/**
+ * Centered loading indicator with spinner and text.
+ *
+ * @param props - Component props
+ * @returns Loading indicator
+ *
+ * @example
+ * ```tsx
+ * <Loading />
+ * <Loading message="Fetching data..." />
+ * ```
+ */
 const Loading: React.FC<LoadingProps> = ({ message = 'Loading...' }) => {
   return (
     <Box

@@ -1,112 +1,80 @@
-## 🏨 HotelX: Project Specification
+# Project Two: Reservation System
 
-This document outlines the objectives, functional, non-functional, and technical requirements for developing a modern, full-stack **Hotel Reservation Platform**.
+You’ve made it to the next step in your quest for knowledge in full-stack Java development! In this challenge, you will develop and present a development project. Below you'll be given project requirements and will need to design and develop an enterprise solution. This exercise will better prepare you for the real-world project!
 
----
+**Note:** You must upload your project artifacts in a link to your publicly-accessible GitHub URL on this assignment page to earn credit.
 
-## 🎯 Objective
+## What We're Looking For
 
-Develop a **secure**, **responsive**, and **streamlined** hotel reservation platform. The system will simplify the booking process for guests and provide hotel administrators and employees with robust tools for managing **room availability**, **reservations**, and **amenities**. The entire solution will be deployed to **AWS**.
-
----
-
-## 💻 Technical Stack & Deployment
-
-The system must be a full-stack solution with components deployed to AWS.
-
-| Component | Technology | AWS Service |
-| :--- | :--- | :--- |
-| **Backend** | Java with **Spring Boot** | EC2, Lambda, or EKS |
-| **Database** | **MongoDB** | **DocumentDB** (AWS managed service) |
-| **Frontend** | **React** with **Redux** and **RTK Query** | S3 (for static hosting) with CloudFront |
-| **Authentication** | Spring Security, **OAuth2** | Cognito (optional, for identity management) |
+* Technical Architecture and Design
+* User Interface and Experience
+* Functional and Non-Functional Requirements Met
+* Structured Development Approach
 
 ---
 
-## ⚙️ Functional Requirements
+## Hotel Reservation System
 
-### 1. User Management (Authentication & Authorization)
+### Objective
 
-* **Authentication & Authorization:**
-    * Implement **OAuth2-based authentication** using **Spring Security**.
-    * Allow users to sign in via third-party providers (e.g., Google).
-* **Role-Based Access Control (RBAC):**
-    * Define and enforce distinct permissions for the following roles:
-        * **Guest:** Can view rooms, book, view/modify/cancel own reservations.
-        * **Administrator:** Full access to all management dashboards, reporting, and configuration.
-        * **Hotel Manager:** Can manage room inventory, pricing, amenities, and reservations.
-* **User Profiles:**
-    * Enable users to view and update personal information.
-    * Store and display saved bookings, payment details, and preferences.
+Develop a hotel reservation platform that streamlines the booking process for guests while providing hotel administrators and employees with tools for managing room availability, reservations, and amenities. The system should feature a secure and responsive user interface for both guests and employees. This platform should provide secure authentication for users with effective role-based access. This frontend, backend, and database should all be deployed to AWS.
 
-### 2. Room Management
+### Functional Requirements
 
-* **Add/Edit/Delete Rooms:**
-    * Hotel Managers can define **room types**, **pricing**, **amenities**, and initial **availability**.
-    * Changes must reflect dynamically on the frontend in real-time.
-* **Room Availability:**
-    * Guests must be able to view **real-time room availability** during the reservation process.
-* **Capacity Limits:**
-    * Rooms must have defined **maximum guest capacities**.
-    * The system must enforce these constraints when processing bookings.
+#### User Management
 
-### 3. Reservation Management
+* **Authentication & Authorization:** Implement OAuth2-based authentication using Spring Security. Users can sign in via third-party providers (Google, Okta). The system supports both standard OAuth2 (Google) and OpenID Connect/OIDC (Okta) for enterprise authentication.
+* **Role-Based Access Control:** Define roles such as Guest, Administrator, and Hotel Manager, with each role having distinct permissions (e.g., guests can book rooms, while administrators can manage room inventory and reservations).
+* **User Profiles:** Enable users to view and update their personal information, including saved bookings, payment details, and preferences.
 
-* **Room Booking:**
-    * Allow users to select **dates**, **room type**, and **number of guests**.
-    * **Crucially, prevent overbooking** by validating availability against real-time inventory.
-* **Reservation Details:**
-    * Guests can view upcoming and past reservations.
-    * Guests can **cancel bookings** within defined policy limits.
-    * Guests must receive automated **confirmation emails**.
-* **Modify Reservations:**
-    * Implement functionality for guests to modify existing reservation details (e.g., change dates or room type) based on current room availability.
-* **Reservation Search & Management:**
-    * Provide an admin dashboard to **search, filter, and manage** all hotel reservations.
+#### Room Management
 
-### 4. Payment Processing
+* **Add/Edit/Delete Rooms:** Hotel managers can define room types, pricing, amenities, and availability. Changes should reflect dynamically on the frontend.
+* **Room Availability:** Ensure that guests can view real-time room availability during their reservation process.
+* **Capacity Limits:** Rooms should have maximum guest capacities, and the system should enforce these constraints when processing bookings.
 
-* **Integration with Stripe:**
-    * Utilize the **Stripe API** for payment processing.
-    * Securely process payments and support multiple payment methods (e.g., credit cards, digital wallets).
-    * Implement payment notifications, refunds, and automated receipts.
-* **Transaction Management:**
-    * Admins must be able to view **transaction history**, **payment statuses**, and generate **financial reports**.
+#### Reservation Management
 
-### 5. Reporting
+* **Room Booking:** Allow users to select dates, room type, and number of guests. Prevent overbooking by validating availability.
+* **Reservation Details:** Guests can view upcoming and past reservations, cancel bookings within policy limits, and receive confirmation emails.
+* **Modify Reservations:** Implement functionality for guests to modify reservation details (e.g., change dates or room type) based on availability.
+* **Reservation Search:** Provide a dashboard for admins to search, filter, and manage all hotel reservations.
 
-* **Capacity Reports:**
-    * Generate reports on room utilization, showing **trends in capacity usage** over time (e.g., occupancy rates).
+#### Payment Processing
 
----
+* Simulate guest payments with transaction IDs, secure payment method storage, and payment status updates.
+* **Alternatively, use Stripe API to manage and process payments.** * **Integration with Stripe:** Securely process payments, support multiple payment methods (ie. credit cards, digital wallets), and implement payment notifications, refunds, and receipts using Stripe.
+* **Transaction Management:** Allow admins to view transaction history, payment statuses, and generate financial reports.
+* **Capacity Reports:** Generate reports on warehouse utilization, showing trends in capacity usage over time.
 
-## 🛠️ Edge Case Handling
+#### User Interface (UI) & User Experience (UX)
 
-The system must be robust and address common failure points:
+* **Responsive Design:** Ensure the system is fully functional across desktop, tablet, and mobile devices.
+* **Intuitive Navigation:** Ensure that the UI is easy to navigate, with clearly labeled sections and buttons. Utilize breadcrumbs, collapsible menus, and tabs where appropriate.
+* **Search and Filter:** Provide advanced search and filter options across room listings to help users quickly find the room they're searching for.
+* **Error Handling:** Display user-friendly error messages for common edge cases (ie. room overbooking, invalid payment details).
 
-* **Overbooking Prevention:** Implement a **concurrent-safe mechanism** to handle multiple guests attempting to book the same room at the same time, ensuring atomic updates to inventory.
-* **Payment Failures:** Provide **retry options** and clear fallback mechanisms for failed payment attempts, notifying both the guest and the system.
-* **Session Expiration:** Clearly notify users of session timeouts, especially during the reservation or payment flow, to prevent data loss or failed transactions.
+#### Edge Case Handling
 
----
+* **Overbooking Prevention:** Handle multiple guests attempting to book the same room at the same time.
+* **Payment Failures:** Provide retry options and fallback mechanisms for failed payment attempts.
+* **Session Expiration:** Notify users of session timeouts during reservation to prevent data loss.
 
-## 🎨 User Interface (UI) & User Experience (UX)
+### Technical Requirements
 
-* **Responsive Design:** The system must be fully functional and optimized across **desktop, tablet, and mobile** devices.
-* **Intuitive Navigation:**
-    * The UI must be easy to navigate with clearly labeled sections and buttons.
-    * Utilize breadcrumbs, collapsible menus, and tabs where appropriate.
-* **Search and Filter:**
-    * Provide advanced **search and filter options** across room listings (e.g., price range, amenities, room type).
-* **Error Handling:**
-    * Display **user-friendly error messages** for common edge cases (e.g., room overbooking, invalid payment details, server errors).
+Must be a full-stack solution consisting of:
 
----
+* Java with Spring Boot
+* MongoDB with DocumentDb on AWS
+* React with Redux and RTK Query
+* Project should be fully deployed to AWS
+* Code should be available to a public GitHub repository
+* Possesses all required CRUD functionality
+* Handles edge cases effectively
 
-## ✨ Non-Functional Requirements
+### Non-Functional Requirements
 
-* **Code Availability:** The project code must be available in a **public GitHub repository**.
-* **Completeness:** Possesses all required **CRUD** (Create, Read, Update, Delete) functionality across core entities (Rooms, Reservations, Users).
-* **Code Documentation:** The codebase must be **well documented** using industry standards (**JavaDocs / JSDoc**).
-* **Best Practices:** Code must uphold industry best practices, specifically **SOLID** principles and **DRY** (Don't Repeat Yourself).
-* **UI/UX Quality:** The interface must be an **Industry-Grade UI** providing an **Intuitive UX**.
+* Well documented code (JavaDocs/JSDoc)
+* Code upholds industry best practices (SOLID/DRY)
+* Industry-Grade UI (User Interface)
+* Intuitive UX (User Experience)

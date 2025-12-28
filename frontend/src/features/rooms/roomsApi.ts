@@ -1,3 +1,10 @@
+/**
+ * Rooms API endpoints.
+ * Handles fetching, creating, updating, and deleting hotel rooms.
+ *
+ * @module features/rooms/roomsApi
+ */
+
 import { apiSlice } from '../../services/api';
 import type {
   Room,
@@ -7,8 +14,17 @@ import type {
   UpdateRoomRequest,
 } from '../../types';
 
+/**
+ * Rooms API slice with injected endpoints.
+ */
 export const roomsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    /**
+     * Fetches all rooms with optional filtering.
+     *
+     * @param params - Optional query parameters for filtering rooms
+     * @returns Array of rooms matching the filters
+     */
     getRooms: builder.query<Room[], RoomQueryParams | void>({
       query: (params) => ({
         url: '/rooms',
@@ -16,10 +32,24 @@ export const roomsApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['Room'],
     }),
+
+    /**
+     * Fetches a single room by ID.
+     *
+     * @param id - Room ID
+     * @returns Room data
+     */
     getRoomById: builder.query<Room, string>({
       query: (id) => `/rooms/${id}`,
       providesTags: (result, error, id) => [{ type: 'Room', id }],
     }),
+
+    /**
+     * Fetches rooms available for booking in a given date range.
+     *
+     * @param query - Date range and guest count parameters
+     * @returns Array of available rooms
+     */
     getAvailableRooms: builder.query<Room[], AvailableRoomsQuery>({
       query: ({ startDate, endDate, guests }) => ({
         url: '/rooms/available',
@@ -27,6 +57,13 @@ export const roomsApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['Room'],
     }),
+
+    /**
+     * Creates a new room (admin only).
+     *
+     * @param roomData - New room data
+     * @returns Created room
+     */
     createRoom: builder.mutation<Room, CreateRoomRequest>({
       query: (roomData) => ({
         url: '/rooms',
@@ -35,6 +72,13 @@ export const roomsApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Room'],
     }),
+
+    /**
+     * Updates an existing room (admin only).
+     *
+     * @param updateData - Room ID and fields to update
+     * @returns Updated room data
+     */
     updateRoom: builder.mutation<Room, UpdateRoomRequest>({
       query: ({ id, ...roomData }) => ({
         url: `/rooms/${id}`,
@@ -43,6 +87,12 @@ export const roomsApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, { id }) => [{ type: 'Room', id }],
     }),
+
+    /**
+     * Deletes a room (admin only).
+     *
+     * @param id - Room ID to delete
+     */
     deleteRoom: builder.mutation<void, string>({
       query: (id) => ({
         url: `/rooms/${id}`,
@@ -53,6 +103,9 @@ export const roomsApi = apiSlice.injectEndpoints({
   }),
 });
 
+/**
+ * Auto-generated React hooks for rooms API endpoints.
+ */
 export const {
   useGetRoomsQuery,
   useGetRoomByIdQuery,
