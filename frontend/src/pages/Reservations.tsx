@@ -58,6 +58,8 @@ const Reservations: React.FC = () => {
   const [tabValue, setTabValue] = useState<number>(0);
   const [cancellationDialogOpen, setCancellationDialogOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [quickCancelDialogOpen, setQuickCancelDialogOpen] = useState(false);
+  const [reservationToQuickCancel, setReservationToQuickCancel] = useState<Reservation | null>(null);
 
   // Auto-dismiss success message after 3 seconds
   useEffect(() => {
@@ -94,7 +96,7 @@ const Reservations: React.FC = () => {
   };
 
   // Simple cancellation handler for unpaid PENDING reservations
-  const handleQuickCancel = async (reservation: Reservation) => {
+  const handleQuickCancel = (reservation: Reservation) => {
     // Check if this is an unpaid PENDING reservation
     if (reservation.status !== 'PENDING' || reservation.paymentId) {
       // If it has a payment or is not PENDING, use the full dialog
@@ -103,22 +105,34 @@ const Reservations: React.FC = () => {
       return;
     }
 
-    // Show simple confirmation for unpaid PENDING reservations
-    const confirmed = window.confirm(
-      'Cancel this reservation? No payment was made, so you can cancel at any time without charges.'
-    );
+    // Show nice dialog for unpaid PENDING reservations
+    setReservationToQuickCancel(reservation);
+    setQuickCancelDialogOpen(true);
+  };
 
-    if (!confirmed) return;
+  // Confirm quick cancellation
+  const handleConfirmQuickCancel = async () => {
+    if (!reservationToQuickCancel) return;
 
     setCancelError('');
     setCancelSuccess('');
 
     try {
-      await cancelReservation(reservation.id).unwrap();
+      await cancelReservation(reservationToQuickCancel.id).unwrap();
       setCancelSuccess('Reservation cancelled successfully!');
+      setQuickCancelDialogOpen(false);
+      setReservationToQuickCancel(null);
     } catch (err: any) {
       setCancelError(err.data?.message || 'Failed to cancel reservation.');
+      setQuickCancelDialogOpen(false);
+      setReservationToQuickCancel(null);
     }
+  };
+
+  // Close quick cancel dialog
+  const handleCloseQuickCancelDialog = () => {
+    setQuickCancelDialogOpen(false);
+    setReservationToQuickCancel(null);
   };
 
   const getStatusColor = (status: string | undefined): 'success' | 'warning' | 'error' | 'default' => {
@@ -619,6 +633,65 @@ const Reservations: React.FC = () => {
           setCancelSuccess('Reservation cancelled successfully!');
         }}
       />
+
+      {/* Quick Cancel Dialog for Unpaid PENDING Reservations */}
+      <Dialog
+        open={quickCancelDialogOpen}
+        onClose={handleCloseQuickCancelDialog}
+        PaperProps={{
+          sx: {
+            bgcolor: isDarkMode ? 'rgba(26,26,26,0.98)' : 'background.paper',
+            border: '1px solid',
+            borderColor: isDarkMode ? 'rgba(255,215,0,0.2)' : 'divider',
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: isDarkMode ? '#FFD700' : 'primary.main', fontWeight: 600 }}>
+          Cancel Reservation?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
+            No payment was made, so you can cancel at any time without charges.
+          </DialogContentText>
+          {reservationToQuickCancel && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: isDarkMode ? 'rgba(255,215,0,0.05)' : 'rgba(25,118,210,0.05)', borderRadius: 1 }}>
+              <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
+                <strong>Room:</strong> {reservationToQuickCancel.room?.name}
+              </Typography>
+              <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
+                <strong>Check-in:</strong> {parseDate(reservationToQuickCancel.checkInDate).toLocaleDateString()}
+              </Typography>
+              <Typography variant="body2" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
+                <strong>Total:</strong> ${reservationToQuickCancel.totalAmount}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={handleCloseQuickCancelDialog}
+            sx={{
+              color: isDarkMode ? '#fff' : 'text.primary',
+              '&:hover': {
+                backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
+              },
+            }}
+          >
+            Keep Reservation
+          </Button>
+          <Button
+            onClick={handleConfirmQuickCancel}
+            variant="contained"
+            color="error"
+            disabled={isCancelling}
+            sx={{
+              fontWeight: 600,
+            }}
+          >
+            {isCancelling ? 'Cancelling...' : 'Yes, Cancel'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
