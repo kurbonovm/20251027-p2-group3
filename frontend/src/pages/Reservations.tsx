@@ -323,6 +323,29 @@ const Reservations: React.FC = () => {
                       </Alert>
                       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                         <Button
+                          variant="contained"
+                          color="primary"
+                          size="medium"
+                          startIcon={<CheckCircle />}
+                          onClick={() => {
+                            // Navigate to payment page for this reservation
+                            navigate(`/payment/${reservation.id}`);
+                          }}
+                          sx={{
+                            background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                            color: isDarkMode ? '#000' : '#fff',
+                            fontWeight: 600,
+                            '&:hover': {
+                              background: isDarkMode ? 'linear-gradient(135deg, #FFA500 0%, #FFD700 100%)' : 'linear-gradient(135deg, #42a5f5 0%, #1976d2 100%)',
+                              transform: 'translateY(-2px)',
+                              boxShadow: isDarkMode ? '0 8px 20px rgba(255,215,0,0.3)' : '0 8px 20px rgba(25,118,210,0.3)',
+                            },
+                            transition: 'all 0.3s ease',
+                          }}
+                        >
+                          Complete Payment
+                        </Button>
+                        <Button
                           variant="outlined"
                           color="error"
                           size="medium"
