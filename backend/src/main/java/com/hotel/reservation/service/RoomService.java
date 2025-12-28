@@ -1,5 +1,6 @@
 package com.hotel.reservation.service;
 
+import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.model.Room;
 import com.hotel.reservation.repository.RoomRepository;
 import com.hotel.reservation.repository.ReservationRepository;
@@ -117,13 +118,49 @@ public class RoomService {
 
     /**
      * Delete a room.
+     * Prevents deletion if the room has any active reservations.
      *
      * @param id room ID
-     * @throws RuntimeException if room not found
+     * @throws RuntimeException if room not found or has active reservations
      */
     @Transactional
     public void deleteRoom(String id) {
         Room room = getRoomById(id);
+
+        // Check for any active reservations (PENDING, CONFIRMED, CHECKED_IN)
+        List<Reservation> activeReservations = reservationRepository.findByRoom(room)
+                .stream()
+                .filter(reservation ->
+                    reservation.getStatus() == Reservation.ReservationStatus.PENDING ||
+                    reservation.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                    reservation.getStatus() == Reservation.ReservationStatus.CHECKED_IN)
+                .collect(Collectors.toList());
+
+        if (!activeReservations.isEmpty()) {
+            throw new RuntimeException(
+                String.format("Cannot delete room '%s'. It has %d active reservation(s). " +
+                             "Please cancel all active reservations before deleting this room.",
+                             room.getName(), activeReservations.size())
+            );
+        }
+
+        // Also check for future reservations (even if checked out in the past)
+        List<Reservation> futureReservations = reservationRepository.findByRoom(room)
+                .stream()
+                .filter(reservation ->
+                    (reservation.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                     reservation.getStatus() == Reservation.ReservationStatus.PENDING) &&
+                    reservation.getCheckInDate().isAfter(LocalDate.now()))
+                .collect(Collectors.toList());
+
+        if (!futureReservations.isEmpty()) {
+            throw new RuntimeException(
+                String.format("Cannot delete room '%s'. It has %d future reservation(s). " +
+                             "Please cancel all future reservations before deleting this room.",
+                             room.getName(), futureReservations.size())
+            );
+        }
+
         roomRepository.delete(room);
     }
 
