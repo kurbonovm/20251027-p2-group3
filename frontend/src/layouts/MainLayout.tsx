@@ -21,6 +21,7 @@ import {
   ListItemText,
   Divider,
   useTheme,
+  Badge,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -35,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { selectCurrentUser, selectIsAuthenticated, logout } from '../features/auth/authSlice';
 import { useThemeMode } from '../contexts/ThemeContext';
+import { useGetUserReservationsQuery } from '../features/reservations/reservationsApi';
 
 interface NavigationItem {
   text: string;
@@ -57,6 +59,14 @@ const MainLayout: React.FC = () => {
 
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+
+  // Fetch user reservations to count pending ones
+  const { data: userReservations } = useGetUserReservationsQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  // Count pending reservations
+  const pendingCount = userReservations?.filter(r => r.status === 'PENDING').length || 0;
 
   // Check if current route is an admin route
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -118,6 +128,7 @@ const MainLayout: React.FC = () => {
       <List>
         {navigationItems.map((item) => {
           const isActive = location.pathname === item.path;
+          const isMyReservations = item.text === 'My Reservations';
           return (
             <ListItem key={item.text} disablePadding>
               <ListItemButton
@@ -130,7 +141,23 @@ const MainLayout: React.FC = () => {
                   },
                 }}
               >
-                <ListItemIcon sx={{ color: isActive ? (isDarkMode ? '#FFD700' : '#1976d2') : (isDarkMode ? '#FFD700' : 'primary.main') }}>{item.icon}</ListItemIcon>
+                <ListItemIcon sx={{ color: isActive ? (isDarkMode ? '#FFD700' : '#1976d2') : (isDarkMode ? '#FFD700' : 'primary.main') }}>
+                  {isMyReservations && pendingCount > 0 ? (
+                    <Badge
+                      badgeContent={pendingCount}
+                      color="error"
+                      sx={{
+                        '& .MuiBadge-badge': {
+                          fontWeight: 600,
+                        },
+                      }}
+                    >
+                      {item.icon}
+                    </Badge>
+                  ) : (
+                    item.icon
+                  )}
+                </ListItemIcon>
                 <ListItemText
                   primary={item.text}
                   sx={{
@@ -212,7 +239,8 @@ const MainLayout: React.FC = () => {
             <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, ml: 2 }}>
               {navigationItems.map((item) => {
                 const isActive = location.pathname === item.path;
-                return (
+                const isMyReservations = item.text === 'My Reservations';
+                const buttonContent = (
                   <Button
                     key={item.text}
                     onClick={() => navigate(item.path)}
@@ -241,6 +269,25 @@ const MainLayout: React.FC = () => {
                   >
                     {item.text}
                   </Button>
+                );
+
+                return isMyReservations && pendingCount > 0 ? (
+                  <Badge
+                    key={item.text}
+                    badgeContent={pendingCount}
+                    color="error"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        top: 8,
+                        right: 8,
+                        fontWeight: 600,
+                      },
+                    }}
+                  >
+                    {buttonContent}
+                  </Badge>
+                ) : (
+                  buttonContent
                 );
               })}
             </Box>

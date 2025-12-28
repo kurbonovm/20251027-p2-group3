@@ -122,8 +122,8 @@ public class ReservationService {
         reservation.setSpecialRequests(specialRequests);
         reservation.setStatus(Reservation.ReservationStatus.PENDING);
 
-        // Set expiry time: 30 minutes from now for pending reservations
-        reservation.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+        // Set expiry time: 5 minutes from now for pending reservations
+        reservation.setExpiresAt(LocalDateTime.now().plusMinutes(5));
 
         // Generate secure payment link token for manager-assisted bookings
         reservation.setPaymentLinkToken(UUID.randomUUID().toString());

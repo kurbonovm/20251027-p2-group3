@@ -10,6 +10,7 @@ import Rooms from './pages/Rooms';
 import RoomDetails from './pages/RoomDetails';
 import Booking from './pages/Booking';
 import Reservations from './pages/Reservations';
+import ResumePayment from './pages/ResumePayment';
 import Profile from './pages/Profile';
 import PaymentHistory from './pages/PaymentHistory';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -52,6 +53,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <Reservations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/resume-payment/:reservationId"
+              element={
+                <ProtectedRoute>
+                  <ResumePayment />
                 </ProtectedRoute>
               }
             />

@@ -292,8 +292,17 @@ const CancellationDialog: React.FC<CancellationDialogProps> = ({
                   }
                   label={
                     <Typography variant="body2">
-                      I understand the cancellation policy and accept the refund amount of{' '}
-                      <strong>${refundCalc.refundAmount.toFixed(2)}</strong>
+                      {refundCalc.refundAmount > 0 ? (
+                        <>
+                          I understand the cancellation policy and accept the refund amount of{' '}
+                          <strong>${refundCalc.refundAmount.toFixed(2)}</strong>
+                        </>
+                      ) : (
+                        <>
+                          I confirm that I want to cancel this reservation
+                          {refundCalc.policyDescription === 'No payment required' && ' (no payment was made)'}
+                        </>
+                      )}
                     </Typography>
                   }
                 />
@@ -358,15 +367,35 @@ const CancellationDialog: React.FC<CancellationDialogProps> = ({
             </Alert>
 
             <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                Refund to be processed:
-              </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: getRefundColor() }}>
-                ${refundCalc.refundAmount.toFixed(2)}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Expected in 5-10 business days
-              </Typography>
+              {refundCalc.refundAmount > 0 ? (
+                <>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                    Refund to be processed:
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: getRefundColor() }}>
+                    ${refundCalc.refundAmount.toFixed(2)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Expected in 5-10 business days
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                    {refundCalc.policyDescription === 'No payment required'
+                      ? 'No payment was made for this reservation'
+                      : 'No refund will be processed'}
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: getRefundColor() }}>
+                    $0.00
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {refundCalc.policyDescription === 'No payment required'
+                      ? 'You can cancel this reservation without any charges'
+                      : 'Cancellation fee applies based on policy'}
+                  </Typography>
+                </>
+              )}
             </Box>
 
             {errorMessage && (
@@ -422,7 +451,7 @@ const CancellationDialog: React.FC<CancellationDialogProps> = ({
               </Typography>
             </Alert>
 
-            {refundCalc && refundCalc.refundAmount > 0 && (
+            {refundCalc && (
               <Box
                 sx={{
                   p: 3,
@@ -432,19 +461,45 @@ const CancellationDialog: React.FC<CancellationDialogProps> = ({
                   borderColor: 'rgba(76,175,80,0.2)',
                 }}
               >
-                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
-                  Refund Amount:
-                </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main', mb: 2 }}>
-                  ${refundCalc.refundAmount.toFixed(2)}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  ✓ Refund has been initiated
-                  <br />
-                  ✓ You will receive it in 5-10 business days
-                  <br />
-                  ✓ Confirmation email sent to your inbox
-                </Typography>
+                {refundCalc.refundAmount > 0 ? (
+                  <>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                      Refund Amount:
+                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main', mb: 2 }}>
+                      ${refundCalc.refundAmount.toFixed(2)}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      ✓ Refund has been initiated
+                      <br />
+                      ✓ You will receive it in 5-10 business days
+                      <br />
+                      ✓ Confirmation email sent to your inbox
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+                      Cancellation Details:
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.primary', mb: 2 }}>
+                      {refundCalc.policyDescription === 'No payment required'
+                        ? 'This reservation was cancelled before payment was completed.'
+                        : 'No refund is available based on the cancellation policy.'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      ✓ Reservation has been cancelled
+                      <br />
+                      {refundCalc.policyDescription === 'No payment required' && (
+                        <>
+                          ✓ No charges were made to your account
+                          <br />
+                        </>
+                      )}
+                      ✓ Confirmation email sent to your inbox
+                    </Typography>
+                  </>
+                )}
               </Box>
             )}
           </DialogContent>
