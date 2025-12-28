@@ -70,6 +70,7 @@ export interface Reservation {
   numberOfGuests: number;
   totalAmount: number;
   status: ReservationStatus;
+  paymentId?: string;
   paymentIntentId?: string;
   paymentLinkToken?: string;
   cancellationReason?: string;

@@ -373,9 +373,11 @@ const Reservations: React.FC = () => {
                             Reason: {reservation.cancellationReason}
                           </Typography>
                         )}
-                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
-                          Refund processed in 5-10 business days
-                        </Typography>
+                        {reservation.paymentId && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic' }}>
+                            Refund processed in 5-10 business days
+                          </Typography>
+                        )}
                       </Alert>
                     </Box>
                   )}
