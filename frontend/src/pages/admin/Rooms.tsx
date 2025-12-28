@@ -24,6 +24,7 @@ import {
   DialogActions,
   DialogContentText,
   TextField,
+  Alert,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -57,6 +58,7 @@ const AdminRooms: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data: roomsData, isLoading: roomsLoading } = useGetAllRoomsAdminQuery();
   const { data: stats, isLoading: statsLoading } = useGetRoomStatisticsQuery();
@@ -77,8 +79,11 @@ const AdminRooms: React.FC = () => {
   reservations
     ?.filter(r => r.status === 'CONFIRMED' || r.status === 'CHECKED_IN')
     .forEach(r => {
-      const count = roomOccupancyCount.get(r.room.id) || 0;
-      roomOccupancyCount.set(r.room.id, count + 1);
+      // Check if room exists before accessing its id
+      if (r.room && r.room.id) {
+        const count = roomOccupancyCount.get(r.room.id) || 0;
+        roomOccupancyCount.set(r.room.id, count + 1);
+      }
     });
 
   const handleAddRoom = () => {
@@ -112,12 +117,14 @@ const AdminRooms: React.FC = () => {
     setRoomToDelete(room);
     setDeleteDialogOpen(true);
     setDeleteConfirmation('');
+    setDeleteError(null);
   };
 
   const handleCloseDeleteDialog = () => {
     setDeleteDialogOpen(false);
     setRoomToDelete(null);
     setDeleteConfirmation('');
+    setDeleteError(null);
   };
 
   const handleConfirmDelete = async () => {
@@ -126,10 +133,14 @@ const AdminRooms: React.FC = () => {
     }
 
     try {
+      setDeleteError(null);
       await deleteRoom(roomToDelete.id).unwrap();
       handleCloseDeleteDialog();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete room:', error);
+      // Extract error message from the API response
+      const errorMessage = error?.data?.message || error?.message || 'Failed to delete room. Please try again.';
+      setDeleteError(errorMessage);
     }
   };
 
@@ -457,6 +468,12 @@ const AdminRooms: React.FC = () => {
         </DialogTitle>
 
         <DialogContent sx={{ pt: 3 }}>
+          {deleteError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {deleteError}
+            </Alert>
+          )}
+
           <DialogContentText sx={{ mb: 2, color: isDarkMode ? 'rgba(255,255,255,0.8)' : 'text.primary' }}>
             You are about to permanently delete the following room:
           </DialogContentText>

@@ -1,5 +1,7 @@
 package com.hotel.reservation.service;
 
+import com.hotel.reservation.dto.RoomAvailabilityDTO;
+import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.model.Room;
 import com.hotel.reservation.repository.RoomRepository;
 import com.hotel.reservation.repository.ReservationRepository;
@@ -78,6 +80,105 @@ public class RoomService {
     }
 
     /**
+     * Get all rooms with availability status for specific dates.
+     * If no dates provided, returns all rooms with general occupancy status.
+     *
+     * @param checkInDate check-in date (optional)
+     * @param checkOutDate check-out date (optional)
+     * @param guests number of guests (optional)
+     * @return list of rooms with availability information
+     */
+    public List<RoomAvailabilityDTO> getAllRoomsWithAvailability(
+            LocalDate checkInDate, LocalDate checkOutDate, Integer guests) {
+
+        List<Room> allRooms = roomRepository.findAll();
+
+        // Filter by capacity if guests specified
+        if (guests != null && guests > 0) {
+            allRooms = allRooms.stream()
+                    .filter(room -> room.getCapacity() >= guests)
+                    .collect(Collectors.toList());
+        }
+
+        return allRooms.stream()
+                .map(room -> {
+                    RoomAvailabilityDTO dto = new RoomAvailabilityDTO();
+                    dto.setRoom(room);
+
+                    // Assume totalRooms = 1 for each room (or use room.getTotalRooms() if you have that field)
+                    Integer totalRoomsValue = room.getTotalRooms();
+                    int totalRooms = (totalRoomsValue != null && totalRoomsValue > 0) ? totalRoomsValue : 1;
+                    dto.setTotalRooms(totalRooms);
+
+                    // Check availability for specific dates
+                    if (checkInDate != null && checkOutDate != null) {
+                        boolean isAvailable = isRoomAvailable(room.getId(), checkInDate, checkOutDate);
+                        dto.setAvailable(isAvailable);
+
+                        // Count occupied rooms for this date range
+                        List<?> overlappingReservations = reservationRepository
+                                .findOverlappingReservations(room.getId(), checkInDate, checkOutDate);
+                        int occupiedCount = overlappingReservations.size();
+                        dto.setOccupiedCount(occupiedCount);
+
+                        int availableCount = totalRooms - occupiedCount;
+                        dto.setAvailableCount(Math.max(0, availableCount));
+
+                        // Determine status and set user-friendly messages
+                        if (availableCount <= 0) {
+                            dto.setStatus(RoomAvailabilityDTO.AvailabilityStatus.FULLY_BOOKED);
+                            dto.setAvailabilityMessage("Fully Booked");
+                            dto.setAvailabilityIcon("❌");
+                        } else if (availableCount == 1) {
+                            dto.setStatus(RoomAvailabilityDTO.AvailabilityStatus.LIMITED);
+                            dto.setAvailabilityMessage("Last room available!");
+                            dto.setAvailabilityIcon("⚠️");
+                        } else if (availableCount == 2) {
+                            dto.setStatus(RoomAvailabilityDTO.AvailabilityStatus.LIMITED);
+                            dto.setAvailabilityMessage("Only 2 rooms left!");
+                            dto.setAvailabilityIcon("⚠️");
+                        } else {
+                            dto.setStatus(RoomAvailabilityDTO.AvailabilityStatus.AVAILABLE);
+                            dto.setAvailabilityMessage("Available");
+                            dto.setAvailabilityIcon("✅");
+                        }
+                    } else {
+                        // No dates specified - show general occupancy
+                        List<Reservation> allReservations = reservationRepository.findByRoom(room)
+                                .stream()
+                                .filter(r -> r.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                                           r.getStatus() == Reservation.ReservationStatus.CHECKED_IN)
+                                .collect(Collectors.toList());
+
+                        int occupiedCount = allReservations.size();
+                        dto.setOccupiedCount(occupiedCount);
+
+                        int availableCount = totalRooms - occupiedCount;
+                        dto.setAvailableCount(Math.max(0, availableCount));
+                        dto.setAvailable(availableCount > 0);
+
+                        // Status based on current occupancy (browse mode - no dates)
+                        if (availableCount <= 0) {
+                            dto.setStatus(RoomAvailabilityDTO.AvailabilityStatus.FULLY_BOOKED);
+                            dto.setAvailabilityMessage("Fully Occupied");
+                            dto.setAvailabilityIcon("🏨");
+                        } else if (availableCount < 3) {
+                            dto.setStatus(RoomAvailabilityDTO.AvailabilityStatus.LIMITED);
+                            dto.setAvailabilityMessage("Select dates to check availability");
+                            dto.setAvailabilityIcon("🏨");
+                        } else {
+                            dto.setStatus(RoomAvailabilityDTO.AvailabilityStatus.AVAILABLE);
+                            dto.setAvailabilityMessage("Select dates to check availability");
+                            dto.setAvailabilityIcon("🏨");
+                        }
+                    }
+
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Create a new room.
      *
      * @param room room entity
@@ -117,13 +218,49 @@ public class RoomService {
 
     /**
      * Delete a room.
+     * Prevents deletion if the room has any active reservations.
      *
      * @param id room ID
-     * @throws RuntimeException if room not found
+     * @throws RuntimeException if room not found or has active reservations
      */
     @Transactional
     public void deleteRoom(String id) {
         Room room = getRoomById(id);
+
+        // Check for any active reservations (PENDING, CONFIRMED, CHECKED_IN)
+        List<Reservation> activeReservations = reservationRepository.findByRoom(room)
+                .stream()
+                .filter(reservation ->
+                    reservation.getStatus() == Reservation.ReservationStatus.PENDING ||
+                    reservation.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                    reservation.getStatus() == Reservation.ReservationStatus.CHECKED_IN)
+                .collect(Collectors.toList());
+
+        if (!activeReservations.isEmpty()) {
+            throw new RuntimeException(
+                String.format("Cannot delete room '%s'. It has %d active reservation(s). " +
+                             "Please cancel all active reservations before deleting this room.",
+                             room.getName(), activeReservations.size())
+            );
+        }
+
+        // Also check for future reservations (even if checked out in the past)
+        List<Reservation> futureReservations = reservationRepository.findByRoom(room)
+                .stream()
+                .filter(reservation ->
+                    (reservation.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                     reservation.getStatus() == Reservation.ReservationStatus.PENDING) &&
+                    reservation.getCheckInDate().isAfter(LocalDate.now()))
+                .collect(Collectors.toList());
+
+        if (!futureReservations.isEmpty()) {
+            throw new RuntimeException(
+                String.format("Cannot delete room '%s'. It has %d future reservation(s). " +
+                             "Please cancel all future reservations before deleting this room.",
+                             room.getName(), futureReservations.size())
+            );
+        }
+
         roomRepository.delete(room);
     }
 

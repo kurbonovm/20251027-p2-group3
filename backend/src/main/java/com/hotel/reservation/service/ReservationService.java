@@ -1,10 +1,14 @@
 package com.hotel.reservation.service;
 
+import com.hotel.reservation.exception.RoomNotAvailableException;
 import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.model.Room;
+import com.hotel.reservation.model.RoomLock;
 import com.hotel.reservation.model.User;
 import com.hotel.reservation.repository.ReservationRepository;
+import com.hotel.reservation.repository.RoomLockRepository;
 import com.hotel.reservation.repository.RoomRepository;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,18 +32,18 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final RoomRepository roomRepository;
-    private final RoomService roomService;
+    private final RoomLockRepository roomLockRepository;
     private final com.hotel.reservation.repository.PaymentRepository paymentRepository;
     private final com.hotel.reservation.service.PaymentService paymentService;
 
     public ReservationService(ReservationRepository reservationRepository,
                               RoomRepository roomRepository,
-                              RoomService roomService,
+                              RoomLockRepository roomLockRepository,
                               @org.springframework.context.annotation.Lazy com.hotel.reservation.repository.PaymentRepository paymentRepository,
                               @org.springframework.context.annotation.Lazy com.hotel.reservation.service.PaymentService paymentService) {
         this.reservationRepository = reservationRepository;
         this.roomRepository = roomRepository;
-        this.roomService = roomService;
+        this.roomLockRepository = roomLockRepository;
         this.paymentRepository = paymentRepository;
         this.paymentService = paymentService;
     }
@@ -77,7 +81,7 @@ public class ReservationService {
 
     /**
      * Create a new reservation with overbooking prevention.
-     * Uses pessimistic locking to ensure atomic updates.
+     * Uses atomic MongoDB locking via unique index to prevent race conditions.
      *
      * @param user the user making the reservation
      * @param roomId room ID
@@ -89,7 +93,7 @@ public class ReservationService {
      * @throws RuntimeException if room is not available or capacity exceeded
      */
     @Transactional
-    public synchronized Reservation createReservation(
+    public Reservation createReservation(
             User user,
             String roomId,
             LocalDate checkInDate,
@@ -104,8 +108,20 @@ public class ReservationService {
             throw new RuntimeException("Number of guests exceeds room capacity");
         }
 
-        if (!roomService.isRoomAvailable(roomId, checkInDate, checkOutDate)) {
-            throw new RuntimeException("Room is not available for the selected dates");
+        // Check for overlapping reservations
+        List<?> overlappingReservations = reservationRepository
+                .findOverlappingReservations(roomId, checkInDate, checkOutDate);
+
+        if (!overlappingReservations.isEmpty()) {
+            throw new RoomNotAvailableException("This room is not available for the selected dates. Please choose different dates or another room.");
+        }
+
+        // Check for overlapping locks (from concurrent booking attempts)
+        List<RoomLock> overlappingLocks = roomLockRepository
+                .findOverlappingLocks(roomId, checkInDate, checkOutDate);
+
+        if (!overlappingLocks.isEmpty()) {
+            throw new RoomNotAvailableException("This room is currently being booked by another guest. Please wait a moment and try again, or choose a different room.");
         }
 
         long numberOfNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
@@ -128,11 +144,26 @@ public class ReservationService {
         // Generate secure payment link token for manager-assisted bookings
         reservation.setPaymentLinkToken(UUID.randomUUID().toString());
 
-        return reservationRepository.save(reservation);
+        // Save the reservation first to get the ID
+        Reservation savedReservation = reservationRepository.save(reservation);
+
+        // Create atomic lock using MongoDB unique index
+        // This will fail with DuplicateKeyException if another request tries to book the same dates
+        try {
+            RoomLock lock = new RoomLock(roomId, checkInDate, checkOutDate, savedReservation.getId());
+            roomLockRepository.save(lock);
+        } catch (DuplicateKeyException e) {
+            // Another booking won the race - rollback our reservation
+            reservationRepository.delete(savedReservation);
+            throw new RoomNotAvailableException("This room was just booked by another guest. Please try a different room or different dates.");
+        }
+
+        return savedReservation;
     }
 
     /**
      * Update an existing reservation.
+     * Uses atomic locking to prevent race conditions during updates.
      *
      * @param id reservation ID
      * @param checkInDate new check-in date
@@ -142,7 +173,7 @@ public class ReservationService {
      * @throws RuntimeException if reservation not found or room not available
      */
     @Transactional
-    public synchronized Reservation updateReservation(
+    public Reservation updateReservation(
             String id,
             LocalDate checkInDate,
             LocalDate checkOutDate,
@@ -160,15 +191,30 @@ public class ReservationService {
             throw new RuntimeException("Number of guests exceeds room capacity");
         }
 
+        // Check for overlapping reservations (excluding this one)
         List<?> overlappingReservations = reservationRepository
                 .findOverlappingReservations(room.getId(), checkInDate, checkOutDate)
                 .stream()
-                .filter(r -> !r.getId().equals(id))
+                .filter(r -> !((Reservation) r).getId().equals(id))
                 .collect(Collectors.toList());
 
         if (!overlappingReservations.isEmpty()) {
-            throw new RuntimeException("Room is not available for the selected dates");
+            throw new RoomNotAvailableException("This room is not available for the selected dates. Please choose different dates.");
         }
+
+        // Check for overlapping locks (excluding this reservation's lock)
+        List<RoomLock> overlappingLocks = roomLockRepository
+                .findOverlappingLocks(room.getId(), checkInDate, checkOutDate)
+                .stream()
+                .filter(lock -> !lock.getReservationId().equals(id))
+                .collect(Collectors.toList());
+
+        if (!overlappingLocks.isEmpty()) {
+            throw new RoomNotAvailableException("This room is currently being booked by another guest. Please try again in a moment.");
+        }
+
+        // Delete old lock
+        roomLockRepository.deleteByReservationId(id);
 
         long numberOfNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
         BigDecimal totalAmount = room.getPricePerNight()
@@ -179,7 +225,18 @@ public class ReservationService {
         reservation.setNumberOfGuests(numberOfGuests);
         reservation.setTotalAmount(totalAmount);
 
-        return reservationRepository.save(reservation);
+        // Save the updated reservation
+        Reservation updatedReservation = reservationRepository.save(reservation);
+
+        // Create new lock with updated dates
+        try {
+            RoomLock lock = new RoomLock(room.getId(), checkInDate, checkOutDate, id);
+            roomLockRepository.save(lock);
+        } catch (DuplicateKeyException e) {
+            throw new RoomNotAvailableException("This room became unavailable for the new dates. Please choose different dates.");
+        }
+
+        return updatedReservation;
     }
 
     /**
@@ -205,6 +262,9 @@ public class ReservationService {
         reservation.setStatus(Reservation.ReservationStatus.CANCELLED);
         reservation.setCancellationReason(reason);
         reservation.setCancelledAt(java.time.LocalDateTime.now());
+
+        // Release the room lock
+        roomLockRepository.deleteByReservationId(id);
 
         // Refund payment on Stripe if exists and succeeded
         // Skip refund logic for pending/unpaid reservations

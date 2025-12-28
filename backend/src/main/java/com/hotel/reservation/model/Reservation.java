@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -17,6 +19,9 @@ import java.time.LocalDateTime;
  * Reservation entity representing a hotel room reservation.
  * Contains booking details, guest information, and payment status.
  *
+ * Compound indexes ensure fast lookups for overlapping reservation queries
+ * and prevent double-booking scenarios.
+ *
  * @author Hotel Reservation Team
  * @version 1.0
  */
@@ -24,6 +29,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "reservations")
+@CompoundIndexes({
+    @CompoundIndex(name = "room_dates_status_idx",
+                   def = "{'room.$id': 1, 'checkInDate': 1, 'checkOutDate': 1, 'status': 1}"),
+    @CompoundIndex(name = "status_expires_idx",
+                   def = "{'status': 1, 'expiresAt': 1}")
+})
 public class Reservation {
 
     /**

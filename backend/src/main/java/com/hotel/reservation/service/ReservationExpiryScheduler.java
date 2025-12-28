@@ -2,6 +2,7 @@ package com.hotel.reservation.service;
 
 import com.hotel.reservation.model.Reservation;
 import com.hotel.reservation.repository.ReservationRepository;
+import com.hotel.reservation.repository.RoomLockRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,6 +26,7 @@ import java.util.List;
 public class ReservationExpiryScheduler {
 
     private final ReservationRepository reservationRepository;
+    private final RoomLockRepository roomLockRepository;
 
     /**
      * Scheduled task to cancel expired pending reservations.
@@ -54,6 +56,9 @@ public class ReservationExpiryScheduler {
                 reservation.setCancellationReason("Reservation expired - payment not completed within 5 minutes");
                 reservation.setCancelledAt(now);
                 reservationRepository.save(reservation);
+
+                // Release the room lock
+                roomLockRepository.deleteByReservationId(reservation.getId());
 
                 log.info("Auto-cancelled reservation {} for user {} (expired at {})",
                     reservation.getId(),

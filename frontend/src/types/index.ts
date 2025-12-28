@@ -139,6 +139,37 @@ export interface Room {
  */
 export type RoomType = 'STANDARD' | 'DELUXE' | 'SUITE' | 'PRESIDENTIAL';
 
+/**
+ * Availability status for rooms.
+ * - AVAILABLE: Rooms are available (3+ rooms available)
+ * - LIMITED: Limited availability (1-2 rooms available)
+ * - FULLY_BOOKED: No rooms available
+ */
+export type AvailabilityStatus = 'AVAILABLE' | 'LIMITED' | 'FULLY_BOOKED';
+
+/**
+ * Room with availability information.
+ * Contains room details along with real-time availability status.
+ */
+export interface RoomAvailabilityDTO {
+  /** The room entity */
+  room: Room;
+  /** Whether the room is available for the requested dates */
+  available: boolean;
+  /** Number of this room type currently occupied (for date range if provided) */
+  occupiedCount: number;
+  /** Total number of this room type */
+  totalRooms: number;
+  /** Number of rooms available */
+  availableCount: number;
+  /** Availability status: AVAILABLE, LIMITED, FULLY_BOOKED */
+  status: AvailabilityStatus;
+  /** User-friendly availability message to display */
+  availabilityMessage: string;
+  /** Icon or emoji to represent availability status */
+  availabilityIcon: string;
+}
+
 // ============================================================================
 // Reservation Types
 // ============================================================================

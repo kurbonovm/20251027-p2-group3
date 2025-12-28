@@ -107,6 +107,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle room not available exception (409 Conflict).
+     * This occurs when attempting to book a room that's already booked or being booked.
+     *
+     * @param ex room not available exception
+     * @return error response
+     */
+    @ExceptionHandler(RoomNotAvailableException.class)
+    public ResponseEntity<Map<String, Object>> handleRoomNotAvailableException(RoomNotAvailableException ex) {
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /**
      * Handle generic runtime exceptions.
      *
      * @param ex runtime exception
