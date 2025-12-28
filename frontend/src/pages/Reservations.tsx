@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -45,6 +46,7 @@ const parseDate = (dateStr: string): Date => {
  * Reservations page component to view user's reservations
  */
 const Reservations: React.FC = () => {
+  const navigate = useNavigate();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const { data: reservations, isLoading, error } = useGetUserReservationsQuery();
