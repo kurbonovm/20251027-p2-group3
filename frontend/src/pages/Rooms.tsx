@@ -29,6 +29,7 @@ import { useGetMyPreferencesQuery } from '../features/preferences/preferencesApi
 import { Room, RoomType, RoomAvailabilityDTO, AvailabilityStatus } from '../types';
 import { useSelector } from 'react-redux';
 import { selectIsAuthenticated } from '../features/auth/authSlice';
+import PendingReservationsBanner from '../components/PendingReservationsBanner';
 
 /**
  * Rooms page component to browse available rooms
@@ -332,6 +333,9 @@ const Rooms: React.FC = () => {
             Experience unparalleled comfort and elegance in our carefully curated selection of rooms
           </Typography>
         </Box>
+
+        {/* Pending Reservations Banner */}
+        {isAuthenticated && <PendingReservationsBanner />}
 
         {hasDateRange && (
           <Alert

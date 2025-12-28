@@ -19,6 +19,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 /**
  * Service for handling reservation cancellations with policy-based refunds.
@@ -60,7 +61,13 @@ public class CancellationService {
         long daysUntilCheckIn = ChronoUnit.DAYS.between(LocalDate.now(), reservation.getCheckInDate());
 
         // Check if reservation is PENDING with no successful payment
-        Payment payment = paymentRepository.findByReservationId(reservationId).orElse(null);
+        // Use findAllByReservationId to handle cases where multiple payment attempts exist
+        List<Payment> payments = paymentRepository.findAllByReservationId(reservationId);
+        Payment payment = payments.stream()
+                .filter(p -> p.getStatus() == Payment.PaymentStatus.SUCCEEDED)
+                .findFirst()
+                .orElse(payments.isEmpty() ? null : payments.get(0));
+
         boolean isPendingWithoutPayment = reservation.getStatus() == Reservation.ReservationStatus.PENDING
                 && (payment == null || payment.getStatus() != Payment.PaymentStatus.SUCCEEDED);
 
@@ -203,7 +210,12 @@ public class CancellationService {
         // Process refund if payment exists and refund amount > 0
         String refundStatus = "N/A";
         if (refundCalc.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
-            Payment payment = paymentRepository.findByReservationId(reservationId).orElse(null);
+            // Use findAllByReservationId to handle multiple payment attempts
+            List<Payment> allPayments = paymentRepository.findAllByReservationId(reservationId);
+            Payment payment = allPayments.stream()
+                    .filter(p -> p.getStatus() == Payment.PaymentStatus.SUCCEEDED)
+                    .findFirst()
+                    .orElse(null);
 
             if (payment != null && payment.getStatus() == Payment.PaymentStatus.SUCCEEDED) {
                 try {

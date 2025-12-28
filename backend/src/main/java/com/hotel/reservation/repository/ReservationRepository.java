@@ -46,6 +46,16 @@ public interface ReservationRepository extends MongoRepository<Reservation, Stri
     List<Reservation> findByRoom(Room room);
 
     /**
+     * Find all reservations for a specific room by room ID.
+     * Uses MongoDB DBRef format to query the room reference.
+     *
+     * @param roomId the room ID to search for
+     * @return list of reservations for the room
+     */
+    @Query("{ 'room.$id': ?0 }")
+    List<Reservation> findByRoomId(String roomId);
+
+    /**
      * Find reservations by status.
      *
      * @param status the reservation status
@@ -119,4 +129,14 @@ public interface ReservationRepository extends MongoRepository<Reservation, Stri
      * @return optional reservation matching the token
      */
     Optional<Reservation> findByPaymentLinkToken(String paymentLinkToken);
+
+    /**
+     * Find reservations for a specific user by user ID and status.
+     * Used to check for existing pending reservations before creating a new one.
+     *
+     * @param userId the user ID
+     * @param status the reservation status
+     * @return list of reservations matching the criteria
+     */
+    List<Reservation> findByUserIdAndStatus(String userId, Reservation.ReservationStatus status);
 }

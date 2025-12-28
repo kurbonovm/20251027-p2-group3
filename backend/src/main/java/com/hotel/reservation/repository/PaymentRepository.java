@@ -51,7 +51,18 @@ public interface PaymentRepository extends MongoRepository<Payment, String> {
     Optional<Payment> findByStripePaymentIntentId(String paymentIntentId);
 
     /**
+     * Find all payments for a reservation ID.
+     * Used when there might be multiple payment attempts for the same reservation.
+     *
+     * @param reservationId the reservation ID
+     * @return list of payments for the reservation
+     */
+    List<Payment> findAllByReservationId(String reservationId);
+
+    /**
      * Find payment by reservation ID.
+     * NOTE: This may throw an exception if multiple payments exist for the same reservation.
+     * Consider using findAllByReservationId() for safer handling.
      *
      * @param reservationId the reservation ID
      * @return Optional containing the payment if found

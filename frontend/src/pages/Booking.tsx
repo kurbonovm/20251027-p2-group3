@@ -15,13 +15,19 @@ import {
   Stepper,
   StepLabel,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { CalendarMonth, People, AttachMoney, ArrowBack } from '@mui/icons-material';
+import { CalendarMonth, People, AttachMoney, ArrowBack, Warning } from '@mui/icons-material';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
-import { useCreateReservationMutation } from '../features/reservations/reservationsApi';
+import { useCreateReservationMutation, useGetUserReservationsQuery } from '../features/reservations/reservationsApi';
 import { useCreatePaymentIntentMutation, useConfirmPaymentMutation } from '../features/payments/paymentsApi';
 import StripePaymentForm from '../components/StripePaymentForm';
+import PendingReservationsBanner from '../components/PendingReservationsBanner';
 import { Room } from '../types';
 import { PaymentIntent } from '@stripe/stripe-js';
 
@@ -90,14 +96,30 @@ const Booking: React.FC = () => {
   const [createReservation, { isLoading: isCreatingReservation }] = useCreateReservationMutation();
   const [createPaymentIntent, { isLoading: isCreatingPayment }] = useCreatePaymentIntentMutation();
   const [confirmPayment] = useConfirmPaymentMutation();
+  const { data: userReservations } = useGetUserReservationsQuery();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [reservationId, setReservationId] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [showWarningDialog, setShowWarningDialog] = useState<boolean>(false);
+  const [pendingReservationsCount, setPendingReservationsCount] = useState<number>(0);
 
   const steps = ['Review Booking', 'Payment'];
+
+  // Count active pending reservations
+  useEffect(() => {
+    if (userReservations) {
+      const now = new Date();
+      const activePending = userReservations.filter((r: any) =>
+        r.status === 'PENDING' &&
+        r.expiresAt &&
+        new Date(r.expiresAt) > now
+      );
+      setPendingReservationsCount(activePending.length);
+    }
+  }, [userReservations]);
 
   // Redirect if no booking data
   useEffect(() => {
@@ -144,7 +166,18 @@ const Booking: React.FC = () => {
   const nights = calculateNights();
   const totalAmount = nights * parseFloat(room.pricePerNight.toString());
 
+  const handleCheckPendingAndProceed = () => {
+    // Check if user has pending reservations
+    if (pendingReservationsCount > 0) {
+      setShowWarningDialog(true);
+    } else {
+      handleProceedToPayment();
+    }
+  };
+
   const handleProceedToPayment = async () => {
+    setShowWarningDialog(false);
+
     try {
       setError(null);
 
@@ -280,6 +313,9 @@ const Booking: React.FC = () => {
             </Step>
           ))}
         </Stepper>
+
+        {/* Pending Reservations Banner - exclude current reservation being paid */}
+        <PendingReservationsBanner excludeReservationId={reservationId || undefined} />
 
         {error && (
           <Alert
@@ -482,7 +518,7 @@ const Booking: React.FC = () => {
                       fullWidth
                       variant="contained"
                       size="large"
-                      onClick={handleProceedToPayment}
+                      onClick={handleCheckPendingAndProceed}
                       disabled={isCreatingReservation || isCreatingPayment}
                       startIcon={(isCreatingReservation || isCreatingPayment) ? <CircularProgress size={20} sx={{ color: isDarkMode ? '#000' : '#fff' }} /> : <AttachMoney />}
                       sx={{
@@ -534,6 +570,60 @@ const Booking: React.FC = () => {
             </Card>
           </Box>
         </Box>
+
+        {/* Warning Dialog for Existing Pending Reservations */}
+        <Dialog
+          open={showWarningDialog}
+          onClose={() => setShowWarningDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Warning sx={{ color: isDarkMode ? '#FFD700' : '#ff9800' }} />
+            <Typography variant="h6" component="span">
+              Pending Reservation{pendingReservationsCount > 1 ? 's' : ''} Detected
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              You currently have <strong>{pendingReservationsCount}</strong> pending reservation{pendingReservationsCount > 1 ? 's' : ''} that will expire soon if not paid.
+            </DialogContentText>
+            <DialogContentText sx={{ mt: 2 }}>
+              Creating another reservation will require a separate payment. Each reservation must be paid within 5 minutes or it will expire.
+            </DialogContentText>
+            <DialogContentText sx={{ mt: 2, fontWeight: 600 }}>
+              Would you like to continue with this new booking?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              onClick={() => navigate('/reservations')}
+              variant="outlined"
+              sx={{
+                color: isDarkMode ? '#FFD700' : 'primary.main',
+                borderColor: isDarkMode ? '#FFD700' : 'primary.main',
+              }}
+            >
+              View My Reservations
+            </Button>
+            <Button
+              onClick={() => setShowWarningDialog(false)}
+              variant="outlined"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleProceedToPayment}
+              variant="contained"
+              sx={{
+                background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+                color: isDarkMode ? '#000' : '#fff',
+              }}
+            >
+              Continue Anyway
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );

@@ -112,14 +112,26 @@ public class RoomService {
 
                     // Check availability for specific dates
                     if (checkInDate != null && checkOutDate != null) {
-                        boolean isAvailable = isRoomAvailable(room.getId(), checkInDate, checkOutDate);
-                        dto.setAvailable(isAvailable);
+                        // Get all reservations for this room and filter for overlaps in Java
+                        // This is more reliable than the MongoDB query which has issues with status enum matching
+                        List<Reservation> allReservations = reservationRepository.findByRoom(room);
 
-                        // Count occupied rooms for this date range
-                        List<?> overlappingReservations = reservationRepository
-                                .findOverlappingReservations(room.getId(), checkInDate, checkOutDate);
-                        int occupiedCount = overlappingReservations.size();
+                        // Filter for active reservations that overlap with the requested date range
+                        int occupiedCount = (int) allReservations.stream()
+                                .filter(r -> r.getStatus() == Reservation.ReservationStatus.PENDING ||
+                                           r.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                                           r.getStatus() == Reservation.ReservationStatus.CHECKED_IN)
+                                .filter(r -> {
+                                    // Check if reservation overlaps with the requested date range
+                                    // Overlap occurs if: reservation starts before requested end AND reservation ends after requested start
+                                    return !r.getCheckInDate().isAfter(checkOutDate.minusDays(1)) &&
+                                           !r.getCheckOutDate().isBefore(checkInDate.plusDays(1));
+                                })
+                                .count();
+
                         dto.setOccupiedCount(occupiedCount);
+                        boolean isAvailable = occupiedCount == 0;
+                        dto.setAvailable(isAvailable);
 
                         int availableCount = totalRooms - occupiedCount;
                         dto.setAvailableCount(Math.max(0, availableCount));
@@ -287,6 +299,37 @@ public class RoomService {
                     boolean passesMinPrice = minPrice == null || room.getPricePerNight().compareTo(minPrice) >= 0;
                     boolean passesMaxPrice = maxPrice == null || room.getPricePerNight().compareTo(maxPrice) <= 0;
                     return passesMinPrice && passesMaxPrice;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all booked date ranges for a specific room.
+     * Returns list of date ranges where the room is reserved (PENDING, CONFIRMED, or CHECKED_IN status).
+     * PENDING reservations are included to prevent double-booking while awaiting payment.
+     *
+     * @param roomId room ID
+     * @return list of date range maps with checkInDate and checkOutDate
+     */
+    public List<java.util.Map<String, LocalDate>> getBookedDateRanges(String roomId) {
+        // Get the room first
+        Room room = getRoomById(roomId);
+
+        // Get all active reservations for this room (PENDING, CONFIRMED, or CHECKED_IN)
+        // PENDING reservations should block dates too since they're awaiting payment
+        List<Reservation> reservations = reservationRepository.findByRoom(room).stream()
+                .filter(r -> r.getStatus() == Reservation.ReservationStatus.PENDING ||
+                           r.getStatus() == Reservation.ReservationStatus.CONFIRMED ||
+                           r.getStatus() == Reservation.ReservationStatus.CHECKED_IN)
+                .collect(Collectors.toList());
+
+        // Convert to date ranges
+        return reservations.stream()
+                .map(reservation -> {
+                    java.util.Map<String, LocalDate> dateRange = new java.util.HashMap<>();
+                    dateRange.put("checkInDate", reservation.getCheckInDate());
+                    dateRange.put("checkOutDate", reservation.getCheckOutDate());
+                    return dateRange;
                 })
                 .collect(Collectors.toList());
     }

@@ -119,6 +119,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle pending reservation exists exception (409 Conflict).
+     * This occurs when a user tries to create a new reservation while they already have a pending one.
+     * Returns the existing reservation ID so the client can redirect to payment.
+     *
+     * @param ex pending reservation exists exception
+     * @return error response with existing reservation ID
+     */
+    @ExceptionHandler(PendingReservationExistsException.class)
+    public ResponseEntity<Map<String, Object>> handlePendingReservationExistsException(PendingReservationExistsException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", HttpStatus.CONFLICT.value());
+        response.put("message", ex.getMessage());
+        response.put("existingReservationId", ex.getExistingReservationId());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    /**
      * Handle generic runtime exceptions.
      *
      * @param ex runtime exception

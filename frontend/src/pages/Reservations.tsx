@@ -135,29 +135,112 @@ const Reservations: React.FC = () => {
     setReservationToQuickCancel(null);
   };
 
-  const getStatusColor = (status: string | undefined): 'success' | 'warning' | 'error' | 'default' => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed':
+  const getStatusColor = (status: string | undefined): 'success' | 'warning' | 'error' | 'default' | 'info' => {
+    switch (status?.toUpperCase()) {
+      case 'CONFIRMED':
         return 'success';
-      case 'pending':
+      case 'PENDING':
         return 'warning';
-      case 'cancelled':
+      case 'CANCELLED':
         return 'error';
+      case 'CHECKED_IN':
+        return 'info';
+      case 'CHECKED_OUT':
+        return 'default';
       default:
         return 'default';
     }
   };
 
   const getStatusIcon = (status: string | undefined): React.ReactNode => {
-    switch (status?.toLowerCase()) {
-      case 'confirmed':
-        return <CheckCircle />;
-      case 'pending':
-        return <Schedule />;
-      case 'cancelled':
-        return <Cancel />;
+    switch (status?.toUpperCase()) {
+      case 'CONFIRMED':
+        return <CheckCircle sx={{ fontSize: '1rem' }} />;
+      case 'PENDING':
+        return <Schedule sx={{ fontSize: '1rem' }} />;
+      case 'CANCELLED':
+        return <Cancel sx={{ fontSize: '1rem' }} />;
+      case 'CHECKED_IN':
+        return <EventAvailable sx={{ fontSize: '1rem' }} />;
+      case 'CHECKED_OUT':
+        return <History sx={{ fontSize: '1rem' }} />;
       default:
         return null;
+    }
+  };
+
+  const getStatusLabel = (status: string | undefined): string => {
+    switch (status?.toUpperCase()) {
+      case 'CONFIRMED':
+        return 'Confirmed';
+      case 'PENDING':
+        return 'Awaiting Payment';
+      case 'CANCELLED':
+        return 'Cancelled';
+      case 'CHECKED_IN':
+        return 'Checked In';
+      case 'CHECKED_OUT':
+        return 'Completed';
+      default:
+        return status || 'Unknown';
+    }
+  };
+
+  const getStatusChipStyles = (status: string | undefined) => {
+    const baseStyles = {
+      fontWeight: 600,
+      fontSize: '0.813rem',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase' as const,
+      flexShrink: 0,
+      height: '32px',
+      borderRadius: '6px',
+      px: 1.5,
+    };
+
+    switch (status?.toUpperCase()) {
+      case 'CONFIRMED':
+        return {
+          ...baseStyles,
+          bgcolor: isDarkMode ? 'rgba(46, 125, 50, 0.15)' : 'rgba(46, 125, 50, 0.08)',
+          color: isDarkMode ? '#81c784' : '#2e7d32',
+          border: '1px solid',
+          borderColor: isDarkMode ? 'rgba(129, 199, 132, 0.3)' : 'rgba(46, 125, 50, 0.2)',
+        };
+      case 'PENDING':
+        return {
+          ...baseStyles,
+          bgcolor: isDarkMode ? 'rgba(237, 108, 2, 0.15)' : 'rgba(237, 108, 2, 0.08)',
+          color: isDarkMode ? '#ffb74d' : '#e65100',
+          border: '1px solid',
+          borderColor: isDarkMode ? 'rgba(255, 183, 77, 0.3)' : 'rgba(237, 108, 2, 0.2)',
+        };
+      case 'CANCELLED':
+        return {
+          ...baseStyles,
+          bgcolor: isDarkMode ? 'rgba(211, 47, 47, 0.15)' : 'rgba(211, 47, 47, 0.08)',
+          color: isDarkMode ? '#e57373' : '#c62828',
+          border: '1px solid',
+          borderColor: isDarkMode ? 'rgba(229, 115, 115, 0.3)' : 'rgba(211, 47, 47, 0.2)',
+        };
+      case 'CHECKED_IN':
+        return {
+          ...baseStyles,
+          bgcolor: isDarkMode ? 'rgba(2, 136, 209, 0.15)' : 'rgba(2, 136, 209, 0.08)',
+          color: isDarkMode ? '#4fc3f7' : '#01579b',
+          border: '1px solid',
+          borderColor: isDarkMode ? 'rgba(79, 195, 247, 0.3)' : 'rgba(2, 136, 209, 0.2)',
+        };
+      case 'CHECKED_OUT':
+        return {
+          ...baseStyles,
+          bgcolor: isDarkMode ? 'rgba(117, 117, 117, 0.15)' : 'rgba(117, 117, 117, 0.08)',
+          color: isDarkMode ? '#bdbdbd' : '#616161',
+          border: '1px solid',
+          borderColor: isDarkMode ? 'rgba(189, 189, 189, 0.3)' : 'rgba(117, 117, 117, 0.2)',
+        };
+      default:
+        return baseStyles;
     }
   };
 
@@ -269,9 +352,8 @@ const Reservations: React.FC = () => {
                     </Typography>
                     <Chip
                       icon={getStatusIcon(reservation.status)}
-                      label={reservation.status}
-                      color={getStatusColor(reservation.status)}
-                      sx={{ fontWeight: 'bold', flexShrink: 0 }}
+                      label={getStatusLabel(reservation.status)}
+                      sx={getStatusChipStyles(reservation.status)}
                     />
                   </Box>
 
