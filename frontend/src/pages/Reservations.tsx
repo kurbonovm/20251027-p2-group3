@@ -93,6 +93,34 @@ const Reservations: React.FC = () => {
     }
   };
 
+  // Simple cancellation handler for unpaid PENDING reservations
+  const handleQuickCancel = async (reservation: Reservation) => {
+    // Check if this is an unpaid PENDING reservation
+    if (reservation.status !== 'PENDING' || reservation.paymentId) {
+      // If it has a payment or is not PENDING, use the full dialog
+      setSelectedReservation(reservation);
+      setCancellationDialogOpen(true);
+      return;
+    }
+
+    // Show simple confirmation for unpaid PENDING reservations
+    const confirmed = window.confirm(
+      'Cancel this reservation? No payment was made, so you can cancel at any time without charges.'
+    );
+
+    if (!confirmed) return;
+
+    setCancelError('');
+    setCancelSuccess('');
+
+    try {
+      await cancelReservation(reservation.id).unwrap();
+      setCancelSuccess('Reservation cancelled successfully!');
+    } catch (err: any) {
+      setCancelError(err.data?.message || 'Failed to cancel reservation.');
+    }
+  };
+
   const getStatusColor = (status: string | undefined): 'success' | 'warning' | 'error' | 'default' => {
     switch (status?.toLowerCase()) {
       case 'confirmed':
@@ -352,10 +380,7 @@ const Reservations: React.FC = () => {
                           color="error"
                           size="medium"
                           startIcon={<Close />}
-                          onClick={() => {
-                            setSelectedReservation(reservation);
-                            setCancellationDialogOpen(true);
-                          }}
+                          onClick={() => handleQuickCancel(reservation)}
                           sx={{
                             borderWidth: 2,
                             color: '#ff6b6b',
