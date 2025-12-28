@@ -63,6 +63,29 @@ public class ReservationController {
     }
 
     /**
+     * Get user's current pending reservation (if any).
+     * Returns the first active pending reservation that hasn't expired.
+     *
+     * @param userPrincipal authenticated user
+     * @return pending reservation or 204 No Content if none exists
+     */
+    @GetMapping("/my-pending")
+    public ResponseEntity<Reservation> getUserPendingReservation(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        List<Reservation> pendingReservations = reservationService.getUserReservations(userPrincipal.getId())
+                .stream()
+                .filter(r -> r.getStatus() == Reservation.ReservationStatus.PENDING)
+                .filter(r -> r.getExpiresAt() != null && r.getExpiresAt().isAfter(java.time.LocalDateTime.now()))
+                .toList();
+
+        if (pendingReservations.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(pendingReservations.get(0));
+    }
+
+    /**
      * Get reservation by ID.
      *
      * @param id reservation ID

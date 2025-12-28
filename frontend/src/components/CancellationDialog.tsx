@@ -179,7 +179,7 @@ const CancellationDialog: React.FC<CancellationDialogProps> = ({
                   }}
                 >
                   <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                    {reservation?.room.name}
+                    {reservation?.room?.name || 'Room (Unavailable)'}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     Check-in: {new Date(reservation?.checkInDate || '').toLocaleDateString()}

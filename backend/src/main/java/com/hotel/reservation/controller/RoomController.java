@@ -141,4 +141,17 @@ public class RoomController {
         roomService.deleteRoom(id);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Get booked date ranges for a specific room.
+     * Returns all date ranges where the room is reserved (CONFIRMED or CHECKED_IN).
+     *
+     * @param id room ID
+     * @return list of booked date ranges
+     */
+    @GetMapping("/{id}/booked-dates")
+    public ResponseEntity<List<java.util.Map<String, LocalDate>>> getBookedDates(@PathVariable String id) {
+        List<java.util.Map<String, LocalDate>> bookedDates = roomService.getBookedDateRanges(id);
+        return ResponseEntity.ok(bookedDates);
+    }
 }

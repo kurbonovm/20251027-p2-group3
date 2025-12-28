@@ -120,6 +120,18 @@ export const roomsApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Room'],
     }),
+
+    /**
+     * Get booked date ranges for a specific room.
+     * Returns all confirmed/checked-in reservations' date ranges.
+     *
+     * @param id - Room ID
+     * @returns Array of date ranges with checkInDate and checkOutDate
+     */
+    getBookedDates: builder.query<Array<{ checkInDate: string; checkOutDate: string }>, string>({
+      query: (id) => `/rooms/${id}/booked-dates`,
+      providesTags: (result, error, id) => [{ type: 'Room', id }, 'Reservation'],
+    }),
   }),
 });
 
@@ -134,4 +146,5 @@ export const {
   useCreateRoomMutation,
   useUpdateRoomMutation,
   useDeleteRoomMutation,
+  useGetBookedDatesQuery,
 } = roomsApi;
