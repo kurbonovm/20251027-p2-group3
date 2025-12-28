@@ -16,7 +16,7 @@ import {
   StepLabel,
   useTheme,
 } from '@mui/material';
-import { CalendarMonth, People, AttachMoney } from '@mui/icons-material';
+import { CalendarMonth, People, AttachMoney, ArrowBack } from '@mui/icons-material';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe, StripeElementsOptions } from '@stripe/stripe-js';
 import { useCreateReservationMutation } from '../features/reservations/reservationsApi';
@@ -219,6 +219,21 @@ const Booking: React.FC = () => {
       }}
     >
       <Container maxWidth="lg">
+        <Button
+          variant="text"
+          startIcon={<ArrowBack />}
+          onClick={() => navigate('/rooms')}
+          sx={{
+            mb: 3,
+            color: isDarkMode ? '#FFD700' : 'primary.main',
+            '&:hover': {
+              backgroundColor: isDarkMode ? 'rgba(255,215,0,0.1)' : 'rgba(25,118,210,0.1)',
+            },
+          }}
+        >
+          Back to Rooms
+        </Button>
+
         <Typography
           variant="h3"
           gutterBottom
