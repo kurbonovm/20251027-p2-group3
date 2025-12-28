@@ -286,7 +286,7 @@ const Reservations: React.FC = () => {
                         <strong>Total Amount:</strong> ${reservation.totalAmount}
                       </Typography>
                       <Typography variant="body1" sx={{ color: isDarkMode ? 'rgba(255,255,255,0.9)' : 'text.secondary' }}>
-                        <strong>Booked on:</strong>{' '}
+                        <strong>Created on:</strong>{' '}
                         {new Date(reservation.createdAt).toLocaleDateString()}
                       </Typography>
                     </Box>
