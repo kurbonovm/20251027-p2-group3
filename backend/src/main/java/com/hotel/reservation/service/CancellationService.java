@@ -56,11 +56,31 @@ public class CancellationService {
             throw new RuntimeException("Cannot cancel completed reservation");
         }
 
-        // Get cancellation policy (can be customized per room type in future)
-        CancellationPolicy policy = CancellationPolicy.getDefaultPolicy();
-
         // Calculate days until check-in
         long daysUntilCheckIn = ChronoUnit.DAYS.between(LocalDate.now(), reservation.getCheckInDate());
+
+        // Check if reservation is PENDING with no successful payment
+        Payment payment = paymentRepository.findByReservationId(reservationId).orElse(null);
+        boolean isPendingWithoutPayment = reservation.getStatus() == Reservation.ReservationStatus.PENDING
+                && (payment == null || payment.getStatus() != Payment.PaymentStatus.SUCCEEDED);
+
+        // If reservation is pending without payment, return zero refund calculation
+        if (isPendingWithoutPayment) {
+            return RefundCalculation.builder()
+                    .originalAmount(reservation.getTotalAmount())
+                    .refundAmount(BigDecimal.ZERO)
+                    .cancellationFee(BigDecimal.ZERO)
+                    .refundPercentage(0)
+                    .daysUntilCheckIn(daysUntilCheckIn)
+                    .policyDescription("No payment required")
+                    .isFullRefund(false)
+                    .isNoRefund(true)
+                    .explanation("This reservation was not paid for, so you can cancel it at any time without any charges.")
+                    .build();
+        }
+
+        // Get cancellation policy (can be customized per room type in future)
+        CancellationPolicy policy = CancellationPolicy.getDefaultPolicy();
 
         // Calculate refund based on policy
         BigDecimal originalAmount = reservation.getTotalAmount();
@@ -235,10 +255,21 @@ public class CancellationService {
         StringBuilder message = new StringBuilder();
         message.append("Your reservation has been successfully cancelled. ");
 
+        // Check if this was an unpaid reservation
+        if ("NO_PAYMENT_FOUND".equals(refundStatus) || "PAYMENT_NOT_ELIGIBLE".equals(refundStatus)) {
+            message.append("Since no payment was made, there are no charges.");
+            return message.toString();
+        }
+
         if (refundCalc.isFullRefund()) {
             message.append(String.format("You will receive a full refund of $%.2f within 5-10 business days.", refundCalc.getRefundAmount()));
         } else if (refundCalc.isNoRefund()) {
-            message.append("Unfortunately, no refund is available due to the cancellation timing.");
+            // Check if it's truly no refund due to timing vs just no payment
+            if (refundCalc.getCancellationFee().compareTo(BigDecimal.ZERO) > 0) {
+                message.append("Unfortunately, no refund is available due to the cancellation timing.");
+            } else {
+                message.append("Since no payment was made, there are no charges.");
+            }
         } else {
             message.append(String.format("You will receive a refund of $%.2f (%d%% of the original amount) within 5-10 business days.",
                     refundCalc.getRefundAmount(), refundCalc.getRefundPercentage()));
