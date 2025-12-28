@@ -331,7 +331,7 @@ const Reservations: React.FC = () => {
                           startIcon={<CheckCircle />}
                           onClick={() => {
                             // Navigate to payment page for this reservation
-                            navigate(`/payment/${reservation.id}`);
+                            navigate(`/resume-payment/${reservation.id}`);
                           }}
                           sx={{
                             background: isDarkMode ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',

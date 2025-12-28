@@ -57,7 +57,7 @@ const App: React.FC = () => {
               }
             />
             <Route
-              path="/payment/:reservationId"
+              path="/resume-payment/:reservationId"
               element={
                 <ProtectedRoute>
                   <ResumePayment />
