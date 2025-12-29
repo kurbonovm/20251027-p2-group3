@@ -2,6 +2,22 @@
 
 A modern, full-stack hotel reservation platform for a luxury hotel in Richardson, TX with over 100 premium rooms. Built with Spring Boot, MongoDB, React, Redux, and Stripe for secure payment processing.
 
+## Live Demo
+
+🌐 **Live Application**: [https://d23blvz40tx4d1.cloudfront.net/](https://d23blvz40tx4d1.cloudfront.net/)
+
+### Demo Accounts
+
+Try the application with these pre-configured accounts:
+
+| Role | Email | Password | Permissions |
+|------|-------|----------|-------------|
+| **Guest** | guest@hotel.com | guest123 | Book rooms, manage personal reservations, view payment history |
+| **Manager** | manager@hotel.com | manager123 | All guest permissions + manage rooms, view all reservations, assisted booking |
+| **Admin** | admin@hotel.com | admin123 | Full system access including user management |
+
+> **Note**: These are demo accounts for testing purposes. Feel free to explore all features!
+
 ## Project Overview
 
 HotelX is a comprehensive hotel management system located at 123 Luxury Boulevard, Richardson, TX 75080. The platform simplifies the booking process for guests and provides hotel administrators with robust tools for managing room availability, reservations, and amenities. The solution is designed for deployment to AWS.
