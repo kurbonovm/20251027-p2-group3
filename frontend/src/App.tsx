@@ -10,6 +10,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider } from './contexts/ThemeContext';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import ThemeSync from './components/ThemeSync';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -48,6 +49,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <CssBaseline />
+      <ThemeSync />
       <Router>
         <Routes>
           <Route element={<MainLayout />}>

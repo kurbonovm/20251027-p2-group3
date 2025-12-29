@@ -79,13 +79,10 @@ const UserPreferencesSettings: React.FC = () => {
   useEffect(() => {
     if (preferences) {
       setFormData(preferences);
-
-      // Sync theme mode with preferences when loaded
-      if (preferences.themeMode === 'light' || preferences.themeMode === 'dark') {
-        setThemeMode(preferences.themeMode);
-      }
+      // Theme mode is already managed by ThemeContext from localStorage
+      // Don't automatically change theme when loading preferences
     }
-  }, [preferences, setThemeMode]);
+  }, [preferences]);
 
   const handleSwitchChange = (field: keyof UserPreferences) => (
     event: React.ChangeEvent<HTMLInputElement>
